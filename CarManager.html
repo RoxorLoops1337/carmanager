@@ -160,6 +160,11 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   border-radius:12px;padding:2px 20px;margin:10px 0 2px;transform:rotate(-4deg)}
 .oddsbar{height:9px;border-radius:6px;background:#191225;border:1px solid var(--edge);overflow:hidden;margin-top:4px}
 .oddsbar i{display:block;height:100%;border-radius:6px;transition:width .15s}
+.colpick{display:inline-block;width:34px;height:34px;border-radius:9px;margin:3px;cursor:pointer;
+  border:2px solid rgba(255,255,255,.25);box-shadow:0 2px 6px rgba(0,0,0,.4), inset 0 2px 3px rgba(255,255,255,.25);
+  transition:transform .08s}
+.colpick:hover{transform:scale(1.12);border-color:#fff}
+.colpick.cur{border:2px solid var(--amber);box-shadow:0 0 10px rgba(255,179,71,.5)}
 hr{border:none;border-top:1px dashed var(--edge);margin:10px 0}
 ::-webkit-scrollbar{width:9px}
 ::-webkit-scrollbar-thumb{background:#443659;border-radius:6px}
@@ -1120,7 +1125,7 @@ function renderGarage(){
     h+='<div class="carline" onclick="openCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
-     +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
+     +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
      +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
@@ -1139,6 +1144,7 @@ function openCar(id){
    +'<button class="btn" onclick="fixEng('+c.id+')" '+(c.eng>=95?"disabled":"")+'>🔩 Motor herstellen<br><span class="small">'+fmt(repE)+'</span></button>'
    +'<button class="btn" onclick="fixBody('+c.id+')" '+(c.body>=95?"disabled":"")+'>🎨 Koets & spuitwerk<br><span class="small">'+fmt(repB)+'</span></button>'
    +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(25000)+'</span></button>'
+   +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(RESPRAY_COST)+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
    +'</div><hr><div class="small dim">🚬 De achterkamer (Alin kent iemand):</div><div class="tablebtns">'
    +'<button class="btn shady" onclick="rollKm('+c.id+')">🔧 Teller "corrigeren"<br><span class="small">'+fmt(rollC)+' · +heat</span></button>'
@@ -1176,6 +1182,25 @@ function tuneCar(id){const c=getCar(id);
   if(G.cash-25000<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=25000;c.tuned++;popNum("⚡ +tuning","pamber");addXP(4);
   log(carName(c)+": getuned. Klinkt nu boos in de goeie zin.");save();openCar(id);hdr()}
+const RESPRAY_COST=20000;
+function resprayCar(id){
+  const c=getCar(id);if(!c)return;
+  let h="<b>🌈 De spuitcabine.</b> Kies een nieuwe kleur voor de <b>"+esc(carName(c))+"</b>. Kost "+fmt(RESPRAY_COST)+", morgen droog.<div style='margin-top:10px'>";
+  COLORS.forEach((co,i)=>{h+='<span class="colpick'+(i===c.col?' cur':'')+'" onclick="doRespray('+id+','+i+')" title="'+co.n+'" style="background:'+co.h+'"></span>'});
+  h+='</div><div class="small dim" style="margin-top:6px">Huidige kleur: <span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+'</div>';
+  modal(h,[{t:"Toch niet",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
+}
+function doRespray(id,col){
+  const c=getCar(id);if(!c)return;
+  if(col===c.col){toast("Da's exact dezelfde kleur. De spuiter kijkt raar.");return}
+  if(G.cash-RESPRAY_COST<creditLimit()){toast("Te weinig geld.");return}
+  G.cash-=RESPRAY_COST;c.col=col;save();
+  log(carName(c)+" overgespoten in "+COLORS[col].n+" ("+fmt(RESPRAY_COST)+").");
+  suspense(["🌈","🖌️","🎨","✨"],"Afplakken, spuiten, drogen...",()=>{
+    popNum("-"+fmt(RESPRAY_COST),"pred");addXP(4);stamp("VERS GESPOTEN","pink");
+    toast("🌈 De "+carName(c)+" glanst nu in "+COLORS[col].n+".");
+    openCar(id);hdr()});
+}
 function rollKm(id){const c=getCar(id);const shM=shadyMult();const cost=Math.round(8000*shM);
   modal("<b>🔧 De tellerman.</b> Een stille gast met een schroevendraaier en geen achternaam. Huidige stand: <b>"+c.km.toLocaleString().replace(/,/g,".")+" km</b>.<br><br>Nieuwe stand:"
    +'<input type="range" class="slider" id="kmsl" min="'+Math.round(c.km*.35/1000)*1000+'" max="'+c.km+'" value="'+Math.round(c.km*.6/1000)*1000+'" step="1000" oninput="updKm()">'
