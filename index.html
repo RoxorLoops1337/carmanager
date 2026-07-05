@@ -165,6 +165,19 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   transition:transform .08s}
 .colpick:hover{transform:scale(1.12);border-color:#fff}
 .colpick.cur{border:2px solid var(--amber);box-shadow:0 0 10px rgba(255,179,71,.5)}
+.conf{position:fixed;z-index:75;width:8px;height:12px;border-radius:2px;pointer-events:none;opacity:0;
+  animation:conffall 1.5s ease-in forwards}
+@keyframes conffall{0%{opacity:1;transform:translate(0,0) rotate(0)}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
+.shake{animation:shake .45s}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-7px,2px)}40%{transform:translate(6px,-3px)}
+  60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}
+.mood{font-size:24px;vertical-align:-3px}
+.scr{display:inline-block;width:64px;height:64px;line-height:62px;font-size:34px;text-align:center;
+  background:linear-gradient(180deg,#9da1ab,#6a6d75);border-radius:10px;margin:4px;cursor:pointer;
+  border:2px solid #b8bac2;box-shadow:inset 0 2px 4px rgba(255,255,255,.4), 0 3px 8px rgba(0,0,0,.4);
+  color:#4a4d55;font-weight:900;user-select:none}
+.scr.open{background:#191225;border-color:var(--edge2);cursor:default;color:inherit}
 hr{border:none;border-top:1px dashed var(--edge);margin:10px 0}
 ::-webkit-scrollbar{width:9px}
 ::-webkit-scrollbar-thumb{background:#443659;border-radius:6px}
@@ -351,12 +364,15 @@ let G=null, UID=1;
 /* ============ STATE ============ */
 function newGame(ch){
   const c=CHARS[ch];
-  MK=null;
+  MK=null;HCASH=null;
   G={ch, week:1, year:1995, cash:c.cash, rep:c.rep, heat:c.heat,
      office:0, cars:[], custs:[], log:[], plates:[], plateOrder:null,
      rb:false, smokes:0, sold:0, spent:0, earned:0, trips:0,
      xp:0, lvl:1, spun:false, wkStart:c.cash, wkSold:0,
+     mech:0, combo:0, postcards:[], lotto:false, kras:0,
+     gastonHere:false, bet:null, tip:false, recProfit:0, modelsSold:{},
      comebacks:[], mile:{}, over:false};
+  rotateTrend(true);
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
   save(); nav("office");
@@ -372,10 +388,19 @@ function heatAdd(h){G.heat=clamp(G.heat+Math.round(h*(isCh("thomas")?1.5:1)),0,1
 function repAdd(r){G.rep=clamp(G.rep+(r>0&&isCh("thomas")?r*1.5:r),0,100)}
 function addXP(n){G.xp+=n;
   while(G.xp>=G.lvl*120){G.xp-=G.lvl*120;G.lvl++;repAdd(2);
-    stamp("NIVEAU "+G.lvl+"!","gold");
-    toast("🎖️ Handelaar niveau "+G.lvl+"! Onderhandelen gaat nét iets vlotter.")}}
+    stamp("NIVEAU "+G.lvl+"!","gold");sfx("level");confetti(40);
+    toast("🎖️ "+titleFor(G.lvl)+" — niveau "+G.lvl+"! Onderhandelen gaat nét iets vlotter.")}}
 function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0;
-  G.spun=!!G.spun;if(G.wkStart==null)G.wkStart=G.cash}
+  G.spun=!!G.spun;if(G.wkStart==null)G.wkStart=G.cash;
+  G.mech=G.mech||0;G.combo=G.combo||0;G.postcards=G.postcards||[];G.lotto=!!G.lotto;
+  G.kras=G.kras||0;G.gastonHere=!!G.gastonHere;G.bet=G.bet||null;G.tip=!!G.tip;
+  G.recProfit=G.recProfit||0;G.modelsSold=G.modelsSold||{};
+  if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
+function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
+const BODN={hatch:"hatchbacks",sedan:"sedans",wagon:"breaks",coupe:"coupés",cabrio:"cabrio's",sport:"sportwagens",van:"busjes",suv:"terreinwagens"};
+function rotateTrend(quiet){G.trendBody=pick(Object.keys(BODN));
+  if(!quiet)log("📈 Gelezen in de gazet: "+BODN[G.trendBody]+" zijn plots gegeerd!")}
+function isTrend(c){return CARS[c.ci].body===G.trendBody}
 function creditLimit(){return isCh("martine")?-300000:0}
 function log(t){G.log.unshift("W"+G.week+" · "+t); if(G.log.length>40)G.log.pop()}
 function save(){try{if(typeof MK!=="undefined")G.mk=MK;localStorage.setItem("cm_save",JSON.stringify(G))}catch(e){}}
@@ -651,13 +676,17 @@ function platesTick(){G.plates.forEach(p=>p.weeks--);G.plates=G.plates.filter(p=
 function plateCode(){return "ZZ-"+ri(100,999)+"-"+String.fromCharCode(65+ri(0,25))}
 
 /* ============ CUSTOMERS ============ */
+const VIPTITLES=["Wielerkampioen","Schlagerzanger","Notaris","TV-presentator","Voorzitter van de duivenbond","Frituuruitbater op pensioen"];
 function genCustomers(){
   const n=clamp(1+OFFICES[G.office].cust-1+Math.round(G.rep/45)+ri(0,1),1,5);
   G.custs=[];
   for(let i=0;i<n;i++){
     const ty=pick(CUSTTYPES);
-    G.custs.push({id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:ty.fuss,
-      budget:Math.round(ty.want.maxB*rnd(.55,1.05)/1000)*1000,tried:false});
+    const cu={id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:ty.fuss,
+      budget:Math.round(ty.want.maxB*rnd(.55,1.05)/1000)*1000,tried:false};
+    if(Math.random()<.08){cu.vip=true;cu.name=pick(VIPTITLES)+" "+cu.name;
+      cu.budget=Math.round(cu.budget*2.2/1000)*1000;cu.fuss=Math.min(.9,cu.fuss+.2);}
+    G.custs.push(cu);
   }
 }
 function carMatches(c,w){
@@ -673,7 +702,8 @@ function carMatches(c,w){
 /* ============ WEEK TICK ============ */
 function endWeek(silent){
   const wkLbl="Week "+G.week+" '"+String(G.year).slice(2);
-  G.week++; if(G.week>52){G.week=1;G.year++;}
+  let newYear=false;
+  G.week++; if(G.week>52){G.week=1;G.year++;newYear=true;}
   const of=OFFICES[G.office];
   G.cash-=of.rent;
   let skimmed=0;
@@ -682,14 +712,47 @@ function endWeek(silent){
   if(G.cash<0)G.cash=Math.round(G.cash*1.01);
   G.heat=clamp(G.heat-2,0,100);
   G.smokes=0;
+  const extra=[];
+  // lotto draw
+  if(G.lotto){G.lotto=false;const r=Math.random();
+    if(r<.002){G.cash+=250000;stamp("LOTTO JACKPOT!","gold");confetti(90);sfx("win");extra.push(["🎟️ Lotto","JACKPOT +"+fmt(250000),"money"]);log("DE LOTTO! 250.000 BEF! Heel Essene hoort het gejoel.")}
+    else if(r<.035){G.cash+=5000;extra.push(["🎟️ Lotto","+"+fmt(5000),"money"])}
+    else if(r<.13){G.cash+=200;extra.push(["🎟️ Lotto","+200 BEF troostprijs",""])}
+    else extra.push(["🎟️ Lotto","niks. Zoals altijd.","neg"])}
+  // Gaston's bet (uses this week's sales, before reset)
+  if(G.bet){
+    if((G.wkSold||0)>=2){G.cash+=G.bet.stake*2;stamp("GASTON BETAALT!","gold");sfx("win");
+      extra.push(["🤠 Weddenschap","gewonnen! +"+fmt(G.bet.stake*2),"money"]);log("Gaston betaalt zijn weddenschap, met een klein hartje.")}
+    else{ouch();extra.push(["🤠 Weddenschap","verloren: -"+fmt(G.bet.stake),"neg"]);log("Gaston wint de weddenschap en vertelt het aan iedereen.")}
+    G.bet=null;}
+  // postcards from happy customers
+  for(const pc of G.postcards){pc.eta--;
+    if(pc.eta<=0){repAdd(1);log("💌 Kaartje van "+pc.name+": 'Nog altijd content van mijn wagen!' (+1 rep)")}}
+  G.postcards=G.postcards.filter(pc=>pc.eta>0);
+  // monthly trend
+  if(G.week%4===1){rotateTrend();extra.push(["📈 Nieuwe trend",BODN[G.trendBody],""])}
+  // who's at the gate next week
+  G.gastonHere=!G.bet&&Math.random()<.25;
+  G.tip=Math.random()<.20;
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
-  if(!silent&&!G.over)weekReport(wkLbl,delta,of.rent,skimmed);
+  if(!silent&&!G.over){if(newYear)showAwards();else weekReport(wkLbl,delta,of.rent,skimmed,extra);}
   G.wkStart=G.cash;G.wkSold=0;G.spun=false;
   save();
 }
-function weekReport(wkLbl,delta,rent,skimmed){
+function showAwards(){
+  if(modalOpen())return;
+  confetti(90);sfx("win");addXP(100);
+  const rows=[["🏆 Omzet tot nu toe",fmt(G.earned)],["🚗 Wagens verkocht",G.sold+""],
+    ["🧳 Inkooptrips",G.trips+""],["📒 Modellen verhandeld",Object.keys(G.modelsSold||{}).length+"/"+CARS.length],
+    ["🎖️ Titel",titleFor(G.lvl)+" (niv "+G.lvl+")"],
+    [G.heat<25?"😇 Propere Handen":"🔥 Vuile Handen",G.heat<25?"De inspectie kent je naam niet eens.":"Heat "+Math.round(G.heat)+". Ze kennen je koffiebestelling."]];
+  modal('<div class="center"><b>🎉 GALA VAN DE TWEEDEHANDSHANDEL</b><div class="small dim">Jaaroverzicht '+(G.year-1)+' · parochiezaal Essene · +100 XP</div></div><hr>'
+   +rows.map((r,i)=>'<div class="spread repline" style="animation-delay:'+(i*.2)+'s"><span class="dim">'+r[0]+'</span><b>'+r[1]+'</b></div>').join(""),
+  [{t:"Op naar "+G.year+"!",fn:closeModal}]);
+}
+function weekReport(wkLbl,delta,rent,skimmed,extra){
   if(modalOpen())return;
   const gr=delta>=150000?["S","#ffd76a","Kranig! Heel Essene praat erover."]
     :delta>=50000?["A","#72e08e","Sterke week. De asbak was het waard."]
@@ -703,6 +766,7 @@ function weekReport(wkLbl,delta,rent,skimmed){
   ];
   if(skimmed)lines.push(["Kassa-'verschil'","-"+fmt(skimmed),"neg"]);
   lines.push(["Stock",G.cars.length+" wagens",""],["Kandidaat-kopers",G.custs.length+"",""]);
+  if(extra)for(const e of extra)lines.push(e);
   modal('<div class="center"><b>📋 Weekrapport · '+wkLbl+'</b></div><hr>'
    +lines.map((l,i)=>'<div class="spread repline" style="animation-delay:'+(i*.16)+'s"><span class="dim">'+l[0]+'</span><b class="'+l[2]+'">'+l[1]+'</b></div>').join("")
    +'<div class="center repline" style="animation-delay:'+(lines.length*.16+.25)+'s"><span class="grade" style="color:'+gr[1]+';border-color:'+gr[1]+'">'+gr[0]+'</span>'
@@ -731,11 +795,11 @@ function inspection(){
   }else if(fakes.length>0){
     const c=fakes[0];const fine=Math.min(Math.max(50000,Math.round(trueValue(c)*.15)),250000);
     msg+="Ze bekijken de <b>"+esc(carName(c))+"</b> heel lang. De papieren kloppen niet. Wagen aangeslagen, boete van <b>"+fmt(fine)+"</b>.";
-    G.cars=G.cars.filter(x=>x.id!==c.id);G.cash-=fine;G.heat=clamp(G.heat-25,0,100);repAdd(-8);
+    ouch();G.cars=G.cars.filter(x=>x.id!==c.id);G.cash-=fine;G.heat=clamp(G.heat-25,0,100);repAdd(-8);
     log("Inspectie: "+carName(c)+" aangeslagen + boete "+fmt(fine)+".");
     modal(msg,[{t:"Verdomme.",fn:()=>{closeModal();render()}}]);
   }else{
-    const fine=40000;G.cash-=fine;G.heat=clamp(G.heat-15,0,100);
+    const fine=40000;ouch();G.cash-=fine;G.heat=clamp(G.heat-15,0,100);
     msg+="De administratie is 'onvolledig'. Boete: <b>"+fmt(fine)+"</b>. Kon erger.";
     modal(msg,[{t:"Betalen en glimlachen",fn:()=>{closeModal();render()}}]);
   }
@@ -751,6 +815,7 @@ function checkComebacks(){
       if(forgive){log(cb.name+" kwam boos terug over de "+cb.car+", maar Thomas praatte het recht met een koffie en een Red Bull.");repAdd(-1);}
       else{
         const refund=Math.round(cb.price*rnd(.2,.4)/1000)*1000;
+        ouch();
         modal("<b>😡 "+esc(cb.name)+" staat op het koertje.</b><br>De "+esc(cb.car)+" staat dampend op een takelwagen erachter. \""+esc(cb.issue)+"\", roept hij/zij, luid genoeg voor heel Essene.<br><br>",
         [{t:"Terugbetalen ("+fmt(refund)+")",fn:()=>{G.cash-=refund;repAdd(-2);log(cb.name+" deels terugbetaald: "+fmt(refund));closeModal();render()}},
          {t:"Ontkennen en wegsturen",cls:"shady",fn:()=>{repAdd(-8);heatAdd(6);log(cb.name+" boos weggestuurd. Het hele dorp praat erover.");closeModal();render()}}]);
@@ -777,12 +842,38 @@ function popNum(txt,cls){const d=document.createElement("div");d.className="pop 
 function stamp(txt,cls){const n=document.querySelectorAll(".stamp").length;
   const d=document.createElement("div");d.className="stamp "+(cls||"");d.textContent=txt;
   if(n){d.style.animationDelay=(n*.8)+"s";d.style.opacity=0}
+  sfx("thud");
   document.body.appendChild(d);setTimeout(()=>d.remove(),1550+n*800)}
+/* chiptune SFX */
+let AC=null,MUTE=false;try{MUTE=localStorage.getItem("cm_mute")==="1"}catch(e){}
+function beep(f,t0,dur,type,vol,slide){const o=AC.createOscillator(),g=AC.createGain();o.type=type||"square";
+  o.frequency.setValueAtTime(f,AC.currentTime+t0);
+  if(slide)o.frequency.exponentialRampToValueAtTime(slide,AC.currentTime+t0+dur);
+  g.gain.setValueAtTime(0,AC.currentTime+t0);g.gain.linearRampToValueAtTime(vol||.1,AC.currentTime+t0+.012);
+  g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+t0+dur);
+  o.connect(g).connect(AC.destination);o.start(AC.currentTime+t0);o.stop(AC.currentTime+t0+dur+.03)}
+function sfx(n){if(MUTE)return;
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+  ({kaching:()=>{beep(1318,0,.09,"square",.09);beep(1760,.07,.24,"square",.09)},
+    thud:()=>beep(95,0,.16,"square",.16,58),
+    tick:()=>beep(2600,0,.03,"square",.04),
+    level:()=>[523,659,784,1046].forEach((f,i)=>beep(f,i*.09,.13,"square",.08)),
+    win:()=>[784,988,1175,1568,1976].forEach((f,i)=>beep(f,i*.07,.11,"square",.08)),
+    bad:()=>beep(196,0,.28,"sawtooth",.11,110),
+    scratch:()=>beep(900,0,.045,"sawtooth",.05)})[n]()}catch(e){}}
+function toggleMute(){MUTE=!MUTE;try{localStorage.setItem("cm_mute",MUTE?"1":"0")}catch(e){}if(G)hdr();toast(MUTE?"🔇 Geluid uit":"🔊 Geluid aan")}
+function confetti(n){for(let i=0;i<(n||36);i++){const d=document.createElement("div");d.className="conf";
+  d.style.left=(20+Math.random()*60)+"%";d.style.top=(24+Math.random()*14)+"%";
+  d.style.background=pick(["#ffd76a","#ff5d9e","#72e08e","#6cc4ff","#ffb347","#e8e6df"]);
+  d.style.setProperty("--dx",(Math.random()*180-90)+"px");d.style.setProperty("--dy",(130+Math.random()*280)+"px");
+  d.style.setProperty("--rot",(Math.random()*720-360)+"deg");d.style.animationDelay=(Math.random()*.18)+"s";
+  document.body.appendChild(d);setTimeout(()=>d.remove(),1750)}}
+function ouch(){sfx("bad");document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
 let REEL_MS=950,WIV=null;
 function suspense(faces,txt,cb){
   if(!REEL_MS){cb();return}
   modal('<div class="center" style="padding:16px 0"><div class="reel" id="reelbox">'+faces[0]+'</div><div class="small dim" style="margin-top:8px">'+txt+'</div></div>',[]);
-  let i=0;const iv=setInterval(()=>{const el=$("reelbox");if(el)el.textContent=faces[++i%faces.length]},95);
+  let i=0;const iv=setInterval(()=>{const el=$("reelbox");if(el)el.textContent=faces[++i%faces.length];sfx("tick")},95);
   setTimeout(()=>{clearInterval(iv);cb()},REEL_MS);
 }
 function oddsHtml(p){const pct=Math.round(p*100);
@@ -798,15 +889,30 @@ function modal(html,btns){
 }
 function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(G)render()}
 function modalOpen(){return $("modal").style.display==="flex"}
+let HCASH=null,HTW=null;
 function hdr(){
   const h=$("hdr");h.style.display="flex";
+  if(HCASH==null)HCASH=G.cash;
   h.innerHTML='<span class="stat">📅 W'+G.week+" '"+String(G.year).slice(2)+'</span>'
-   +'<span class="stat cash"'+(G.cash<0?' style="color:var(--red)"':'')+'>💰 '+fmt(G.cash)+'</span>'
+   +'<span class="stat cash"'+(G.cash<0?' style="color:var(--red)"':'')+' title="'+titleFor(G.lvl||1)+'">💰 <span id="hcash">'+fmt(HCASH)+'</span></span>'
    +'<span class="stat"><span class="repv">★</span> '+Math.round(G.rep)+'</span>'
    +'<span class="stat"><span class="heatv">🔥</span> '+Math.round(G.heat)+'</span>'
    +'<span class="stat">🎖️ '+(G.lvl||1)+'</span>'
    +(validPlate()?'<span class="stat"><span class="plate">'+bestPlate().code+'</span>&nbsp;'+bestPlate().weeks+'w</span>':'')
-   +(G.rb?'<span class="stat">🪽 Red Bull actief</span>':'');
+   +(G.rb?'<span class="stat">🪽</span>':'')
+   +'<span class="stat" style="cursor:pointer" onclick="toggleMute()">'+(MUTE?"🔇":"🔊")+'</span>';
+  tweenCash();
+}
+function tweenCash(){
+  if(HTW){cancelAnimationFrame(HTW);HTW=null}
+  const from=HCASH,to=G.cash;
+  if(from===to)return;
+  const t0=performance.now(),dur=450;
+  const step=t=>{const k=Math.min(1,(t-t0)/dur);
+    HCASH=Math.round(from+(to-from)*k);
+    const el=$("hcash");if(el)el.textContent=fmt(HCASH);
+    HTW=k<1?requestAnimationFrame(step):null};
+  HTW=requestAnimationFrame(step);
 }
 const TABS=[["office","🏢","Bureau"],["travel","🗺️","Inkoop"],["garage","🔧","Garage"],["sell","🤝","Verkoop"],["plates","🔴","ZZ-platen"]];
 let CUR="office";
@@ -843,7 +949,7 @@ function renderStart(){
   }
   $("view").innerHTML=h;
 }
-function contGame(){G=loadSave();MK=G.mk||null;migrate();syncUID();render()}
+function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;migrate();syncUID();render()}
 function pickChar(k){
   modal("<b>"+CHARS[k].face+" "+CHARS[k].n+"</b> neemt de sleutels van het koertje in Essene. De asbak staat klaar, de frigo is gevuld met Red Bull.<br><br>Startkapitaal: <b>"+fmt(CHARS[k].cash)+"</b>",
    [{t:"Aan de slag",fn:()=>{closeModal();newGame(k)}},{t:"Toch niet",cls:"ghost",fn:closeModal}]);
@@ -863,27 +969,107 @@ function renderOffice(){
   }
   h+='</div>';
   const xpNeed=G.lvl*120;
-  h+='<div class="card"><div class="spread"><h3 style="margin:0">🎖️ Handelaar niveau '+G.lvl+'</h3><span class="small dim">'+G.xp+' / '+xpNeed+' XP</span></div>'
+  h+='<div class="card"><div class="spread"><h3 style="margin:0">🎖️ '+titleFor(G.lvl)+' · niveau '+G.lvl+'</h3><span class="small dim">'+G.xp+' / '+xpNeed+' XP</span></div>'
    +'<div class="bar" style="margin-top:6px"><i style="width:'+Math.min(100,Math.round(G.xp/xpNeed*100))+'%;background:linear-gradient(90deg,var(--amber),#ffd76a)"></i></div>'
    +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div></div>';
+  if(G.gastonHere&&!G.bet){
+    h+='<div class="card"><h3>🤠 Gaston staat aan de poort</h3>'
+     +'<div class="small dim">Rivaal-handelaar Gaston, tandenstoker in de mondhoek: "Wedden om <b>20.000</b> da\'k gij deze week geen 2 wagens verkocht krijgt?"</div>'
+     +'<button class="btn shady" onclick="takeBet()">🤝 Aannemen (inzet 20.000 BEF)</button>'
+     +'<button class="btn ghost" onclick="G.gastonHere=false;render()">Wegjagen</button></div>';
+  }
+  if(G.tip){
+    h+='<div class="card"><h3>🗞️ Er doet een tip de ronde</h3>'
+     +'<div class="small dim">"Een boer in Aalst heeft al jaren iets onder een zeil in de schuur staan." Het adres kost <b>5.000 BEF</b>. 🎲 ±45% dat het wat is.</div>'
+     +'<button class="btn shady" onclick="followTip()">🚜 Erheen rijden (5.000 BEF)</button></div>';
+  }
   h+='<div class="card"><h3>☕ Op het bureau</h3><div class="tablebtns">'
    +'<button class="btn primary" onclick="doEndWeek()">⏭ Week afsluiten</button>'
    +'<button class="btn" onclick="smoke()" '+(G.smokes>=3?"disabled":"")+'>🚬 Sigaret op het koertje</button>'
    +'<button class="btn" onclick="redbull()" '+(G.rb?"disabled":"")+'>🪽 Red Bull (60 BEF)</button>'
    +'<button class="btn shady" onclick="spinWheel()" '+(G.spun?"disabled":"")+'>🎡 Rad van Koudenberg'+(G.spun?"<br><span class=\'small\'>volgende week weer</span>":"<br><span class=\'small\'>1× gratis per week</span>")+'</button>'
-   +'</div><div class="small dim" style="margin-top:6px">Roken kalmeert de zenuwen (-1 heat, max 3/week). Een Red Bull scherpt je volgende onderhandeling aan. Het rad hangt aan de bushalte en niemand weet wie het onderhoudt.</div></div>';
+   +'<button class="btn" onclick="buyLotto()" '+(G.lotto?"disabled":"")+'>🎟️ Lotto-briefje'+(G.lotto?"<br><span class=\'small\'>trekking bij weekafsluiting</span>":"<br><span class=\'small\'>100 BEF</span>")+'</button>'
+   +(G.kras>0?'<button class="btn" onclick="scratchLot()">🎫 Kraslot krassen ('+G.kras+')</button>':'')
+   +'</div><div class="small dim" style="margin-top:6px">Roken kalmeert de zenuwen (-1 heat, max 3/week). Een Red Bull scherpt je volgende onderhandeling aan. De lotto-trekking is bij de weekafsluiting; krasloten krijg je soms aan het tankstation.</div></div>';
   h+='<div class="card"><h3>📻 Logboek</h3>'+(G.log.length?G.log.map(l=>'<div class="logline">'+esc(l)+'</div>').join(""):'<span class="dim">Nog niets gebeurd.</span>')+'</div>';
   h+='<div class="card flat small"><div class="tablebtns">'
    +'<button class="btn ghost" onclick="exportSave()">💾 Export save</button>'
    +'<button class="btn ghost" onclick="importSave()">📥 Import save</button>'
    +'<button class="btn ghost" onclick="confirmRestart()">🗑️ Nieuw spel</button></div>'
-   +'<div class="dim" style="margin-top:6px">Verkocht: '+G.sold+' · Trips: '+G.trips+' · Omzet: '+fmt(G.earned)+'</div></div>';
+   +'<div class="dim" style="margin-top:6px">Verkocht: '+G.sold+' · Trips: '+G.trips+' · Omzet: '+fmt(G.earned)
+   +'<br>📒 Modellen verhandeld: '+Object.keys(G.modelsSold||{}).length+'/'+CARS.length
+   +(G.recProfit?' · 🏅 Recordwinst: '+fmt(G.recProfit):'')+'</div></div>';
   $("view").innerHTML=h;
 }
 function doEndWeek(){endWeek();log("Week afgesloten. Huur betaald, asbak geleegd.");render()}
 function smoke(){if(G.smokes>=3)return;G.smokes++;G.heat=clamp(G.heat-1,0,100);
   toast(pick(["🚬 Ahh. Dat lucht op.","🚬 Peuk erbij aan halte Koudenberg.","🚬 De zenuwen zakken."]));render()}
 function redbull(){if(G.rb)return;if(G.cash-60<creditLimit()){toast("Te weinig geld.");return}G.cash-=60;G.rb=true;toast("🪽 Vleugels! Volgende onderhandeling +");render()}
+function buyLotto(){
+  if(G.lotto)return;
+  if(G.cash-100<creditLimit()){toast("Te weinig geld.");return}
+  G.cash-=100;G.lotto=true;save();
+  toast("🎟️ Lotto-briefje gekocht. Trekking bij de weekafsluiting!");render();
+}
+function takeBet(){
+  if(G.bet)return;
+  if(G.cash-20000<creditLimit()){toast("Te weinig geld om te wedden.");return}
+  G.cash-=20000;G.bet={stake:20000};G.gastonHere=false;save();
+  toast("🤠 Weddenschap met Gaston: verkoop deze week 2 wagens en win 40.000.");render();
+}
+function followTip(){
+  if(!G.tip)return;
+  if(G.cash-5000<creditLimit()){toast("Te weinig geld voor de tip.");return}
+  G.tip=false;G.cash-=5000;save();
+  suspense(["🚜","🛖","🐄","🌾"],"Met de camionette naar Aalst, zeil eraf...",()=>{
+    if(Math.random()<.45){
+      const c=genCar("ua");c.transit=false;
+      const offer=Math.round(trueValue(c)*.55/1000)*1000;
+      sfx("win");
+      modal(mkCarSheet(c,false)+'<hr>De boer wil er <b class="money">'+fmt(offer)+'</b> voor. "Hij staat hier al sinds den overstroming van \'88."',
+      [{t:"Kopen ("+fmt(offer)+")",fn:()=>{
+          if(G.cash-offer<creditLimit()){toast("Te weinig geld.");return}
+          G.cash-=offer;c.paid=offer;c.known=c.quirks.slice();if(c.rolled)c.known.push("__rolled");
+          G.cars.push(c);stamp("SCHUURVONDST!","gold");confetti(40);sfx("kaching");addXP(15);
+          log("Schuurvondst in Aalst gekocht: "+carName(c)+" ("+fmt(offer)+").");closeModal()}},
+       {t:"Laten staan",cls:"ghost",fn:closeModal}]);
+    }else{
+      ouch();
+      modal("Onder het zeil: een roestige kruiwagen en een halve Manta zonder motor. De boer haalt zijn schouders op. De tip was blijkbaar 5.000 BEF waard.",
+       [{t:"Tja.",fn:closeModal}]);
+      log("De tip uit Aalst was een kruiwagen. Letterlijk.");
+    }});
+}
+let KR=null;
+function scratchLot(){
+  if(!(G.kras>0)){toast("Geen krasloten.");return}
+  G.kras--;save();
+  const SYM=["💰","💎","🍀","🚗","🚬"];
+  let cells;const r=Math.random();
+  if(r<.02)cells=["💎","💎","💎"];
+  else if(r<.12)cells=["💰","💰","💰"];
+  else if(r<.25)cells=["🍀","🍀","🍀"];
+  else{do{cells=[pick(SYM),pick(SYM),pick(SYM)]}while(cells[0]===cells[1]&&cells[1]===cells[2])}
+  KR={cells,open:0};
+  modal('<b>🎫 Kraslot "Rap Rijk".</b> Kras de drie vakjes met je duimnagel.'
+   +'<div class="center" style="margin-top:10px">'+[0,1,2].map(i=>'<span class="scr" id="scr'+i+'" onclick="scratch('+i+')">?</span>').join("")+'</div>'
+   +'<div class="center small dim">3 dezelfde = prijs · 💎 50.000 · 💰 10.000 · 🍀 +3 rep</div>',
+  [{t:"Weg ermee",cls:"ghost",fn:()=>{KR=null;closeModal()}}]);
+}
+function scratch(i){
+  if(!KR)return;
+  const el=$("scr"+i);if(!el||el.classList.contains("open"))return;
+  el.classList.add("open");el.textContent=KR.cells[i];sfx("scratch");KR.open++;
+  if(KR.open===3){
+    const w=KR.cells[0]===KR.cells[1]&&KR.cells[1]===KR.cells[2]?KR.cells[0]:null;KR=null;
+    setTimeout(()=>{
+      if(w==="💎"){G.cash+=50000;stamp("50.000 GEKRAST!","gold");confetti(70);sfx("win");popNum("+"+fmt(50000),"pgreen");log("Kraslot: 50.000 BEF! De frituur trakteert vanavond.")}
+      else if(w==="💰"){G.cash+=10000;stamp("PRIJS!","gold");sfx("kaching");popNum("+"+fmt(10000),"pgreen")}
+      else if(w==="🍀"){repAdd(3);stamp("+3 REP","pink");popNum("+3 ★","pamber")}
+      else toast("Niks. Het zilverstof blijft aan je duim plakken.");
+      save();hdr()},450);
+  }
+}
 const WHEEL=[
  {e:"💰",t:"+15.000 BEF uit de pot!",w:20,fn:()=>{G.cash+=15000;popNum("+15.000 BEF","pgreen")}},
  {e:"💎",t:"JACKPOT: +50.000 BEF!",w:5,fn:()=>{G.cash+=50000;popNum("+50.000 BEF","pgreen");stamp("JACKPOT!","gold")}},
@@ -891,7 +1077,7 @@ const WHEEL=[
  {e:"🧯",t:"-6 heat. Iemand vergeet een dossier.",w:14,fn:()=>{G.heat=clamp(G.heat-6,0,100);popNum("-6 🔥","pblue")}},
  {e:"🪽",t:"Gratis Red Bull. Vleugels!",w:14,fn:()=>{G.rb=true;popNum("🪽","pblue")}},
  {e:"🚬",t:"Een halve sigaret. Da's het dan.",w:23,fn:()=>{}},
- {e:"👮",t:"+4 heat. De wijkagent zag je draaien.",w:8,fn:()=>{heatAdd(4);popNum("+4 🔥","pred")}},
+ {e:"👮",t:"+4 heat. De wijkagent zag je draaien.",w:8,fn:()=>{heatAdd(4);popNum("+4 🔥","pred");ouch()}},
 ];
 function spinWheel(){
   if(G.spun){toast("Al gedraaid deze week.");return}
@@ -906,7 +1092,7 @@ function spinWheel(){
   if(!REEL_MS){land();return}
   modal('<div class="center" style="padding:14px 0"><div class="reel" id="reelbox">🎡</div><div class="small dim" style="margin-top:8px">Het rad ratelt aan bushalte Koudenberg...</div></div>',
    [{t:"✋ STOP",cls:"primary",fn:land}]);
-  let i=0;WIV=setInterval(()=>{const el=$("reelbox");if(el)el.textContent=WHEEL[i++%WHEEL.length].e},85);
+  let i=0;WIV=setInterval(()=>{const el=$("reelbox");if(el)el.textContent=WHEEL[i++%WHEEL.length].e;sfx("tick")},85);
 }
 function upgradeOffice(){
   modal("Verhuizen naar de showroom in <b>Zellik</b> voor <b>"+fmt(OFFICES[1].cost)+"</b>?<br><br>Meer passage, TL-verlichting, en een frigo die nooit leeg raakt. De huur is wel "+fmt(OFFICES[1].rent)+" per week.",
@@ -1061,10 +1247,10 @@ function evCustoms(next){
       if(G.cash-bribe<creditLimit()){toast("Geen cash genoeg om te 'regelen'.");return}
       G.cash-=bribe;
       if(Math.random()<(isCh("alan")?.95:.7)){heatAdd(4);log("Douanier 'geregeld' aan de grens. (-"+fmt(bribe)+")");closeModal();modal("Het bankbiljet verdwijnt in een borstzak. \"Goeie reis verder.\" ",[{t:"Gas geven",fn:()=>{closeModal();next()}}])}
-      else{heatAdd(12);G.cash-=fine;log("Omkoping mislukt! Boete "+fmt(fine)+" en een nota in een dossier ergens.");closeModal();modal("Verkeerde douanier. Hij schrijft ALLES op. Boete: <b>"+fmt(fine)+"</b>, plus de omkoopsom is hij ook 'kwijt'.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}},
+      else{ouch();heatAdd(12);G.cash-=fine;log("Omkoping mislukt! Boete "+fmt(fine)+" en een nota in een dossier ergens.");closeModal();modal("Verkeerde douanier. Hij schrijft ALLES op. Boete: <b>"+fmt(fine)+"</b>, plus de omkoopsom is hij ook 'kwijt'.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}},
    {t:"😇 Gladpraten <span class='small'>🎲 ±"+(isCh("thomas")?65:30)+"%</span>",fn:()=>{
       if(Math.random()<(isCh("thomas")?.65:.3)){log("Uit een controle gepraat aan de grens. Charme werkt.");closeModal();modal("Vijf minuten over het weer, voetbal, en de kwaliteit van Duitse autosnelwegen later... wuift hij je door. Ongelooflijk.",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}])}
-      else{G.cash-=fine;heatAdd(8);
+      else{ouch();G.cash-=fine;heatAdd(8);
         let txt="Hij trapt er niet in. Boete: <b>"+fmt(fine)+"</b>.";
         if(risky.length&&Math.random()<.5){const c=risky[0];MK.bought=MK.bought.filter(x=>x.id!==c.id);txt+="<br>Erger: de <b>"+esc(carName(c))+"</b> wordt aangeslagen. Papieren 'ter controle'. Die zie je nooit terug.";log(carName(c)+" aangeslagen aan de grens.")}
         closeModal();modal(txt,[{t:"Au.",fn:()=>{closeModal();next()}}])}}},
@@ -1109,8 +1295,9 @@ function evMechanic(next){
   [{t:"Merci, kameraad",fn:()=>{closeModal();next()}}]);
 }
 function evRedbull(next){
-  modal("<b>⛽ Tankstop.</b> "+chr().n+" koopt een bak Red Bull en twee pakjes sigaretten (<b>"+fmt(500)+"</b>). De nacht is nog lang en de E40 is nog langer.",
-  [{t:"Vleugels!",fn:()=>{G.cash-=500;G.rb=true;closeModal();next()}}]);
+  const kras=Math.random()<.6;
+  modal("<b>⛽ Tankstop.</b> "+chr().n+" koopt een bak Red Bull en twee pakjes sigaretten (<b>"+fmt(500)+"</b>)."+(kras?" De pompbediende geeft er een <b>kraslot</b> bij. \"Actie van de week.\"":"")+" De nacht is nog lang en de E40 is nog langer.",
+  [{t:"Vleugels!",fn:()=>{G.cash-=500;G.rb=true;if(kras){G.kras=(G.kras||0)+1;toast("🎫 Kraslot op zak! Krassen kan op het bureau.")}closeModal();next()}}]);
 }
 function evFlavor(next){
   modal("<b>"+pick(["🛣️ De radio speelt een cassette van Vaya Con Dios.","🛣️ Kilometers vlakte. "+chr().n+" telt de Ladas in de tegenrichting: zeventien.","🛣️ Een bord: 'ANTWERPEN 612 km'. Zucht. Sigaret. Red Bull. Rijden.","🛣️ Aan een parking staat exact dezelfde trailer als de jouwe. Jullie knikken naar elkaar. Handelaars-solidariteit."])+"</b>",
@@ -1119,14 +1306,16 @@ function evFlavor(next){
 
 /* ============ GARAGE ============ */
 function renderGarage(){
-  let h='<h2>🔧 Garage & Stock</h2>';
-  if(G.cars.length===0)h+='<div class="card center dim">Leeg koertje. Tijd voor een inkooptrip.</div>';
+  const st=Math.min(5,Math.floor((G.mech||0)/12));
+  let h='<div class="spread"><h2 style="margin:0">🔧 Garage & Stock</h2>'
+   +'<span class="pill" title="De monteur wordt beter met elke klus">👨‍🔧 '+"★".repeat(st)+"☆".repeat(5-st)+'</span></div>';
+  if(G.cars.length===0)h+='<div class="card center dim" style="margin-top:10px">Leeg koertje. Tijd voor een inkooptrip.</div>';
   for(const c of G.cars){
     h+='<div class="carline" onclick="openCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
@@ -1153,7 +1342,10 @@ function openCar(id){
   modal(h,[{t:"Sluiten",cls:"ghost",fn:closeModal}]);
 }
 function getCar(id){return G.cars.find(x=>x.id===id)}
-function repairRoll(){const r=Math.random();return r<.15?2:r<.27?0:1} // 2=crit 0=botch 1=normal
+function repairRoll(){const m=G.mech||0,r=Math.random(); // mechanic skill: more crits, fewer botches
+  const crit=.15+m*.002,botch=.12*(1-m/80);
+  G.mech=Math.min(60,m+2);
+  return r<crit?2:r<crit+botch?0:1} // 2=crit 0=botch 1=normal
 function fixEng(id){const c=getCar(id);const cost=Math.round((100-c.eng)/100*CARS[c.ci].base*.22/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;
@@ -1224,10 +1416,13 @@ function fixPapers(id){const c=getCar(id);const shM=shadyMult();const cost=Math.
 }
 /* ============ SELL ============ */
 function renderSell(){
-  let h='<h2>🤝 Verkoop</h2>';
+  let h='<h2>🤝 Verkoop</h2>'
+   +'<div class="row" style="margin-bottom:8px"><span class="pill warn">📈 Trend: '+BODN[G.trendBody]+' (+12%)</span>'
+   +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
+   +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">🙋 '+cu.name+'</h3>'
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">🙋 '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -1258,6 +1453,7 @@ function hiddenIssues(c){
 }
 function percFor(cu,c,disclosed){
   let perc=askValue(c)*(carMatches(c,cu.want)?1.06:.82)*OFFICES[G.office].bonus*(isCh("martine")?1.05:1);
+  if(isTrend(c))perc*=1.12;
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
   return perc;
 }
@@ -1271,12 +1467,14 @@ function openNeg(cid,carId){
   const base=askValue(c);
   const iss=hiddenIssues(c);
   const v0=Math.round(base*1.05/1000)*1000;
-  let h='<b>🙋 '+cu.name+'</b> bekijkt de <b>'+esc(carName(c))+'</b>. '+pick(["Schopt tegen een band.","Vraagt of er nog koffie is.","Ruikt aan het interieur.","Vraagt 'wat is er mis mee?' Grapje. Half."])+'<hr>'
+  const p0=sellOdds(cu,v0,percFor(cu,c,[]));
+  let h='<span class="mood" id="mood">'+(p0>.65?"😍":p0>.45?"🙂":p0>.3?"🤨":"😬")+'</span> <b>'+cu.name+'</b>'+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+' bekijkt de <b>'+esc(carName(c))+'</b>. '+pick(["Schopt tegen een band.","Vraagt of er nog koffie is.","Ruikt aan het interieur.","Vraagt 'wat is er mis mee?' Grapje. Half."])+'<hr>'
+   +(isTrend(c)?'<div class="small"><span class="pill warn">📈 in trend: '+BODN[G.trendBody]+' (+12%)</span></div>':'')
    +'<div class="small dim">Marktwaarde zoals hij op het koertje staat: <b class="money">'+fmt(base)+'</b></div>'
    +'<div class="small dim">Jouw vraagprijs:</div>'
    +'<input type="range" class="slider" id="prsl" min="'+Math.round(base*.5/1000)*1000+'" max="'+Math.round(base*1.6/1000)*1000+'" value="'+v0+'" step="1000" oninput="updPr()">'
    +'<div class="center"><b id="prv" class="money">'+fmt(v0)+'</b></div>'
-   +'<div id="odds2">'+oddsHtml(sellOdds(cu,v0,percFor(cu,c,[])))+'</div>';
+   +'<div id="odds2">'+oddsHtml(p0)+'</div>';
   if(iss.length){
     h+='<hr><div class="small">🤫 Wat je <b>niet</b> per se moet vertellen:</div>'
      +iss.map(i=>'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" class="dis" value="'+i.id+'" onchange="updPr()"> eerlijk zeggen: '+esc(i.t)+'</label>').join("")
@@ -1290,7 +1488,9 @@ function updPr(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   if(!cu||!c||!$("odds2"))return;
   const disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  $("odds2").innerHTML=oddsHtml(sellOdds(cu,price,percFor(cu,c,disclosed)));
+  const p=sellOdds(cu,price,percFor(cu,c,disclosed));
+  $("odds2").innerHTML=oddsHtml(p);
+  const md=$("mood");if(md)md.textContent=p>.65?"😍":p>.45?"🙂":p>.3?"🤨":"😬";
 }
 function trySell(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
@@ -1304,6 +1504,7 @@ function trySell(){
   const win=!bust&&Math.random()<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
     if(bust){
+      G.combo=0;
       modal(cu.name+" lacht groen. \"Dat is boven mijn budget, zelfs als ik mijn schoonmoeder verkoop.\" En weg.",[{t:"Volgende",fn:()=>{G.custs=G.custs.filter(x=>x.id!==NEG.cid);closeModal();render()}}]);return;
     }
     if(win){
@@ -1318,20 +1519,38 @@ function trySell(){
       const counter=Math.round(Math.min(perc*rnd(.85,.96),cu.budget)/1000)*1000;
       modal(cu.name+" wrijft over de kin. \"Hmm. <b>"+fmt(counter)+"</b>. Meer heb ik er niet voor over.\"",
       [{t:"Deal ("+fmt(counter)+")",fn:()=>doSale(cu,c,counter,disclosed,iss)},
-       {t:"Nee, vaste prijs",cls:"ghost",fn:()=>{G.custs=G.custs.filter(x=>x.id!==NEG.cid);closeModal();render();toast(cu.name+" vertrekt hoofdschuddend.")}}]);
+       {t:"Nee, vaste prijs",cls:"ghost",fn:()=>{G.combo=0;G.custs=G.custs.filter(x=>x.id!==NEG.cid);closeModal();render();toast(cu.name+" vertrekt hoofdschuddend.")}}]);
     }
   });
 }
 function doSale(cu,c,price,disclosed,iss){
   G.cash+=price;G.earned+=price;G.sold++;G.wkSold=(G.wkSold||0)+1;
-  stamp("DEAL!","gold");popNum("+"+fmt(price),"pgreen");
+  stamp("DEAL!","gold");popNum("+"+fmt(price),"pgreen");sfx("kaching");confetti(26);
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
+  // combo streak
+  G.combo=(G.combo||0)+1;
+  if(G.combo>=2){stamp("COMBO ×"+G.combo,"pink");addXP(Math.min(G.combo-1,5)*8)}
+  // pearl: flawless car sold
+  if(c.eng>=95&&c.body>=95){stamp("PAREL!","pink");repAdd(2);addXP(10)}
+  // VIP customer
+  if(cu.vip){stamp("VIP KLANT!","pink");repAdd(5);addXP(20);log("⭐ "+cu.name+" vertelt het op café én op de radio.")}
+  // collection
+  G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
+  const nm=Object.keys(G.modelsSold).length,M=G.mile;
+  if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
+  if(!M.c25&&nm>=25){M.c25=1;stamp("25 MODELLEN","gold");addXP(60)}
+  if(!M.c50&&nm>=50){M.c50=1;stamp("50 MODELLEN","gold");confetti(60);addXP(120)}
   G.cars=G.cars.filter(x=>x.id!==c.id);
   G.custs=G.custs.filter(x=>x.id!==cu.id);
   const hiddenLeft=iss.filter(i=>!disclosed.includes(i.id));
   const honest=hiddenLeft.length===0;
   repAdd(honest?3:1);
+  if(honest&&Math.random()<.3)G.postcards.push({eta:ri(2,5),name:cu.name});
   const profit=price-(c.paid||0);
+  // record profit
+  if(profit>(G.recProfit||0)){
+    if(G.recProfit>0){stamp("RECORDWINST!","gold");confetti(40)}
+    G.recProfit=profit;}
   log(carName(c)+" verkocht aan "+cu.name+" voor "+fmt(price)+" ("+(profit>=0?"winst ":"verlies ")+fmt(Math.abs(profit))+")."+(honest?"":" Sommige details zijn... onvermeld gebleven."));
   if(!honest){
     heatAdd(3);
