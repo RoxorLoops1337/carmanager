@@ -324,6 +324,7 @@ let G=null, UID=1;
 /* ============ STATE ============ */
 function newGame(ch){
   const c=CHARS[ch];
+  MK=null;
   G={ch, week:1, year:1995, cash:c.cash, rep:c.rep, heat:c.heat,
      office:0, cars:[], custs:[], log:[], plates:[], plateOrder:null,
      rb:false, smokes:0, sold:0, spent:0, earned:0, trips:0,
@@ -343,8 +344,11 @@ function heatAdd(h){G.heat=clamp(G.heat+Math.round(h*(isCh("thomas")?1.5:1)),0,1
 function repAdd(r){G.rep=clamp(G.rep+(r>0&&isCh("thomas")?r*1.5:r),0,100)}
 function creditLimit(){return isCh("martine")?-300000:0}
 function log(t){G.log.unshift("W"+G.week+" · "+t); if(G.log.length>40)G.log.pop()}
-function save(){try{localStorage.setItem("cm_save",JSON.stringify(G))}catch(e){}}
+function save(){try{if(typeof MK!=="undefined")G.mk=MK;localStorage.setItem("cm_save",JSON.stringify(G))}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem("cm_save");return s?JSON.parse(s):null}catch(e){return null}}
+function syncUID(){let m=0;const scan=a=>{for(const x of a||[])if(x.id>m)m=x.id};
+  scan(G.cars);scan(G.custs);if(G.mk){scan(G.mk.cars);scan(G.mk.bought)}
+  UID=Math.max(UID,m+1)}
 
 /* ============ CARS ============ */
 function fairValue(c,shown,knowAll){
@@ -658,7 +662,7 @@ function randomOffice(){
   ])();
 }
 function inspection(){
-  if(G.heat<60||Math.random()>(G.heat-50)/120)return;
+  if(G.heat<60||modalOpen()||Math.random()>(G.heat-50)/120)return;
   const fakes=G.cars.filter(c=>c.papers===2||c.hot);
   let msg="<b>💼 Economische Inspectie valt binnen.</b><br>Twee heren in regenjas, map onder de arm. Ze ruiken aan de koffie en vragen naar de boekhouding.<br><br>";
   if(fakes.length===0&&G.heat<80){
@@ -678,9 +682,12 @@ function inspection(){
   }
 }
 function checkComebacks(){
+  let shown=false;
   for(const cb of G.comebacks){
     cb.eta--;
-    if(cb.eta===0){
+    if(cb.eta<=0){
+      if(shown){cb.eta=1;continue}
+      shown=true;
       const forgive=isCh("thomas")&&Math.random()<.5;
       if(forgive){log(cb.name+" kwam boos terug over de "+cb.car+", maar Thomas praatte het recht met een koffie en een Red Bull.");repAdd(-1);}
       else{
@@ -712,11 +719,12 @@ function modal(html,btns){
     el.innerHTML=b.t;el.onclick=b.fn;bb.appendChild(el)});
   $("modal").style.display="flex";
 }
-function closeModal(){$("modal").style.display="none";stop3D()}
+function closeModal(){$("modal").style.display="none";stop3D();if(G)render()}
+function modalOpen(){return $("modal").style.display==="flex"}
 function hdr(){
   const h=$("hdr");h.style.display="flex";
   h.innerHTML='<span class="stat">📅 W'+G.week+" '"+String(G.year).slice(2)+'</span>'
-   +'<span class="stat cash">💰 '+fmt(G.cash)+'</span>'
+   +'<span class="stat cash"'+(G.cash<0?' style="color:var(--red)"':'')+'>💰 '+fmt(G.cash)+'</span>'
    +'<span class="stat"><span class="repv">★</span> '+Math.round(G.rep)+'</span>'
    +'<span class="stat"><span class="heatv">🔥</span> '+Math.round(G.heat)+'</span>'
    +(validPlate()?'<span class="stat"><span class="plate">'+bestPlate().code+'</span>&nbsp;'+bestPlate().weeks+'w</span>':'')
@@ -757,7 +765,7 @@ function renderStart(){
   }
   $("view").innerHTML=h;
 }
-function contGame(){G=loadSave();render()}
+function contGame(){G=loadSave();MK=G.mk||null;syncUID();render()}
 function pickChar(k){
   modal("<b>"+CHARS[k].face+" "+CHARS[k].n+"</b> neemt de sleutels van het koertje in Essene. De asbak staat klaar, de frigo is gevuld met Red Bull.<br><br>Startkapitaal: <b>"+fmt(CHARS[k].cash)+"</b>",
    [{t:"Aan de slag",fn:()=>{closeModal();newGame(k)}},{t:"Toch niet",cls:"ghost",fn:closeModal}]);
@@ -792,7 +800,7 @@ function renderOffice(){
 function doEndWeek(){endWeek();log("Week afgesloten. Huur betaald, asbak geleegd.");render()}
 function smoke(){if(G.smokes>=3)return;G.smokes++;G.heat=clamp(G.heat-1,0,100);
   toast(pick(["🚬 Ahh. Dat lucht op.","🚬 Peuk erbij aan halte Koudenberg.","🚬 De zenuwen zakken."]));render()}
-function redbull(){if(G.rb)return;G.cash-=60;G.rb=true;toast("🪽 Vleugels! Volgende onderhandeling +");render()}
+function redbull(){if(G.rb)return;if(G.cash-60<creditLimit()){toast("Te weinig geld.");return}G.cash-=60;G.rb=true;toast("🪽 Vleugels! Volgende onderhandeling +");render()}
 function upgradeOffice(){
   modal("Verhuizen naar de showroom in <b>Zellik</b> voor <b>"+fmt(OFFICES[1].cost)+"</b>?<br><br>Meer passage, TL-verlichting, en een frigo die nooit leeg raakt. De huur is wel "+fmt(OFFICES[1].rent)+" per week.",
   [{t:"Doen!",fn:()=>{G.cash-=OFFICES[1].cost;G.office=1;repAdd(8);log("Verhuisd naar de showroom in Zellik! Groot feest, iemand heeft zelfs taart meegebracht.");toast("🏢 Welkom in Zellik!");closeModal();render()}},
@@ -801,7 +809,7 @@ function upgradeOffice(){
 function confirmRestart(){modal("Alles wissen en opnieuw beginnen?",[{t:"Ja, wissen",cls:"danger",fn:()=>{closeModal();restart()}},{t:"Nee",cls:"ghost",fn:closeModal}])}
 function exportSave(){modal('<b>Save-code</b> (kopieer en bewaar):<br><textarea style="width:100%;height:110px;background:#1d1529;color:#cbc;border:1px solid var(--edge);border-radius:8px" onclick="this.select()">'+btoa(unescape(encodeURIComponent(JSON.stringify(G))))+'</textarea>',[{t:"OK",fn:closeModal}])}
 function importSave(){modal('<b>Plak je save-code:</b><br><textarea id="impbox" style="width:100%;height:110px;background:#1d1529;color:#cbc;border:1px solid var(--edge);border-radius:8px"></textarea>',
- [{t:"Laden",fn:()=>{try{G=JSON.parse(decodeURIComponent(escape(atob($("impbox").value.trim()))));closeModal();render();toast("Save geladen!")}catch(e){toast("Ongeldige code")}}},{t:"Annuleer",cls:"ghost",fn:closeModal}])}
+ [{t:"Laden",fn:()=>{try{G=JSON.parse(decodeURIComponent(escape(atob($("impbox").value.trim()))));MK=G.mk||null;syncUID();closeModal();render();toast("Save geladen!")}catch(e){toast("Ongeldige code")}}},{t:"Annuleer",cls:"ghost",fn:closeModal}])}
 
 /* ============ TRAVEL & MARKET ============ */
 function renderTravel(){
@@ -1026,14 +1034,14 @@ function getCar(id){return G.cars.find(x=>x.id===id)}
 function fixEng(id){const c=getCar(id);const cost=Math.round((100-c.eng)/100*CARS[c.ci].base*.22/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;c.eng=ri(92,99);c.quirks=c.quirks.filter(q=>!["gearbox","electr"].includes(q));c.known=c.known.filter(q=>!["gearbox","electr"].includes(q));
-  log(carName(c)+": motor hersteld ("+fmt(cost)+").");openCar(id);hdr()}
+  log(carName(c)+": motor hersteld ("+fmt(cost)+").");save();openCar(id);hdr()}
 function fixBody(id){const c=getCar(id);const cost=Math.round((100-c.body)/100*CARS[c.ci].base*.13/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;c.body=ri(90,99);c.quirks=c.quirks.filter(q=>!["rust","smoke"].includes(q));c.known=c.known.filter(q=>!["rust","smoke"].includes(q));
-  log(carName(c)+": koetswerk opgeknapt ("+fmt(cost)+").");openCar(id);hdr()}
+  log(carName(c)+": koetswerk opgeknapt ("+fmt(cost)+").");save();openCar(id);hdr()}
 function tuneCar(id){const c=getCar(id);
   if(G.cash-25000<creditLimit()){toast("Te weinig geld.");return}
-  G.cash-=25000;c.tuned++;log(carName(c)+": getuned. Klinkt nu boos in de goeie zin.");openCar(id);hdr()}
+  G.cash-=25000;c.tuned++;log(carName(c)+": getuned. Klinkt nu boos in de goeie zin.");save();openCar(id);hdr()}
 function rollKm(id){const c=getCar(id);const shM=shadyMult();const cost=Math.round(8000*shM);
   modal("<b>🔧 De tellerman.</b> Een stille gast met een schroevendraaier en geen achternaam. Huidige stand: <b>"+c.km.toLocaleString().replace(/,/g,".")+" km</b>.<br><br>Nieuwe stand:"
    +'<input type="range" class="slider" id="kmsl" min="'+Math.round(c.km*.35/1000)*1000+'" max="'+c.km+'" value="'+Math.round(c.km*.6/1000)*1000+'" step="1000" oninput="updKm()">'
@@ -1145,6 +1153,7 @@ function doSale(cu,c,price,disclosed,iss){
       G.comebacks.push({eta:ri(2,6),name:cu.name,car:carName(c),price,issue:bad.t});
     }
   }
+  milestones();
   closeModal();
   modal("<b>🤝 Verkocht!</b><br>"+cu.name+" rijdt weg in de "+esc(carName(c))+" en toetert twee keer. "+chr().n+" "+(honest?"glimlacht tevreden en steekt een sigaret op.":"steekt iets te snel een sigaret op en kijkt de wagen nét iets te lang na.")+"<br><br>💰 <b class='money'>+"+fmt(price)+"</b>"+(profit>=0?" <span class='pill good'>winst "+fmt(profit)+"</span>":" <span class='pill bad'>verlies "+fmt(-profit)+"</span>"),
   [{t:"Kassa kassa",fn:()=>{closeModal();render()}}]);
