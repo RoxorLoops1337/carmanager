@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#191223">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>CarManager · Antwerpen 1995</title>
+<title>CarManager · Essene 1995</title>
+<meta property="og:title" content="CarManager · Essene 1995">
+<meta property="og:description" content="Tweedehands wagens, verse papieren en veel Red Bull. Een louche autohandel-game, gratis in je browser.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
@@ -289,7 +292,7 @@ const CHARS={
  martine:{n:"Martine",face:"👩‍💼",title:"De CEO",cash:1000000,rep:35,heat:0,
    desc:"Zij doet ALLES hier. Boekhouding, bankgesprekken, en de plantjes water geven. Start met meer kapitaal en een kredietlijn, officiële papieren gaan vlotter. Maar haar contacten zijn proper, dus vuile klusjes kosten meer.",
    perks:["+ Start met 1.000.000 BEF","+ Kredietlijn tot -300.000 BEF","+ ZZ-platen 30% goedkoper (officieel)","+ Klanten betalen 5% meer","- Louche diensten kosten 50% meer"]},
- alan:{n:"Alan",face:"🕶️",title:"De Fixer",cash:750000,rep:25,heat:15,
+ alan:{n:"Alin",face:"🕶️",title:"De Fixer",cash:750000,rep:25,heat:15,
    desc:"Kent een gast die een gast kent. Vooral in Katowice. Koopt goedkoper in, regelt tellers en papieren voor de helft van de prijs. Maar er verdwijnt elke week wat geld uit de kassa en niemand weet waarom (iedereen weet waarom).",
    perks:["+ Koopt 12% goedkoper in het buitenland","+ Tellerfraude & papierwerk aan halve prijs","+ Omkopen lukt bijna altijd","+ Vindt vaker zeldzame wagens","- Steelt elke week een beetje van de zaak","- Start met wat 'warmte' op zijn naam"]},
  thomas:{n:"Thomas",face:"😁",title:"De Charmeur",cash:600000,rep:45,heat:0,
@@ -635,7 +638,7 @@ function endWeek(silent){
   const of=OFFICES[G.office];
   G.cash-=of.rent;
   if(isCh("alan")){const skim=Math.max(500,Math.round(G.cash*.015/100)*100);
-    if(G.cash>0){G.cash-=skim;if(Math.random()<.3)log("Er klopt weer iets niet in de kassa. Alan haalt zijn schouders op. (-"+fmt(skim)+")");}}
+    if(G.cash>0){G.cash-=skim;if(Math.random()<.3)log("Er klopt weer iets niet in de kassa. Alin haalt zijn schouders op. (-"+fmt(skim)+")");}}
   if(G.cash<0)G.cash=Math.round(G.cash*1.01);
   G.heat=clamp(G.heat-2,0,100);
   G.smokes=0;
@@ -1013,7 +1016,7 @@ function openCar(id){
    +'<button class="btn" onclick="fixBody('+c.id+')" '+(c.body>=95?"disabled":"")+'>🎨 Koets & spuitwerk<br><span class="small">'+fmt(repB)+'</span></button>'
    +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(25000)+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
-   +'</div><hr><div class="small dim">🚬 De achterkamer (Alan kent iemand):</div><div class="tablebtns">'
+   +'</div><hr><div class="small dim">🚬 De achterkamer (Alin kent iemand):</div><div class="tablebtns">'
    +'<button class="btn shady" onclick="rollKm('+c.id+')">🔧 Teller "corrigeren"<br><span class="small">'+fmt(rollC)+' · +heat</span></button>'
    +'<button class="btn shady" onclick="fixPapers('+c.id+')" '+(c.papers===0&&!c.hot?"disabled":"")+'>📄 Papieren opfrissen<br><span class="small">'+fmt(papC)+' · +heat</span></button>'
    +'</div>';

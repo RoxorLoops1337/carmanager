@@ -19,7 +19,7 @@ The 3D showroom uses Three.js with procedurally built low-poly cars (body shape 
 
 **Martine (The CEO).** Makes everything happen. Perks: starts with more capital and a bank credit line, official paperwork is cheaper and faster (ZZ plates at a discount), customers pay a bit more because the shop looks respectable. Weakness: shady services (odometer man, paper man) cost extra because her contacts are "clean".
 
-**Alan (The Fixer).** Knows a guy for everything, especially in Katowice. Perks: buys cheaper abroad, finds rare "no questions asked" cars, odometer rollbacks and dodgy papers cost half, bribes work better. Weakness: he skims from the till. Every week a little money quietly disappears. Also starts with some heat on him already.
+**Alin (The Fixer).** Knows a guy for everything, especially in Katowice. Perks: buys cheaper abroad, finds rare "no questions asked" cars, odometer rollbacks and dodgy papers cost half, bribes work better. Weakness: he skims from the till. Every week a little money quietly disappears. Also starts with some heat on him already.
 
 **Thomas (The Charmer).** The good guy, more or less. Perks: best haggler on both sides, reputation grows faster, angry customers forgive him, sells at premium prices. Weakness: less starting cash, and his conscience means shady actions raise heat faster for him (he is bad at lying to inspectors).
 
@@ -37,7 +37,7 @@ The 3D showroom uses Three.js with procedurally built low-poly cars (body shape 
 - **Car attributes:** year, km, engine condition, body condition, paint color, tuning level, quirks (ex-taxi, flood car, accident history, smells of cigarettes, "one careful owner"), papers (clean, dubious, fake).
 - **ZZ plates:** needed to legally drive unregistered cars across borders. Official route: slow, needs reputation. Shady route: fast, pricey, and the plate might be... borrowed.
 - **Heat and Reputation:** two dials that shape every decision.
-- **Economy:** start ~750,000 BEF (Martine 1,000,000). Weekly costs: rent, coffee, Alan's fingers in the till. Win condition: none, it is a sandbox, but milestones celebrate your first million, first legend car, and surviving a full year.
+- **Economy:** start ~750,000 BEF (Martine 1,000,000). Weekly costs: rent, coffee, Alin's fingers in the till. Win condition: none, it is a sandbox, but milestones celebrate your first million, first legend car, and surviving a full year.
 - **3D Showroom:** any owned car can be admired on a rotating turntable in its actual color.
 
 ## Later Ideas (v2)
