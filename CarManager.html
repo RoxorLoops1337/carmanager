@@ -190,7 +190,7 @@ hr{border:none;border-top:1px dashed var(--edge);margin:10px 0}
 <div id="view"></div>
 <div id="nav"><div class="tabs" id="tabsbar"></div></div>
 <div id="modal"><div class="box" id="modalbox"></div></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
 <script>
 "use strict";
 /* ============ DATA ============ */
@@ -438,12 +438,16 @@ function creditLimit(){return isCh("martine")?-300000:0}
 function log(t){G.log.unshift("W"+G.week+" · "+t); if(G.log.length>40)G.log.pop()}
 function save(){try{if(typeof MK!=="undefined")G.mk=MK;localStorage.setItem("cm_save",JSON.stringify(G))}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem("cm_save");return s?JSON.parse(s):null}catch(e){return null}}
-function syncUID(){let m=0;const scan=a=>{for(const x of a||[])if(x.id>m)m=x.id};
-  scan(G.cars);scan(G.custs);if(G.mk){scan(G.mk.cars);scan(G.mk.bought)}
+function syncUID(){
+  const pools=[G.cars,G.custs];
+  if(G.mk){pools.push(G.mk.cars,G.mk.bought)}
+  if(G.phoneDeal&&G.phoneDeal.c)pools.push([G.phoneDeal.c]);
+  if(G.auction)pools.push(G.auction.lots);
+  let m=0;for(const a of pools)for(const x of a||[])if(x.id>m)m=x.id;
   UID=Math.max(UID,m+1);
   // repair duplicate ids baked into old saves (pre-fix): tapping car A could open/sell car B
-  const seen=new Set(),fix=a=>{for(const x of a||[]){if(x.id==null||seen.has(x.id))x.id=UID++;seen.add(x.id)}};
-  fix(G.cars);fix(G.custs);if(G.mk){fix(G.mk.cars);fix(G.mk.bought)}}
+  const seen=new Set();
+  for(const a of pools)for(const x of a||[]){if(x.id==null||seen.has(x.id))x.id=UID++;seen.add(x.id)}}
 
 /* ============ CARS ============ */
 function fairValue(c,shown,knowAll){
@@ -787,7 +791,9 @@ function endWeek(silent){
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
-  if(!silent&&!G.over){if(newYear)showAwards();else weekReport(wkLbl,delta,of.rent,skimmed,extra);}
+  if(!silent&&!G.over){
+    if(newYear){if(modalOpen())G.pendingGala=1;else showAwards()}
+    else weekReport(wkLbl,delta,of.rent,skimmed,extra);}
   G.wkStart=G.cash;G.wkSold=0;G.spun=false;
   save();
 }
@@ -1890,6 +1896,7 @@ function renderBody(){(_renderTabs[CUR]||renderOffice)()}
 render=function(){
   if(!G)return;
   checkGoals();
+  if(G.pendingGala&&!modalOpen()){G.pendingGala=0;showAwards()}
   hdr();
   const nb=$("nav");nb.style.display="flex";
   $("tabsbar").innerHTML=TABS.map(t=>'<button class="'+(CUR===t[0]?"on":"")+'" onclick="nav(\''+t[0]+'\')"><span class="ic">'+t[1]+'</span>'+t[2]+(t[0]==="sell"&&G.custs.length?" ("+G.custs.length+")":"")+'</button>').join("");
@@ -1897,10 +1904,7 @@ render=function(){
   renderBody();
   save();
 };
-window.addEventListener("load",()=>{
-  const sv=loadSave();
-  if(sv&&!sv.over){renderStart()}else{renderStart()}
-});
+window.addEventListener("load",renderStart);
 
 </script>
 </body>
