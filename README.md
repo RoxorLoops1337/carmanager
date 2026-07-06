@@ -39,8 +39,18 @@ Play as Martine (the CEO), Alin (the fixer) or Thomas (the charmer).
   hidden defects reveal themselves on the road, including rolled-back
   odometers.
 - Late game: collector zoekopdrachten with fat premiums, staff to hire
-  (Roger, Vera, Bert and nonkel Staf), a January stand at the Autosalon
+  (Roger, Vera, Bert, nonkel Staf, plus Jempi the driver, Sonja the
+  detailer and Dree the night watchman), a January stand at the Autosalon
   van Brussel, and a 25-goal chain ending in the 10M IMPERIUM.
+- **Unlockable shady markets**: Marseille's docks (sports cars with
+  freshly polished chassis numbers), the Balaton route (German premium,
+  Balkan prices) and discreet Geneva estate sales (pristine classics the
+  taxman never saw).
+- **De Schuur**: your private collection barn — park cars you love as an
+  investment; they appreciate weekly (rare ones faster) but the damp
+  creeps in, so watch for rust. Expandable, and Dree keeps the worst out.
+- A McDonald's stop on the road home — "Bieg Mek", and sometimes a rep
+  at the next table selling his lease car cheap.
 - Animated driving scenes, workshop repairs with sparks and paint mist,
   border barriers, sale drive-offs, chiptune sound effects and confetti.
 

@@ -558,6 +558,18 @@ const MARKETS={
      dirty:.25,fake:.10,rare:.14,legend:.03,risk:2,desc:"Spotgoedkoop. Vraag niet te veel over waar ze vandaan komen."},
  ua:{n:"Oekraïne",fl:"🇺🇦",city:"Lviv / een loods buiten de stad",mult:.45,travel:26000,cond:[15,70],km:[1.0,1.9],
      dirty:.35,fake:.20,rare:.20,legend:.07,risk:3,desc:"Wild westen. Schuurvondsten, legendes, en papieren die nog warm zijn van de printer."},
+ fr:{n:"Frankrijk",fl:"🇫🇷",city:"Marseille / de kaaien",mult:.70,travel:14000,cond:[35,85],km:[.8,1.4],
+     dirty:.30,fake:.12,rare:.16,legend:.03,risk:2,desc:"Sportwagens en coupés die 's nachts van kleur veranderd zijn. Vraag niet waarom de chassisnummers zo blinken.",
+     pref:{f:d=>["sport","coupe","cabrio"].includes(d.body),w:6},
+     req:{t:"niveau 4 (Alin kent iemand op de kaaien)",c:()=>G.lvl>=4}},
+ hu:{n:"Hongarije",fl:"🇭🇺",city:"Balatonmeer / parking van het strandhotel",mult:.50,travel:20000,cond:[30,80],km:[.8,1.5],
+     dirty:.40,fake:.22,rare:.12,legend:.02,risk:3,desc:"De Balkan-route. Duitse premiumwagens, spotgoedkoop, met kentekens die om de 300 km veranderen.",
+     pref:{f:d=>["BMW","Mercedes","Audi","Porsche","VW"].includes(d.mk),w:4.5},
+     req:{t:"8 inkooptrips (ge moet het wereldje kennen)",c:()=>G.trips>=8}},
+ ch:{n:"Zwitserland",fl:"🇨🇭",city:"Genève / discrete verkoop op afspraak",mult:.98,travel:22000,cond:[65,98],km:[.4,.9],
+     dirty:.15,fake:.02,rare:.22,legend:.08,risk:1,desc:"Erfenissen en 'vermogensherschikkingen'. Prachtwagens, weinig kilometers, en papieren waar de fiscus beter niet naar kijkt.",
+     pref:{f:d=>d.rar>=2,w:9},
+     req:{t:"★ 55 reputatie (discretie moet verdiend worden)",c:()=>G.rep>=55}},
 };
 const CHARS={
  martine:{n:"Martine",face:"👩‍💼",title:"De CEO",cash:1000000,rep:35,heat:0,
@@ -616,7 +628,7 @@ function newGame(ch){
      xp:0, lvl:1, spun:false, wkStart:c.cash, wkSold:0,
      mech:0, combo:0, postcards:[], lotto:false, kras:0,
      gastonHere:false, bet:null, tip:false, recProfit:0, modelsSold:{},
-     sloffen:0, alinHere:false, martineCalls:0,
+     sloffen:0, alinHere:false, martineCalls:0, collection:[], collSlots:2,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
      comebacks:[], mile:{}, over:false};
@@ -649,6 +661,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.orders=G.orders||[];G.ordersDone=G.ordersDone||0;G.gastonWins=G.gastonWins||0;
   G.exported=G.exported||0;G.staff=G.staff||{};G.salonYear=G.salonYear||0;
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
+  G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
 /* ---- goal chain: always something to look forward to ---- */
@@ -685,6 +698,8 @@ const GOALS=[
  {id:"s200",t:"Verkoop 200 wagens",r:"+300 XP · legende in eigen koertje",c:()=>G.sold>=200,fn:()=>addXP(300)},
  {id:"m100",t:"Verhandel 100 verschillende modellen",r:"+500 XP",c:()=>Object.keys(G.modelsSold||{}).length>=100,fn:()=>addXP(500)},
  {id:"c20m",t:"Spaar 20.000.000 BEF: het keizerrijk",r:"👑 De kroon op het werk. Een gouden asbak op het bureau.",c:()=>G.cash>=20000000,fn:()=>{stamp("KEIZERRIJK","gold");confetti(180);sfx("win");addXP(400)}},
+ {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
+ {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -707,7 +722,7 @@ function log(t){G.log.unshift("W"+G.week+" · "+t); if(G.log.length>40)G.log.pop
 function save(){try{if(typeof MK!=="undefined")G.mk=MK;localStorage.setItem("cm_save",JSON.stringify(G))}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem("cm_save");return s?JSON.parse(s):null}catch(e){return null}}
 function syncUID(){
-  const pools=[G.cars,G.custs];
+  const pools=[G.cars,G.custs,G.collection||[]];
   if(G.mk){pools.push(G.mk.cars,G.mk.bought)}
   if(G.phoneDeal&&G.phoneDeal.c)pools.push([G.phoneDeal.c]);
   if(G.auction)pools.push(G.auction.lots);
@@ -729,7 +744,7 @@ function fairValue(c,shown,knowAll){
   let qF=1+.07*(c.tuned||0);
   for(const q of c.quirks){const Q=QUIRKS.find(x=>x.id===q);
     if(Q&&(knowAll||!Q.hide||c.known.includes(q)))qF*=1+Q.v;}
-  return Math.round(d.base*ageF*kmF*condF*qF/100)*100;
+  return Math.round(d.base*ageF*kmF*condF*qF*(c.prem||1)/100)*100;
 }
 const askValue=c=>fairValue(c,true,false);   // what the market believes
 const trueValue=c=>fairValue(c,false,true);  // what it is really worth
@@ -740,6 +755,7 @@ function genCar(mkey){
     let w=[100,38,m.rare*110,m.legend*90][d.rar];
     if(d.y[1]<1988)w*=(m.risk>=2?1.5:.45);
     if(isCh("alan")&&d.rar>=2)w*=1.4;
+    if(m.pref&&m.pref.f(d))w*=m.pref.w;
     tot+=w;return w});
   let r=Math.random()*tot,ci=0;
   for(let i=0;i<ws.length;i++){r-=ws[i];if(r<=0){ci=i;break}}
@@ -1079,6 +1095,19 @@ function endWeek(silent){
   for(const k in G.staff){const st=STAFFDEF[k];G.cash-=st.cost;
     extra.push([st.face+" "+st.n,"-"+fmt(st.cost),"neg"])}
   if(G.staff.staf)G.heat=clamp(G.heat-2,0,100);
+  if(G.staff.sonja)for(const c of G.cars)if(c.body<82)c.body=Math.min(82,c.body+2);
+  // the barn: collection cars appreciate, but the damp creeps in
+  for(const c of (G.collection||[])){
+    c.collWeeks=(c.collWeeks||0)+1;
+    c.prem=(c.prem||1)*(1+[.002,.0035,.005,.008][CARS[c.ci].rar]);
+    const rustCh=G.staff&&G.staff.dree?.12:.25;
+    if(Math.random()<rustCh){
+      c.body=Math.max(8,c.body-(G.staff&&G.staff.dree?1:ri(1,2)));
+      if(c.body<30&&!c.quirks.includes("rust")){c.quirks.push("rust");c.known.push("rust");
+        extra.push(["🏚️ De schuur","de "+carName(c)+" heeft échte roest gekregen","neg"]);
+        log("🏚️ De "+carName(c)+" in de schuur begint te roesten. Het vocht kruipt overal in.");}
+    }
+  }
   // collector orders
   for(const o of G.orders){o.eta--;
     if(o.eta<=0){extra.push(["📦 Zoekopdracht","verlopen: "+o.t,"neg"]);repAdd(-1)}}
@@ -1558,7 +1587,10 @@ const STAFFDEF={
  roger:{n:"Roger",face:"👨‍🔧",t:"tweede monteur",cost:3000,d:"Klust 15% goedkoper en leert de garage sneller bij."},
  vera:{n:"Vera",face:"💁‍♀️",t:"verkoopster",cost:4000,d:"Lokt elke week een extra klant en praat elke deal 2% ronder."},
  bert:{n:"Bert",face:"🧮",t:"boekhouder",cost:3500,d:"Huur -25%. En hij kijkt Alin op de vingers (skim gehalveerd)."},
- staf:{n:"Nonkel Staf",face:"🎩",t:"'relatiebeheerder'",cost:5000,d:"Kent iedereen. Heat zakt 2 extra per week, louche diensten -15%."}};
+ staf:{n:"Nonkel Staf",face:"🎩",t:"'relatiebeheerder'",cost:5000,d:"Kent iedereen. Heat zakt 2 extra per week, louche diensten -15%."},
+ jempi:{n:"Jempi",face:"🚚",t:"chauffeur",cost:3500,d:"Rijdt zelf naar het oosten: reiskosten -35% en hij kent de sluipwegen (minder miserie onderweg)."},
+ sonja:{n:"Sonja",face:"🧽",t:"poets & detailing",cost:2500,d:"Wast, boent en wrijft: elke week +2 koetswerk voor heel de stock (tot 82%)."},
+ dree:{n:"Dree",face:"🔦",t:"nachtwaker",cost:3000,d:"Waakt over de schuur: de collectie roest half zo snel. Stookt 's winters het kacheltje."}};
 function toggleStaff(k){
   if(!G.unlocks.staff)return;
   if(G.staff[k]){delete G.staff[k];toast(STAFFDEF[k].n+" uitbetaald en bedankt.");}
@@ -1735,9 +1767,16 @@ function renderTravel(){
      +(on?'<button class="btn primary" onclick="openAuction()">Naar de veiling</button>':'')+'</div>';
   }
   for(const k in MARKETS){const m=MARKETS[k];
+    if(m.req&&!m.req.c()){
+      h+='<div class="card" style="opacity:.6"><div class="spread"><h3 style="margin:0">'+m.fl+" "+m.n+' 🔒</h3><span class="pill">'+"⚠".repeat(m.risk)+'</span></div>'
+       +'<div class="small dim">'+m.desc+'</div>'
+       +'<div class="small" style="margin-top:6px">🔒 Nog niet beschikbaar: <b>'+m.req.t+'</b></div></div>';
+      continue;
+    }
+    const tc=Math.round(m.travel*(G.staff&&G.staff.jempi?.65:1));
     h+='<div class="card"><div class="spread"><h3 style="margin:0">'+m.fl+" "+m.n+'</h3><span class="pill">'+"⚠".repeat(m.risk)+'</span></div>'
      +'<div class="small dim">'+m.city+' · '+m.desc+'</div>'
-     +'<div class="row small" style="margin-top:6px"><span class="pill info">reiskost '+fmt(m.travel)+'</span><span class="pill">prijsniveau '+Math.round(m.mult*100)+'%</span></div>'
+     +'<div class="row small" style="margin-top:6px"><span class="pill info">reiskost '+fmt(tc)+(G.staff&&G.staff.jempi?' 🚚':'')+'</span><span class="pill">prijsniveau '+Math.round(m.mult*100)+'%</span></div>'
      +'<button class="btn primary" onclick="goTrip(\''+k+'\')">Vertrek naar '+m.n+'</button></div>';
   }
   $("view").innerHTML=h;
@@ -1745,9 +1784,11 @@ function renderTravel(){
 let MK=null;
 function goTrip(k){
   const m=MARKETS[k];
-  if(G.cash-m.travel<creditLimit()){toast("Niet genoeg geld voor de reis.");return}
-  modal("Vertrekken naar <b>"+m.fl+" "+m.n+"</b>?<br><br>Reiskost: <b>"+fmt(m.travel)+"</b>. "+chr().n+" gooit een slof sigaretten en een bak Red Bull op de passagierszetel.",
-  [{t:"Rijden!",fn:()=>{closeModal();G.cash-=m.travel;
+  if(m.req&&!m.req.c())return;
+  const tc=Math.round(m.travel*(G.staff&&G.staff.jempi?.65:1));
+  if(G.cash-tc<creditLimit()){toast("Niet genoeg geld voor de reis.");return}
+  modal("Vertrekken naar <b>"+m.fl+" "+m.n+"</b>?<br><br>Reiskost: <b>"+fmt(tc)+"</b>. "+(G.staff&&G.staff.jempi?"Jempi zit al achter het stuur, thermos tussen de knieën. ":"")+chr().n+" gooit een slof sigaretten en een bak Red Bull op de passagierszetel.",
+  [{t:"Rijden!",fn:()=>{closeModal();G.cash-=tc;
      if(k==="pl"||k==="ua")G.mile.eastTrip=1;
      MK={k, cars:Array.from({length:ri(4,6)},()=>genCar(k)), bought:[]};
      log("Vertrokken naar "+m.n+" ("+m.city+").");CUR="travel";render();
@@ -1772,8 +1813,8 @@ function renderMarket(){
   $("view").innerHTML=h;
 }
 let HAG=null;
-const MFACES={de:"👨‍💼",nl:"🧔",pl:"👨‍🦱",ua:"👴"};
-const MSELLERS={de:"Jürgen",nl:"Henk",pl:"Marek",ua:"Bohdan"};
+const MFACES={de:"👨‍💼",nl:"🧔",pl:"👨‍🦱",ua:"👴",fr:"🕴️",hu:"👨🏻‍🦰",ch:"🤵"};
+const MSELLERS={de:"Jürgen",nl:"Henk",pl:"Marek",ua:"Bohdan",fr:"Marcel",hu:"László",ch:"Herr Brunner"};
 function hagBonus(){return (HAG&&HAG.talk&&HAG.talk.bonus)||0}
 function bidOdds(bid){
   const c=HAG.c;
@@ -1852,8 +1893,8 @@ function mkCarSheet(c,mine){
 function driveHome(){
   const m=MARKETS[MK.k],evs=[];
   if(MK.bought.length>0)evs.push(evCustoms);
-  const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip];
-  const n=m.risk+(Math.random()<.5?1:0);
+  const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip,evMcDo];
+  const n=Math.max(0,m.risk+(Math.random()<.5?1:0)-(G.staff&&G.staff.jempi?1:0));
   for(let i=0;i<n;i++)evs.push(pick(pool));
   runEvents(evs,0);
 }
@@ -1869,9 +1910,9 @@ function arriveHome(){
   G.trips++;addXP(12+n*4);
   if(n>0)log("Thuis met "+n+" wagen(s). De monteur vindt meteen van alles onder de motorkappen.");
   else log("Met lege handen terug uit "+MARKETS[MK.k].n+". De reiskosten zijn wel op.");
-  if(isCh("alan")&&(MK.k==="pl"||MK.k==="ua")&&(G.sloffen||0)<4&&Math.random()<.4){
+  if(isCh("alan")&&(MK.k==="pl"||MK.k==="ua"||MK.k==="hu")&&(G.sloffen||0)<4&&Math.random()<.4){
     G.sloffen=(G.sloffen||0)+1;
-    log("🚬 "+(MK.k==="pl"?"Marek":"Bohdan")+" heeft een sloffe in de koffer gestopt. 'Voor onderweg, broeder.'");
+    log("🚬 "+(MSELLERS[MK.k]||"De verkoper")+" heeft een sloffe in de koffer gestopt. 'Voor onderweg, broeder.'");
     toast("🚬 Gratis sloffe gevonden in de koffer. Alins contacten denken aan alles.");}
   MK=null;
   modal("<b>🏠 Terug thuis.</b><br>"+(n?("De "+(n>1?n+" wagens staan":"wagen staat")+" op het koertje. Je monteur loopt er al rond met een spiegel op een stok en een sigaret in zijn mondhoek."):"Volgende keer beter. De buschauffeur van Koudenberg lacht je uit."),
@@ -2015,6 +2056,30 @@ function evGossip(next){
   modal("<b>💬 Op de parking</b> praat "+chr().n+" met een andere handelaar over koetjes en kalfjes (en wagens). \"Weet ge wat plots gegeerd is bij ons? "+BODN[G.trendBody]+".\" Altijd goed om te weten.",
   [{t:"Notitie genomen",fn:()=>{closeModal();addXP(3);next()}}]);
 }
+function evMcDo(next){
+  const opts=[{t:"🍔 Big Mac-menu (300 BEF)",fn:()=>{
+      if(G.cash-300>=creditLimit()){G.cash-=300;G.rb=true;G.heat=clamp(G.heat-1,0,100);
+        toast("🍟 Vol zout en zelfvertrouwen. Volgende onderhandeling +");}
+      closeModal();next()}},
+   {t:"Enkel een koffie",cls:"ghost",fn:()=>{closeModal();next()}}];
+  if(Math.random()<.4){
+    let c;for(let i=0;i<12;i++){c=genCar(pick(["de","nl"]));if(["sedan","wagon","hatch"].includes(CARS[c.ci].body))break}
+    c.papers=0;c.hot=false;c.transit=false;
+    const price=Math.round(trueValue(c)*rnd(.70,.82)/1000)*1000;
+    opts.splice(1,0,{t:"🚗 Zijn firmawagen bekijken",fn:()=>{
+      closeModal();
+      modal("Op de parking, tussen de frietzakjes: <hr>"+mkCarSheet(c,false)
+       +'<hr>"Leasing loopt af, ik krijg een nieuwe. Voor <b class="money">'+fmt(price)+'</b> is hij van u. Cash, en ik rij mee tot de afrit."',
+      [{t:"Kopen ("+fmt(price)+")",fn:()=>{
+          if(G.cash-price<creditLimit()){toast("Te weinig cash tussen de frietzakjes.");return}
+          G.cash-=price;G.spent+=price;c.paid=price;MK.bought.push(c);
+          popNum("-"+fmt(price),"pred");sfx("kaching");addXP(8);
+          log("Firmawagen gekocht op de parking van de McDonald's: "+carName(c)+" ("+fmt(price)+").");
+          closeModal();next()}},
+       {t:"Nee merci",cls:"ghost",fn:()=>{closeModal();next()}}]);}});
+  }
+  modal("<b>🍟 De gele bogen</b> doemen op langs de snelweg. Zo'n Amerikaans ding — "+chr().n+" bestelt onwennig een \"Bieg Mek\". Aan het tafeltje ernaast zit een vertegenwoordiger met een map vol staaltjes en een zucht.",opts);
+}
 
 /* ============ GARAGE ============ */
 function renderGarage(){
@@ -2031,7 +2096,57 @@ function renderGarage(){
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
+  const coll=G.collection||[];
+  h+='<div class="card"><div class="spread"><h3 style="margin:0">🏛️ De Schuur (collectie)</h3><span class="pill">'+coll.length+'/'+G.collSlots+' plaatsen</span></div>'
+   +'<div class="small dim">Wagens die hier liggen winnen elke week waarde (zeldzaam = sneller)... maar de schuur is vochtig. Af en toe eens komen kijken is geen luxe.</div>';
+  for(const c of coll){
+    const up=Math.round(((c.prem||1)-1)*100);
+    h+='<div class="carline" onclick="openCollCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
+     +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
+     +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
+     +'<div class="small dim">'+(c.collWeeks||0)+' weken in de schuur · waarde <span class="'+(up>0?"money":"dim")+'">+'+up+'%</span></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+'</div></div>'
+     +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
+  }
+  if(!coll.length)h+='<div class="small dim center" style="margin:8px 0">De schuur staat leeg. Een mooie wagen die ge niet kwijt wilt? Leg hem hier.</div>';
+  if(G.collSlots<6)h+='<button class="btn" onclick="expandBarn()">🏗️ Schuur uitbreiden (+1 plaats, '+fmt(250000)+')</button>';
+  h+='</div>';
   $("view").innerHTML=h;
+}
+function moveToColl(id){
+  const c=getCar(id);if(!c)return;
+  if((G.collection||[]).length>=G.collSlots){toast("De schuur staat vol. Uitbreiden kan in de garage.");return}
+  G.cars=G.cars.filter(x=>x.id!==c.id);c.collWeeks=0;
+  G.collection.push(c);save();closeModal();
+  log(carName(c)+" in de schuur gelegd. Voor later. Voor de mooie dagen.");
+  toast("🏛️ De "+carName(c)+" ligt in de schuur, onder een zeil dat er deftig uitziet.");
+  CUR="garage";render();
+}
+function collPull(id){
+  const c=(G.collection||[]).find(x=>x.id===id);if(!c)return;
+  G.collection=G.collection.filter(x=>x.id!==id);
+  G.cars.push(c);save();closeModal();
+  log(carName(c)+" uit de schuur gehaald ("+(c.collWeeks||0)+" weken, +"+Math.round(((c.prem||1)-1)*100)+"% waarde). Terug in de stock.");
+  toast("🔧 Zeil eraf, banden opgepompt. De "+carName(c)+" staat terug te koop.");
+  CUR="garage";render();
+}
+function openCollCar(id){
+  const c=(G.collection||[]).find(x=>x.id===id);if(!c)return;
+  const up=Math.round(((c.prem||1)-1)*100);
+  modal(mkCarSheet(c,true)
+   +'<div class="small dim" style="margin-top:4px">'+(c.collWeeks||0)+' weken in de schuur · waarde <b class="money">'+fmt(askValue(c))+'</b> (+'+up+'%)</div>'
+   +'<div class="small dim">Elke week een beetje meer waard. Elke week een beetje meer vocht.</div><hr><div class="tablebtns">'
+   +'<button class="btn primary" onclick="collPull('+c.id+')">⬅️ Terug naar de stock</button>'
+   +'<button class="btn" onclick="show3D((G.collection||[]).find(x=>x.id==='+c.id+'),false)">🌀 Showroom 3D</button>'
+   +'</div>',
+  [{t:"Zeil er terug over",cls:"ghost",fn:closeModal}]);
+}
+function expandBarn(){
+  if(G.collSlots>=6)return;
+  if(G.cash-250000<creditLimit()){toast("Te weinig geld voor de aannemer.");return}
+  G.cash-=250000;G.collSlots++;save();sfx("kaching");popNum("-"+fmt(250000),"pred");
+  log("Schuur uitgebreid naar "+G.collSlots+" plaatsen. De aannemer vroeg geen factuur. Wij ook niet.");
+  render();
 }
 function openCar(id){
   const c=G.cars.find(x=>x.id===id);if(!c)return;
@@ -2049,6 +2164,7 @@ function openCar(id){
    +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(RESPRAY_COST)+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
+   +'<button class="btn" onclick="moveToColl('+c.id+')" '+((G.collection||[]).length>=G.collSlots?"disabled":"")+'>🏛️ In de schuur leggen<br><span class="small">wordt meer waard · kan roesten</span></button>'
    +'</div><hr><div class="small dim">🚬 De achterkamer (Alin kent iemand):</div><div class="tablebtns">'
    +'<button class="btn shady" onclick="rollKm('+c.id+')">🔧 Teller "corrigeren"<br><span class="small">'+fmt(rollC)+' · +heat</span></button>'
    +'<button class="btn shady" onclick="fixPapers('+c.id+')" '+(c.papers===0&&!c.hot?"disabled":"")+'>📄 Papieren opfrissen<br><span class="small">'+fmt(papC)+' · +heat</span></button>'
