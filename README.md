@@ -27,6 +27,13 @@ Play as Martine (the CEO), Alin (the fixer) or Thomas (the charmer).
   modem serenade included.
 - **Gamble everywhere**: fortune wheel, Nationale Lotto, scratch cards,
   Gaston's weekly bet, barn-find tips, blind auction lots.
+- **Full-3D test drives** (OutRun-style, joystick + gas/brake, the car's
+  real stats drive the physics) that double as an inspection tool —
+  hidden defects reveal themselves on the road, including rolled-back
+  odometers.
+- Late game: collector zoekopdrachten with fat premiums, staff to hire
+  (Roger, Vera, Bert and nonkel Staf), a January stand at the Autosalon
+  van Brussel, and a 25-goal chain ending in the 10M IMPERIUM.
 - Animated driving scenes, workshop repairs with sparks and paint mist,
   border barriers, sale drive-offs, chiptune sound effects and confetti.
 
