@@ -31,7 +31,9 @@ Play as Martine (the CEO), Alin (the fixer) or Thomas (the charmer).
   duty-free sloffen (calm the heat, or slip one to a customs officer),
   Thomas pitches tech ideas and sets up your website at mate's rates,
   and Martine can talk you out of a border control — if she picks up,
-  and her invoice grows every time you call.
+  and her invoice grows every time you call. Playing Alin himself? He
+  chain-smokes (5 a week instead of 3, but under 3 the nerves add heat)
+  and scores cheap sloffen at tankstops and from his Katowice contacts.
 - **Full-3D test drives** (OutRun-style, joystick + gas/brake, the car's
   real stats drive the physics) that double as an inspection tool —
   hidden defects reveal themselves on the road, including rolled-back

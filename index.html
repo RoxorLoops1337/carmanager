@@ -565,7 +565,7 @@ const CHARS={
    perks:["+ Start met 1.000.000 BEF","+ Kredietlijn tot -300.000 BEF","+ ZZ-platen 30% goedkoper (officieel)","+ Klanten betalen 5% meer","- Louche diensten kosten 50% meer"]},
  alan:{n:"Alin",face:"🕶️",title:"De Fixer",cash:750000,rep:25,heat:15,
    desc:"Kent een gast die een gast kent. Vooral in Katowice. Koopt goedkoper in, regelt tellers en papieren voor de helft van de prijs. Maar er verdwijnt elke week wat geld uit de kassa en niemand weet waarom (iedereen weet waarom).",
-   perks:["+ Koopt 12% goedkoper in het buitenland","+ Tellerfraude & papierwerk aan halve prijs","+ Omkopen lukt bijna altijd","+ Vindt vaker zeldzame wagens","- Steelt elke week een beetje van de zaak","- Start met wat 'warmte' op zijn naam"]},
+   perks:["+ Koopt 12% goedkoper in het buitenland","+ Tellerfraude & papierwerk aan halve prijs","+ Omkopen lukt bijna altijd","+ Vindt vaker zeldzame wagens","+ Kan 5 sigaretten per week roken & scoort sloffen onderweg","- Steelt elke week een beetje van de zaak","- Start met wat 'warmte' op zijn naam","- Minder dan 3 sigaretten per week: zenuwen (+heat)"]},
  thomas:{n:"Thomas",face:"😁",title:"De Charmeur",cash:600000,rep:45,heat:0,
    desc:"De goeie gast van het verhaal, min of meer. Verkoopt ijs aan eskimo's en Lada's aan Porsche-rijders. Reputatie groeit snel en boze klanten vergeven hem alles. Maar liegen tegen inspecteurs kan hij niet.",
    perks:["+ Beste onderhandelaar (kopen én verkopen)","+ Reputatie stijgt 50% sneller","+ Boze klanten vergeven hem sneller","+ Ziet het budget van de klant","- Minder startkapitaal","- Louche acties geven 50% meer heat"]},
@@ -632,6 +632,7 @@ const OFFICES=[
 function chr(){return CHARS[G.ch]}
 function isCh(x){return G.ch===x}
 function shadyMult(){return (isCh("martine")?1.5:isCh("alan")?.5:1)*(G&&G.staff&&G.staff.staf?.85:1)}
+function smokeCap(){return isCh("alan")?5:3}
 function heatAdd(h){G.heat=clamp(G.heat+Math.round(h*(isCh("thomas")?1.5:1)),0,100)}
 function repAdd(r){G.rep=clamp(G.rep+(r>0&&isCh("thomas")?r*1.5:r),0,100)}
 function addXP(n){G.xp+=n;
@@ -1036,8 +1037,13 @@ function endWeek(silent){
     if(G.cash>0){G.cash-=skim;skimmed=skim;if(Math.random()<.3)log("Er klopt weer iets niet in de kassa. Alin haalt zijn schouders op. (-"+fmt(skim)+")");}}
   if(G.cash<0)G.cash=Math.round(G.cash*1.01);
   G.heat=clamp(G.heat-2,0,100);
-  G.smokes=0;
   const extra=[];
+  // Alin needs his cigarettes: under 3 a week the nerves show
+  if(isCh("alan")&&G.smokes<3){const miss=3-G.smokes;
+    G.heat=clamp(G.heat+miss*2,0,100);
+    extra.push(["😰 Zenuwen","maar "+G.smokes+"/3 sigaretten gerookt: +"+(miss*2)+" 🔥","neg"]);
+    log("😰 Alin kreeg zijn sigaretten niet deze week ("+G.smokes+"/3). Trillende handen aan de balie. (+"+(miss*2)+" 🔥)");}
+  G.smokes=0;
   // lotto draw
   if(G.lotto){G.lotto=false;const r=Math.random();
     if(r<.002){G.cash+=250000;stamp("LOTTO JACKPOT!","gold");confetti(90);sfx("win");extra.push(["🎟️ Lotto","JACKPOT +"+fmt(250000),"money"]);log("DE LOTTO! 250.000 BEF! Heel Essene hoort het gejoel.")}
@@ -1404,14 +1410,14 @@ function renderOffice(){
   }
   h+='<div class="card"><h3>☕ Op het bureau</h3><div class="tablebtns">'
    +'<button class="btn primary" onclick="doEndWeek()">⏭ Week afsluiten</button>'
-   +'<button class="btn" onclick="smoke()" '+(G.smokes>=3?"disabled":"")+'>🚬 Sigaret op het koertje</button>'
+   +'<button class="btn" onclick="smoke()" '+(G.smokes>=smokeCap()?"disabled":"")+'>🚬 Sigaret op het koertje'+(isCh("alan")?' ('+G.smokes+'/'+smokeCap()+')':'')+'</button>'
    +(G.sloffen>0?'<button class="btn shady" onclick="useSloffe()">🚬 Sloffe opentrekken (nog '+G.sloffen+')<br><span class="small">-4 🔥 · van Alin</span></button>':'')
    +'<button class="btn" onclick="redbull()" '+(G.rb?"disabled":"")+'>🪽 Red Bull (60 BEF)</button>'
    +'<button class="btn shady" onclick="spinWheel()" '+(G.spun?"disabled":"")+'>🎡 Rad van Koudenberg'+(G.spun?"<br><span class=\'small\'>volgende week weer</span>":"<br><span class=\'small\'>1× gratis per week</span>")+'</button>'
    +'<button class="btn" onclick="buyLotto()" '+(G.lotto?"disabled":"")+'>🎟️ Lotto-briefje'+(G.lotto?"<br><span class=\'small\'>trekking bij weekafsluiting</span>":"<br><span class=\'small\'>100 BEF</span>")+'</button>'
    +(G.kras>0?'<button class="btn" onclick="scratchLot()">🎫 Kraslot krassen ('+G.kras+')</button>':'')
    +(G.unlocks.vlan?'<button class="btn'+(G.vlan?' primary':'')+'" onclick="toggleVlan()">📰 Vlan-zoekertje: '+(G.vlan?"AAN":"UIT")+'<br><span class="small">1.500/week · +1 klant</span></button>':'')
-   +'</div><div class="small dim" style="margin-top:6px">Roken kalmeert de zenuwen (-1 heat, max 3/week). Een Red Bull scherpt je volgende onderhandeling aan. De lotto-trekking is bij de weekafsluiting; krasloten krijg je soms aan het tankstation.</div></div>';
+   +'</div><div class="small dim" style="margin-top:6px">Roken kalmeert de zenuwen (-1 heat, max '+smokeCap()+'/week).'+(isCh("alan")?' <b>Alin heeft er minstens 3 per week nodig</b> — anders trillen de handen en stijgt de heat.':'')+' Een Red Bull scherpt je volgende onderhandeling aan. De lotto-trekking is bij de weekafsluiting; krasloten krijg je soms aan het tankstation.</div></div>';
   h+='<div class="card"><h3>📻 Logboek</h3>'+(G.log.length?G.log.map(l=>'<div class="logline">'+esc(l)+'</div>').join(""):'<span class="dim">Nog niets gebeurd.</span>')+'</div>';
   h+='<div class="card flat small"><div class="tablebtns">'
    +'<button class="btn ghost" onclick="exportSave()">💾 Export save</button>'
@@ -1423,7 +1429,7 @@ function renderOffice(){
   $("view").innerHTML=h;
 }
 function doEndWeek(){endWeek();log("Week afgesloten. Huur betaald, asbak geleegd.");render()}
-function smoke(){if(G.smokes>=3)return;G.smokes++;G.heat=clamp(G.heat-1,0,100);
+function smoke(){if(G.smokes>=smokeCap())return;G.smokes++;G.heat=clamp(G.heat-1,0,100);
   toast(pick(["🚬 Ahh. Dat lucht op.","🚬 Peuk erbij aan halte Koudenberg.","🚬 De zenuwen zakken."]));render()}
 function redbull(){if(G.rb)return;if(G.cash-60<creditLimit()){toast("Te weinig geld.");return}G.cash-=60;G.rb=true;toast("🪽 Vleugels! Volgende onderhandeling +");render()}
 function buySloffen(){
@@ -1863,6 +1869,10 @@ function arriveHome(){
   G.trips++;addXP(12+n*4);
   if(n>0)log("Thuis met "+n+" wagen(s). De monteur vindt meteen van alles onder de motorkappen.");
   else log("Met lege handen terug uit "+MARKETS[MK.k].n+". De reiskosten zijn wel op.");
+  if(isCh("alan")&&(MK.k==="pl"||MK.k==="ua")&&(G.sloffen||0)<4&&Math.random()<.4){
+    G.sloffen=(G.sloffen||0)+1;
+    log("🚬 "+(MK.k==="pl"?"Marek":"Bohdan")+" heeft een sloffe in de koffer gestopt. 'Voor onderweg, broeder.'");
+    toast("🚬 Gratis sloffe gevonden in de koffer. Alins contacten denken aan alles.");}
   MK=null;
   modal("<b>🏠 Terug thuis.</b><br>"+(n?("De "+(n>1?n+" wagens staan":"wagen staat")+" op het koertje. Je monteur loopt er al rond met een spiegel op een stok en een sigaret in zijn mondhoek."):"Volgende keer beter. De buschauffeur van Koudenberg lacht je uit."),
    [{t:"Naar de garage",fn:()=>{closeModal();CUR="garage";endWeek();render()}}]);
@@ -1971,8 +1981,13 @@ function evMechanic(next){
 }
 function evRedbull(next){
   const kras=Math.random()<.6;
-  modal("<b>⛽ Tankstop.</b> "+chr().n+" koopt een bak Red Bull en twee pakjes sigaretten (<b>"+fmt(500)+"</b>)."+(kras?" De pompbediende geeft er een <b>kraslot</b> bij. \"Actie van de week.\"":"")+" De nacht is nog lang en de E40 is nog langer.",
-  [{t:"Vleugels!",fn:()=>{G.cash-=500;G.rb=true;if(kras){G.kras=(G.kras||0)+1;toast("🎫 Kraslot op zak! Krassen kan op het bureau.")}closeModal();next()}}]);
+  const grab=()=>{G.cash-=500;G.rb=true;if(kras){G.kras=(G.kras||0)+1;toast("🎫 Kraslot op zak! Krassen kan op het bureau.")}};
+  const opts=[{t:"Vleugels!",fn:()=>{grab();closeModal();next()}}];
+  if(isCh("alan")&&(G.sloffen||0)<4)opts.push({t:"🚬 + twee sloffen van de 'kennis' (2.000 BEF)",cls:"shady",fn:()=>{
+    grab();G.cash-=2000;G.sloffen=(G.sloffen||0)+2;
+    log("Alin kent iemand achter het tankstation. Twee sloffen, geen zegel, geen vragen. (-"+fmt(2000)+")");
+    toast("🚬 Twee sloffen in de koffer. Alin kent overal iemand.");closeModal();next()}});
+  modal("<b>⛽ Tankstop.</b> "+chr().n+" koopt een bak Red Bull en twee pakjes sigaretten (<b>"+fmt(500)+"</b>)."+(kras?" De pompbediende geeft er een <b>kraslot</b> bij. \"Actie van de week.\"":"")+(isCh("alan")?" Achter het gebouw staat een bestelwagen die Alin ergens van kent.":"")+" De nacht is nog lang en de E40 is nog langer.",opts);
 }
 function evFlavor(next){
   modal("<b>"+pick(["🛣️ De radio speelt een cassette van Vaya Con Dios.","🛣️ Kilometers vlakte. "+chr().n+" telt de Ladas in de tegenrichting: zeventien.","🛣️ Een bord: 'ANTWERPEN 612 km'. Zucht. Sigaret. Red Bull. Rijden.","🛣️ Aan een parking staat exact dezelfde trailer als de jouwe. Jullie knikken naar elkaar. Handelaars-solidariteit.","🛣️ Een wegrestaurant met plastic planten en een broodje kroket. Thuis, eigenlijk.","🛣️ De grenswisselkantoren flitsen voorbij: DM, Zloty, Hryvnia, allemaal in stapeltjes."])+"</b>",
