@@ -11,5 +11,24 @@ Play as Martine (the CEO), Alin (the fixer) or Thomas (the charmer).
 ~95 real car models from the 50s to the 90s, a 3D showroom, odometer
 "corrections", customs bribes, cigarettes and lots of Red Bull.
 
+## Features
+
+- **Face-to-face negotiations** with hundreds of dialogue choices — charm,
+  bluff or bribe your way through buying, selling and border controls,
+  with live odds meters and suspense reels.
+- **A living koertje**: your actual stock parked on the lot, lijn 129
+  stopping at the halte, cigarette smoke and a flickering bureau-container.
+- **Kairosoft-style progression**: XP and dealer titles, sales combos,
+  weekly report cards graded by De Streekkrant, monthly market trends,
+  VIP customers, a trainable mechanic and a year-end gala.
+- **Goal chain with unlockable extensions**: Vlan classifieds, a GSM for
+  remote deals, the blind auction in Liège, the export dock in Antwerp
+  (Cotonou, no questions), and eventually your own website on Skynet —
+  modem serenade included.
+- **Gamble everywhere**: fortune wheel, Nationale Lotto, scratch cards,
+  Gaston's weekly bet, barn-find tips, blind auction lots.
+- Animated driving scenes, workshop repairs with sparks and paint mist,
+  border barriers, sale drive-offs, chiptune sound effects and confetti.
+
 One HTML file, works on PC and mobile. Saves in your browser.
 Made with Claude for fun. Not affiliated with any real company.
