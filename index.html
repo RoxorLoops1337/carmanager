@@ -507,6 +507,19 @@ const CARS=[
  {mk:"Bugatti",md:"EB110",y:[1991,1995],body:"sport",base:7800000,rar:3},
  {mk:"Maserati",md:"Biturbo",y:[1982,1990],body:"coupe",base:340000,rar:2},
  {mk:"Lancia",md:"Stratos HF",y:[1974,1978],body:"sport",base:2800000,rar:3},
+ // ---- ronde 3: 4x4's, coupés en gaten in het gamma ----
+ {mk:"Mitsubishi",md:"Pajero 2.5 TD",y:[1986,1996],body:"suv",base:290000,rar:0},
+ {mk:"Suzuki",md:"Vitara JLX",y:[1989,1996],body:"suv",base:220000,rar:0},
+ {mk:"Toyota",md:"Land Cruiser HJ61",y:[1984,1990],body:"suv",base:340000,rar:1},
+ {mk:"Jeep",md:"Cherokee XJ 4.0",y:[1988,1996],body:"suv",base:310000,rar:1},
+ {mk:"Ford",md:"Fiesta XR2i",y:[1989,1994],body:"hatch",base:180000,rar:1},
+ {mk:"VW",md:"Scirocco GTX",y:[1984,1992],body:"coupe",base:210000,rar:1},
+ {mk:"Honda",md:"Prelude 2.0i",y:[1988,1996],body:"coupe",base:250000,rar:0},
+ {mk:"Opel",md:"Senator 3.0i",y:[1987,1993],body:"sedan",base:260000,rar:1},
+ {mk:"Renault",md:"21 Nevada",y:[1986,1994],body:"wagon",base:160000,rar:0},
+ {mk:"Peugeot",md:"605 SV",y:[1990,1996],body:"sedan",base:270000,rar:0},
+ {mk:"Nissan",md:"Sunny GTI-R",y:[1990,1994],body:"hatch",base:430000,rar:2},
+ {mk:"Audi",md:"Coupé S2",y:[1991,1996],body:"coupe",base:520000,rar:2},
 ];
 const COLORS=[
  {n:"Alpinewit",h:"#e8e6df"},{n:"Diamantzwart",h:"#23222a"},{n:"Tornado Rood",h:"#c8272d"},
@@ -516,6 +529,8 @@ const COLORS=[
  {n:"Calypso Rood",h:"#8e2f52"},{n:"Oceaanblauw",h:"#3a7ca5"},{n:"Beige",h:"#cfc0a0"},
  {n:"Champagne Metallic",h:"#dccb9e"},{n:"Salamandergroen",h:"#3f6b4a"},{n:"Aubergine",h:"#4a2842"},
  {n:"Zandbeige",h:"#c9a876"},{n:"Antraciet Metallic",h:"#3b3d42"},{n:"Postbusrood",h:"#a5241f"},
+ {n:"Signaaloranje",h:"#d95f18"},{n:"Nachtblauw",h:"#232a4d"},{n:"Olijfgroen",h:"#5a5f3a"},
+ {n:"Roze (speciale bestelling)",h:"#d98bb1"},
 ];
 const QUIRKS=[
  {id:"taxi",t:"ex-taxi uit Warschau",v:-.12,hide:true},
@@ -548,6 +563,13 @@ const QUIRKS=[
  {id:"tape",t:"bumper vastgemaakt met tape en goeie moed",v:-.11,hide:true},
  {id:"cd",t:"CD-wisselaar in de koffer (revolutionair!)",v:.04,hide:false},
  {id:"engrav",t:"initialen van een ex-lief in het dashboard gekrast",v:-.02,hide:false},
+ {id:"boombox",t:"geluidsinstallatie luider dan de motor",v:.04,hide:false},
+ {id:"hubcaps",t:"wieldoppen ontbreken, alle vier, mysterieus",v:-.03,hide:false},
+ {id:"tekoop",t:"'TE KOOP WEGENS OVERLIJDEN' nog op de voorruit",v:-.04,hide:false},
+ {id:"dennen",t:"veertien dennenboompjes in het handschoenkastje",v:0,hide:false},
+ {id:"ijzerdraad",t:"nummerplaat vastgemaakt met ijzerdraad",v:-.05,hide:true},
+ {id:"contact",t:"radio staat muurvast op Radio Contact",v:-.01,hide:false},
+ {id:"warm",t:"zetel nog warm bij aankoop (motor stond nét af)",v:-.06,hide:true},
 ];
 const MARKETS={
  de:{n:"Duitsland",fl:"🇩🇪",city:"Keulen / Autobahn-strips",mult:1.02,travel:9000,cond:[55,95],km:[.6,1.1],
@@ -582,7 +604,7 @@ const CHARS={
    desc:"De goeie gast van het verhaal, min of meer. Verkoopt ijs aan eskimo's en Lada's aan Porsche-rijders. Reputatie groeit snel en boze klanten vergeven hem alles. Maar liegen tegen inspecteurs kan hij niet.",
    perks:["+ Beste onderhandelaar (kopen én verkopen)","+ Reputatie stijgt 50% sneller","+ Boze klanten vergeven hem sneller","+ Ziet het budget van de klant","- Minder startkapitaal","- Louche acties geven 50% meer heat"]},
 };
-const CUSTNAMES=["Dirk","Rita","Marc","Chantal","Jean-Pierre","Freddy","Nadia","Roger","Josée","Kevin","Wendy","Luc","Marleen","Gino","Sandra","Patrick","Vera","Etienne","Carine","Björn","Mireille","Walter","Sabine","Ronny","Els","Gilbert","Fatima","Stef","Linda","André","Ingrid","Willy","Nancy","Danny","Christel","Frans","Nicole","Guido","Katrien","Marcel","Annie","Rudy","Viviane","Eddy","Godelieve","Jozef","Rosa","Firmin","Yvonne","Achiel"];
+const CUSTNAMES=["Dirk","Rita","Marc","Chantal","Jean-Pierre","Freddy","Nadia","Roger","Josée","Kevin","Wendy","Luc","Marleen","Gino","Sandra","Patrick","Vera","Etienne","Carine","Björn","Mireille","Walter","Sabine","Ronny","Els","Gilbert","Fatima","Stef","Linda","André","Ingrid","Willy","Nancy","Danny","Christel","Frans","Nicole","Guido","Katrien","Marcel","Annie","Rudy","Viviane","Eddy","Godelieve","Jozef","Rosa","Firmin","Yvonne","Achiel","Jean-Marie","Conny","Benny","Agnes","Urbain","Solange","Leopold","Gerda"];
 const CUSTTYPES=[
  {t:"zoekt een eerste autootje voor zoon/dochter",want:{body:["hatch"],maxB:200000},fuss:.3},
  {t:"heeft een gezinsbreak nodig, gisteren al",want:{body:["wagon","van"],maxB:450000},fuss:.4},
@@ -607,6 +629,11 @@ const CUSTTYPES=[
  {t:"trouwt binnenkort en zoekt een mooie 'oldtimer voor de foto's'",want:{dec:"old",maxB:1000000},fuss:.7},
  {t:"caféboer zoekt een camionette voor de vaten",want:{body:["van"],maxB:300000},fuss:.3},
  {t:"wil eindelijk die Italiaan waar hij al 20 jaar van droomt",want:{mk:["Alfa Romeo","Lancia","Fiat","Ferrari","Lamborghini","Maserati"],maxB:2000000},fuss:.6},
+ {t:"koopt een auto puur voor de radio erin, de rest boeit niet",want:{any:true,maxB:180000},fuss:.2},
+ {t:"wil 'iets zoals in de reclame' maar weet niet meer welke",want:{body:["sedan","coupe"],maxB:350000},fuss:.5},
+ {t:"koopt namens de gemeente een dienstwagen (factuur mag traag)",want:{body:["sedan","van"],maxB:320000},fuss:.4},
+ {t:"zoekt iets dat vooral NIET opvalt",want:{body:["sedan","hatch"],maxB:250000},fuss:.3},
+ {t:"heeft net zijn rijbewijs terug en begint voorzichtig opnieuw",want:{any:true,maxB:130000},fuss:.2},
 ];
 /* ============ HELPERS ============ */
 const $=id=>document.getElementById(id);
@@ -628,7 +655,7 @@ function newGame(ch){
      xp:0, lvl:1, spun:false, wkStart:c.cash, wkSold:0,
      mech:0, combo:0, postcards:[], lotto:false, kras:0,
      gastonHere:false, bet:null, tip:false, recProfit:0, modelsSold:{},
-     sloffen:0, alinHere:false, martineCalls:0, collection:[], collSlots:2,
+     sloffen:0, alinHere:false, martineCalls:0, collection:[], collSlots:2, mail:[],
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
      comebacks:[], mile:{}, over:false};
@@ -661,7 +688,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.orders=G.orders||[];G.ordersDone=G.ordersDone||0;G.gastonWins=G.gastonWins||0;
   G.exported=G.exported||0;G.staff=G.staff||{};G.salonYear=G.salonYear||0;
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
-  G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;
+  G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
 /* ---- goal chain: always something to look forward to ---- */
@@ -923,6 +950,10 @@ const SHAPERULES=[
  [/V8 Vantage/,"musclecoupe",4.63,{hl:"round"}],[/Turbo R/,"esedan",5.28,{hl:"round"}],
  [/Silver Spirit/,"esedan",5.27,{hl:"round"}],[/DMC-12/,"wedge",4.29,{hl:"pop"}],
  [/EB110/,"wedge",4.4,{hl:"pop"}],[/Biturbo/,"gcoupe",4.5],[/Stratos/,"wedge",3.71,{hl:"pop"}],
+ [/Pajero/,"suv",4.6],[/Vitara/,"suv",3.62],[/Land Cruiser/,"suv",4.75],[/Cherokee/,"suv",4.24],
+ [/Fiesta/,"shatch",3.74],[/Scirocco/,"p944",4.05],[/Prelude/,"gcoupe",4.44,{hl:"pop"}],
+ [/Senator/,"esedan",4.85],[/21 Nevada/,"wagon",4.64],[/605/,"esedan",4.72],
+ [/Sunny GTI-R/,"shatch",3.98,{w:2}],[/Coupé S2/,"gcoupe",4.4,{w:1}],
 ];
 const SPECS=CARS.map(d=>{
   const n=d.mk+" "+d.md;
@@ -1011,7 +1042,7 @@ function platesTick(){G.plates.forEach(p=>p.weeks--);G.plates=G.plates.filter(p=
 function plateCode(){return "ZZ-"+ri(100,999)+"-"+String.fromCharCode(65+ri(0,25))}
 
 /* ============ CUSTOMERS ============ */
-const VIPTITLES=["Wielerkampioen","Schlagerzanger","Notaris","TV-presentator","Voorzitter van de duivenbond","Frituuruitbater op pensioen","Burgemeester","Veearts","Aannemer","Cafébaas van Den Engel","Voorzitter van de fanfare","Uitbater van de frituur op de markt","Ex-winnaar van Tien om te Zien","Kermiskramer met een goed jaar","Voorzitter van de duivenmelkersbond Zellik","Makelaar met een dikke Rolex"];
+const VIPTITLES=["Wielerkampioen","Schlagerzanger","Notaris","TV-presentator","Voorzitter van de duivenbond","Frituuruitbater op pensioen","Burgemeester","Veearts","Aannemer","Cafébaas van Den Engel","Voorzitter van de fanfare","Uitbater van de frituur op de markt","Ex-winnaar van Tien om te Zien","Kermiskramer met een goed jaar","Voorzitter van de duivenmelkersbond Zellik","Makelaar met een dikke Rolex","Kapper met drie zaken","Gewezen renner van de zesdaagse","Immo-baron van de kust","Presentator van het weerbericht"];
 const CFACES=["👨","👩","🧓","👵","👨‍🦰","👱‍♀️","🧔","👩‍🦱","👨‍🦳","🧑"];
 function genCustomers(){
   const n=clamp(1+OFFICES[G.office].cust-1+Math.round(G.rep/45)+ri(0,1)+(G.vlan?1:0)+(G.staff&&G.staff.vera?1:0),1,7);
@@ -1072,6 +1103,12 @@ function endWeek(silent){
       extra.push(["🤠 Weddenschap","gewonnen! +"+fmt(G.bet.stake*2),"money"]);log("Gaston betaalt zijn weddenschap, met een klein hartje.")}
     else{ouch();extra.push(["🤠 Weddenschap","verloren: -"+fmt(G.bet.stake),"neg"]);log("Gaston wint de weddenschap en vertelt het aan iedereen.")}
     G.bet=null;}
+  // de post: fines and other envelopes with windows arrive late but always
+  for(const f of (G.mail||[])){f.eta--;
+    if(f.eta<=0){G.cash-=f.amount;
+      extra.push(["📬 "+f.t,"-"+fmt(f.amount),"neg"]);
+      log("📬 In de bus: "+f.t+", "+fmt(f.amount)+". De post is traag maar onverbiddelijk.");}}
+  G.mail=(G.mail||[]).filter(f=>f.eta>0);
   // postcards from happy customers
   for(const pc of G.postcards){pc.eta--;
     if(pc.eta<=0){repAdd(1);log("💌 Kaartje van "+pc.name+": 'Nog altijd content van mijn wagen!' (+1 rep)")}}
@@ -1170,6 +1207,13 @@ function randomOffice(){
    ()=>{const b=ri(2,6)*60;G.cash-=b;log("Bak Red Bull en twee sloffen sigaretten gekocht voor het team. (-"+fmt(b)+")")},
    ()=>{if(G.rep>50){repAdd(1);log("Iemand heeft de zaak aangeraden op café. Reputatie stijgt.")}},
    ()=>{if(G.heat>40)log("Een grijze Peugeot 405 staat al twee dagen aan de overkant geparkeerd. Toeval, ongetwijfeld.")},
+   ()=>log("De fax spuwt een blanco blad uit. Het derde deze week. Niemand weet van wie."),
+   ()=>{if(G.cars.length)log("Iemand heeft 'WAS MIJ' geschreven in het stof van de "+carName(pick(G.cars))+". De monteur ontkent alles.")},
+   ()=>log("De Streekkrant belt: of ge een advertentie wilt. 'Nee merci, wij staan liever in de artikels.'"),
+   ()=>log("Gaston rijdt tergend traag voorbij het koertje. Kijkt. Zegt niks. Rijdt door."),
+   ()=>log("De frigo is leeg op één Red Bull na. Niemand durft de laatste te pakken. Het blikje krijgt een naam."),
+   ()=>{if(G.rep>60){repAdd(1);log("Een koppel uit Gent is speciaal naar Essene gereden 'omdat iedereen over u spreekt'.")}},
+   ()=>{if((G.collection||[]).length)log("Even in de schuur gaan kijken. Het zeil recht getrokken, één keer diep gezucht van geluk, terug aan het werk.")},
   ])();
 }
 function inspection(){
@@ -1490,6 +1534,10 @@ const SPAM=[
  "📧 Iemand plaatste een animated GIF van een draaiend gouden logo in het gastenboek. Prachtig.",
  "📧 E-mail van een Rus over een 'unieke zakelijke kans'. Verwijderd, deze keer.",
  "📧 'Waarom staat er geen MIDI-muziekje op uw site?' Goeie vraag eigenlijk.",
+ "📧 E-mail: 'Is de Ferrari nog te koop?' Er staat geen Ferrari op de site. Er stond er nooit één.",
+ "📧 Het gastenboek is gehackt door iemand die 'HACKED BY KEVIN' schrijft. Kevin, 12, van om de hoek.",
+ "📧 E-mail in het Engels: 'We can make your website NUMBER ONE on AltaVista.' Verwijderd.",
+ "📧 Iemand vraagt of ge de teller van de wébsite ook kunt terugdraaien. Grappenmaker.",
 ];
 function toggleVlan(){
   if(!G.unlocks.vlan)return;
@@ -1893,7 +1941,7 @@ function mkCarSheet(c,mine){
 function driveHome(){
   const m=MARKETS[MK.k],evs=[];
   if(MK.bought.length>0)evs.push(evCustoms);
-  const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip,evMcDo];
+  const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip,evMcDo,evSpeedCamera,evFlatTire,evPigeonRace,evFuelSmuggler,evNostalgia,evBridalParty];
   const n=Math.max(0,m.risk+(Math.random()<.5?1:0)-(G.staff&&G.staff.jempi?1:0));
   for(let i=0;i<n;i++)evs.push(pick(pool));
   runEvents(evs,0);
@@ -2031,7 +2079,7 @@ function evRedbull(next){
   modal("<b>⛽ Tankstop.</b> "+chr().n+" koopt een bak Red Bull en twee pakjes sigaretten (<b>"+fmt(500)+"</b>)."+(kras?" De pompbediende geeft er een <b>kraslot</b> bij. \"Actie van de week.\"":"")+(isCh("alan")?" Achter het gebouw staat een bestelwagen die Alin ergens van kent.":"")+" De nacht is nog lang en de E40 is nog langer.",opts);
 }
 function evFlavor(next){
-  modal("<b>"+pick(["🛣️ De radio speelt een cassette van Vaya Con Dios.","🛣️ Kilometers vlakte. "+chr().n+" telt de Ladas in de tegenrichting: zeventien.","🛣️ Een bord: 'ANTWERPEN 612 km'. Zucht. Sigaret. Red Bull. Rijden.","🛣️ Aan een parking staat exact dezelfde trailer als de jouwe. Jullie knikken naar elkaar. Handelaars-solidariteit.","🛣️ Een wegrestaurant met plastic planten en een broodje kroket. Thuis, eigenlijk.","🛣️ De grenswisselkantoren flitsen voorbij: DM, Zloty, Hryvnia, allemaal in stapeltjes."])+"</b>",
+  modal("<b>"+pick(["🛣️ De radio speelt een cassette van Vaya Con Dios.","🛣️ Kilometers vlakte. "+chr().n+" telt de Ladas in de tegenrichting: zeventien.","🛣️ Een bord: 'ANTWERPEN 612 km'. Zucht. Sigaret. Red Bull. Rijden.","🛣️ Aan een parking staat exact dezelfde trailer als de jouwe. Jullie knikken naar elkaar. Handelaars-solidariteit.","🛣️ Een wegrestaurant met plastic planten en een broodje kroket. Thuis, eigenlijk.","🛣️ De grenswisselkantoren flitsen voorbij: DM, Zloty, Hryvnia, allemaal in stapeltjes.","🛣️ Op de radio: het weerbericht voor het weekend. Regen. Uiteraard regen.","🛣️ Een Nederlander haalt in, toetert, en wijst naar zijn voorhoofd. Wederzijds respect."])+"</b>",
   [{t:"Verder rijden",fn:()=>{closeModal();next()}}]);
 }
 function evTraffic(next){
@@ -2079,6 +2127,48 @@ function evMcDo(next){
        {t:"Nee merci",cls:"ghost",fn:()=>{closeModal();next()}}]);}});
   }
   modal("<b>🍟 De gele bogen</b> doemen op langs de snelweg. Zo'n Amerikaans ding — "+chr().n+" bestelt onwennig een \"Bieg Mek\". Aan het tafeltje ernaast zit een vertegenwoordiger met een map vol staaltjes en een zucht.",opts);
+}
+function evSpeedCamera(next){
+  modal("<b>📸 FLITS.</b> De trailer ging nét iets te enthousiast bergaf. In de achteruitkijkspiegel gloeit de flitspaal nog na. \"Die komt met de post,\" zucht "+chr().n+".",
+  [{t:"Doorrijden alsof er niks gebeurd is",fn:()=>{
+      G.mail=G.mail||[];G.mail.push({eta:ri(2,3),amount:12000,t:"boete van de flitspaal"});
+      log("📸 Geflitst onderweg. Ergens in een bureau wordt een foto ontwikkeld...");
+      closeModal();next()}}]);
+}
+function evFlatTire(next){
+  modal("<b>💥 Klapband op de trailer.</b> De reservewiel-vraag durft niemand hardop te stellen. Een bandencentrale verderop helpt voor <b>"+fmt(4000)+"</b>.",
+  [{t:"Laten maken (4.000 BEF)",fn:()=>{G.cash-=4000;closeModal();next()}},
+   {t:"Op de velg doorsukkelen <span class='small'>🎲 riskant</span>",cls:"ghost",fn:()=>{
+     if(MK.bought.length&&Math.random()<.35){const c=pick(MK.bought);c.body=clamp(c.body-6,5,100);
+       closeModal();modal("Het gehobbel heeft de "+esc(carName(c))+" op de trailer geen deugd gedaan. Krassen en een deuk.",[{t:"Tja.",fn:()=>{closeModal();next()}}])}
+     else{closeModal();modal("Vonken tot aan de volgende parking, maar het lukt. De velg is naar de vaantjes, de rest leeft.",[{t:"Verder",fn:()=>{closeModal();next()}}])}}}]);
+}
+function evPigeonRace(next){
+  modal("<b>🕊️ Duivenlossing.</b> Honderd manden gaan tegelijk open op de parking. De lucht wordt even grijs van de duiven, en van iets anders. Mannen met petjes kijken plechtig omhoog.",
+  [{t:"Mee omhoog kijken",fn:()=>{closeModal();addXP(2);next()}}]);
+}
+function evFuelSmuggler(next){
+  modal("<b>⛽ Een trucker met een jerrycan-imperium</b> wenkt aan de rand van de parking. \"Volle tank, halve prijs. Rode diesel, maar wie kijkt er nu naar de kleur.\"",
+  [{t:"Tanken bij Den Jerrycan (+2.000 bespaard)",cls:"shady",fn:()=>{
+      G.cash+=2000;
+      if(MK.bought.length&&Math.random()<.25){const c=pick(MK.bought);c.eng=clamp(c.eng-5,5,100);
+        log("Goedkope diesel getankt. De "+carName(c)+" hoest er een beetje van.");}
+      else log("Goedkope diesel getankt bij een trucker. 2.000 BEF uitgespaard.");
+      closeModal();next()}},
+   {t:"Braaf aan de pomp",cls:"ghost",fn:()=>{closeModal();next()}}]);
+}
+function evNostalgia(next){
+  const t=isCh("martine")?"Martine wijst naar een wegrestaurant. \"Hier heb ik in '88 mijn allereerste occasie verkocht. Aan de kok. Hij rijdt er nog mee.\"":
+    isCh("alan")?"Alin wijst naar een donkere parking. \"Daar heb ik ooit drie Mercedessen gekocht om vier uur 's nachts. Vraag niet in welke munt.\"":
+    "Thomas zucht bij een bord LUIK 45. \"Mijn eerste klant kwam van Luik. Die belt nog elk jaar met kerst. Schoon volk.\"";
+  modal("<b>🛣️ "+t+"</b>",[{t:"Mooie tijd",fn:()=>{closeModal();next()}}]);
+}
+function evBridalParty(next){
+  modal("<b>💒 Trouwstoet in paniek</b> op de pechstrook: de versierde Mercedes van de bruid rookt. De fotograaf fotografeert intussen gewoon door.",
+  [{t:"Helpen sleutelen (+2 rep)",fn:()=>{repAdd(2);
+      log("Trouwauto gered langs de E40. De bruid wuift, de schoonmoeder knikt goedkeurend.");
+      closeModal();modal("Twintig minuten en één verbrande vinger later loopt de Mercedes weer. Applaus van de hele stoet. De suisse geeft je een sigaar.",[{t:"Proficiat aan het koppel",fn:()=>{closeModal();next()}}])}},
+   {t:"Toeteren en doorrijden",cls:"ghost",fn:()=>{closeModal();next()}}]);
 }
 
 /* ============ GARAGE ============ */
