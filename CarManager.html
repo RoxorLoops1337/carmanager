@@ -83,7 +83,9 @@ h3{font-family:var(--hfont);font-weight:600;font-size:18px;letter-spacing:.8px}
 .neg{color:var(--red);font-weight:bold}
 .dim{color:var(--dim)} .small{font-size:12px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row>*,.spread>*,.carline>*{min-width:0;overflow-wrap:break-word}
 .spread{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.evbox{overflow-wrap:break-word}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.grid2{grid-template-columns:1fr}}
 .bar{height:8px;border-radius:6px;background:#191225;overflow:hidden;border:1px solid var(--edge)}
@@ -179,14 +181,15 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   color:#4a4d55;font-weight:900;user-select:none}
 .scr.open{background:#191225;border-color:var(--edge2);cursor:default;color:inherit}
 .duel{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin:2px 0 6px}
-.actor{text-align:center;min-width:64px;flex:0 0 auto}
-.dface{font-size:44px;line-height:1.15;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));animation:idlebob 2.8s ease-in-out infinite}
+.actor{text-align:center;flex:0 0 64px;width:64px;overflow:hidden}
+.actor .small{white-space:normal;overflow-wrap:break-word;word-break:break-word;line-height:1.2;font-size:10.5px}
+.dface{font-size:40px;line-height:1.15;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));animation:idlebob 2.8s ease-in-out infinite}
 .actor.right .dface{animation-delay:1.4s}
 @keyframes idlebob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-.bubcol{flex:1;min-width:0}
-.bub{position:relative;border-radius:12px;padding:7px 11px;font-size:13px;line-height:1.35;margin:4px 0;animation:bubin .2s ease}
-.bub.you{background:rgba(76,120,255,.14);border:1px solid #4a5ea8;margin-right:14%}
-.bub.them{background:rgba(255,93,158,.10);border:1px solid #7c4a63;margin-left:14%}
+.bubcol{flex:1 1 0;min-width:0}
+.bub{position:relative;border-radius:12px;padding:7px 11px;font-size:13px;line-height:1.35;margin:4px 0;animation:bubin .2s ease;overflow-wrap:break-word}
+.bub.you{background:rgba(76,120,255,.14);border:1px solid #4a5ea8;margin-right:7%}
+.bub.them{background:rgba(255,93,158,.10);border:1px solid #7c4a63;margin-left:7%}
 @keyframes bubin{from{opacity:0;transform:translateY(5px) scale(.95)}to{opacity:1;transform:none}}
 .choicebtn{display:block;width:100%;text-align:left;margin:5px 0;font-weight:normal;font-size:13px}
 .roadscene{position:relative;height:215px;border-radius:14px;overflow:hidden;margin:2px 0;
