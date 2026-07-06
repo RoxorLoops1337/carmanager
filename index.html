@@ -2368,7 +2368,7 @@ function testDrive(c,mode){
   closeModal();
   const d=CARS[c.ci];
   TD={c,mode,on:true,t:-3.6,dur:45,V:0,speed:0,top:0,dist:0,x:0,steer:0,kL:0,kR:0,gas:0,brake:0,
-    hits:0,hitCd:0,reveals:[],pos:0,segs:buildTrack(),cars:[],skid:0,gear:1,rpm:0,
+    hits:0,hitCd:0,reveals:[],pos:0,segs:buildTrack(),cars:[],skid:0,gear:1,rpm:0,psi:0,delta:0,
     sput:false,sputT:2.5+Math.random()*2.5,lt:0,raf:0,skyX:0,cntShown:null,
     maxV:topSpeed(c)/3.6,body:d.body,hex:COLORS[c.col].h,
     electrAt:c.quirks.includes("electr")&&!c.known.includes("electr")?4+Math.random()*8:1e9,
@@ -2532,10 +2532,9 @@ function td3dFrame(dt){
   const m=TD.pos/M2U,lat=TD.x*6.2;
   td3dPos(m,lat,T3.tmp);
   const h=T3.tmp.h;
-  const steerIn=clamp(TD.steer+(TD.kR-TD.kL),-1,1);
   T3.car.position.set(T3.tmp.x,T3.tmp.y+0.02,T3.tmp.z);
-  T3.car.rotation.y=Math.PI/2-h-steerIn*.22-TD.skid*steerIn*.3;
-  T3.car.rotation.z=Math.sin(TD.t*21)*(TD.V>2?.008:0)+steerIn*.05;
+  T3.car.rotation.y=Math.PI/2-h-(TD.psi+TD.delta*.6);
+  T3.car.rotation.z=Math.sin(TD.t*21)*(TD.V>2?.008:0)+(TD.psi+TD.delta)*.16;
   // chase cam (Jellei HQ style lerp)
   td3dPos(Math.max(0,m-8.2),lat*.55,T3.tmp2);
   const cx=T3.tmp2.x,cy=T3.tmp2.y+3.1,cz=T3.tmp2.z;
@@ -2604,23 +2603,29 @@ function tdTick(dt){
   else if(g<TD.gear)TD.gear=g;
   TD.rpm=clamp((Vn-GR[TD.gear-1])/(GR[TD.gear]-GR[TD.gear-1]),0,1);
   engineRPM(TD.gas?TD.rpm:TD.rpm*.8,TD.gear);
-  /* --- lateral physics --- */
-  const steerIn=clamp(TD.steer+(TD.kR-TD.kL),-1,1);
-  const grip=(0.78+0.5*bod/100);
-  const seg=TD.segs[bi];
-  const centri=seg.curve*Vn*Vn*1.55;
-  const steerFx=steerIn*(0.55+1.5*Math.min(1,TD.V/22))*1.35;
-  let lat=steerFx-centri;
-  const demand=Math.abs(centri)-grip*1.15;
-  if(demand>0&&TD.V>12){TD.skid=Math.min(1,TD.skid+dt*4);
-    lat=steerFx*.45-centri*1.12;TD.V=Math.max(0,TD.V-demand*3.2*dt);}
+  /* --- lateral physics: bicycle model with grip limit --- */
+  const steerTarget=clamp(TD.steer+(TD.kR-TD.kL),-1,1);
+  // smoothed, speed-sensitive steering angle (rad)
+  const dMax=.34/(1+TD.V/30);
+  TD.delta+=((steerTarget*dMax)-TD.delta)*Math.min(1,dt*9);
+  if(TD.pull)TD.delta+=TD.pull*.06*Math.min(1,TD.V/15);
+  if(bod<60)TD.delta+=Math.sin(TD.t*2.3)*dt*.05*(1-bod/100); // loose old bodywork wanders slowly
+  // yaw rate demanded vs grip available
+  let yaw=TD.V/2.6*Math.tan(TD.delta);
+  const aMax=9.8*(0.9+0.5*bod/100);
+  const aNeed=Math.abs(TD.V*yaw);
+  if(aNeed>aMax&&TD.V>8){yaw=Math.sign(yaw)*aMax/TD.V;
+    TD.skid=Math.min(1,TD.skid+dt*4);TD.V=Math.max(0,TD.V-(aNeed-aMax)*.25*dt);}
   else TD.skid=Math.max(0,TD.skid-dt*3);
   skidVol(TD.skid*.06);
-  TD.x+=lat*dt;
-  TD.x+=Math.sin(TD.t*10)*dt*(1-bod/100)*.5;
-  if(TD.pull){TD.x+=TD.pull*dt*Math.min(1,TD.V/15);
-    if(TD.t>TD.pullAt&&!c.known.includes("crash")){TD.pullAt=1e9;
-      tdReveal("crash","Hij trekt vanzelf opzij — chassis niet meer recht na een klapper.")}}
+  // heading relative to the road tangent; road curvature turns under the car
+  const kap=TD.segs[bi].curve*.0011;
+  TD.psi+=(yaw-kap*TD.V)*dt;
+  TD.psi-=TD.psi*Math.min(1,TD.V/18)*1.6*dt; // tires self-align when you release
+  TD.psi=clamp(TD.psi,-.9,.9);
+  TD.x+=TD.V*Math.sin(TD.psi)*dt/6.4;
+  if(TD.t>TD.pullAt&&TD.pull&&!c.known.includes("crash")){TD.pullAt=1e9;
+    tdReveal("crash","Hij trekt vanzelf opzij — chassis niet meer recht na een klapper.")}
   /* off-road */
   if(Math.abs(TD.x)>1.12){TD.V=Math.max(6,TD.V-26*dt);TD.x=clamp(TD.x,-1.6,1.6);
     if(Math.random()<dt*8)popNum("💨","pblue")}
@@ -2643,7 +2648,7 @@ function tdTick(dt){
   TD.dist+=TD.V*dt/1000;
   TD.speed=TD.V*3.6;
   TD.top=Math.max(TD.top,TD.speed);
-  TD.skyX-=seg.curve*Vn*dt*40;
+  TD.skyX-=TD.segs[bi].curve*Vn*dt*40;
   const sp=$("tdspd"),ti=$("tdtime"),di=$("tddist"),ge=$("tdgear"),ta=$("tdtach");
   if(sp)sp.textContent=Math.round(TD.speed);
   if(ti)ti.textContent=Math.max(0,Math.ceil(TD.dur-TD.t));
@@ -2735,7 +2740,7 @@ function tdDraw(){
   /* player car */
   const spr=tdSprite(TD.hex,TD.body,!!TD.brake);
   const pw=Math.min(W*.30,300),ph=pw*(150/190);
-  const lean=clamp((TD.steer+(TD.kR-TD.kL))*.10+TD.skid*(TD.steer>=0?.14:-.14),-.24,.24);
+  const lean=clamp((TD.psi+TD.delta)*.5,-.3,.3);
   const bounce=Math.sin(TD.t*23)*(TD.V>2?2.2:0)*(TD.dpr||1);
   x.save();
   x.translate(W/2,H*.80+bounce);
