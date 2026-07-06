@@ -2433,14 +2433,14 @@ function td3dPos(m,lat,out){
   const f=Math.max(0,Math.min(1,(m-i*T3.trk.STEP)/T3.trk.STEP));
   const a=T3.trk.pts[i],b=T3.trk.pts[i+1];
   const h=a.h+(b.h-a.h)*f;
-  const lx=-Math.cos(h),lz=-Math.sin(h);
+  const lx=Math.cos(h),lz=Math.sin(h);
   out.x=a.x+(b.x-a.x)*f+lx*lat;
   out.y=a.y+(b.y-a.y)*f;
   out.z=a.z+(b.z-a.z)*f+lz*lat;
   out.h=h;
   return out;
 }
-function td3dRibbon(lats,tex){
+function td3dRibbon(lats,tex){ // NOTE: uses the mirrored lateral basis vs td3dPos; fine while lat-lists are symmetric — align signs before adding one-sided geometry (guardrails etc.)
   const pts=T3.trk.pts,rows=pts.length,cols=lats.length;
   const pos=new Float32Array(rows*cols*3),uv=new Float32Array(rows*cols*2);
   let p=0,q=0;
@@ -2485,8 +2485,9 @@ function td3dInit(){
     new THREE.MeshPhongMaterial({map:td3dRoadTex(),shininess:8}));
   road.material.map.repeat.set(1,1);sc.add(road);
   const grassM=new THREE.MeshPhongMaterial({color:0x33284a,shininess:2});
-  sc.add(new THREE.Mesh(td3dRibbon([-90,-7.3]),grassM));
-  sc.add(new THREE.Mesh(td3dRibbon([7.3,90]),grassM));
+  const gr1=new THREE.Mesh(td3dRibbon([-90,-7.3]),grassM),gr2=new THREE.Mesh(td3dRibbon([7.3,90]),grassM);
+  gr1.position.y=-0.05;gr2.position.y=-0.05;
+  sc.add(gr1);sc.add(gr2);
   // sunset sun sprite
   const scv=document.createElement("canvas");scv.width=scv.height=128;
   const sx=scv.getContext("2d");
@@ -2624,7 +2625,7 @@ function tdTick(dt){
   if(Math.abs(TD.x)>1.12){TD.V=Math.max(6,TD.V-26*dt);TD.x=clamp(TD.x,-1.6,1.6);
     if(Math.random()<dt*8)popNum("💨","pblue")}
   /* quirk events */
-  if(TD.t>TD.electrAt){TD.electrAt=1e9;const el=$("tdc");
+  if(TD.t>TD.electrAt){TD.electrAt=1e9;const el=$("tdfs");
     if(el){el.classList.remove("tdflick");void el.offsetWidth;el.classList.add("tdflick")}
     tdReveal("electr","Het dashboard valt even helemaal zwart. Elektriek doet raar.")}
   if(TD.t>TD.floodAt){TD.floodAt=1e9;tdReveal("flood","Er klotst iets achter de deurbekleding. Waterschade, gegarandeerd.")}
