@@ -288,6 +288,17 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 .b-car{position:absolute;left:4%;bottom:6%}
 .border.open .b-car{animation:passborder 1.9s ease-in .55s forwards}
 @keyframes passborder{to{transform:translateX(120vw)}}
+/* test drive */
+.tdwrap{position:relative;border-radius:12px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.tdwrap canvas{display:block;width:100%}
+.tdcar{position:absolute;bottom:4%;left:50%;pointer-events:none;filter:drop-shadow(0 4px 5px rgba(0,0,0,.55))}
+.tdhud{position:absolute;top:6px;left:8px;right:8px;display:flex;justify-content:space-between;pointer-events:none;
+  font-family:var(--hfont);font-size:14px;color:#fff;text-shadow:0 1px 4px #000}
+.tdhud b{font-size:20px;color:var(--amber)}
+.tdflick{animation:tdflick .5s steps(2) 3}
+@keyframes tdflick{0%,100%{filter:brightness(1)}50%{filter:brightness(.35)}}
+.tdzone{position:absolute;top:0;bottom:0;width:50%;z-index:5}
+.tdhint{text-align:center;font-size:11px;color:var(--dim);margin-top:5px}
 hr{border:none;border-top:1px dashed var(--edge);margin:10px 0}
 ::-webkit-scrollbar{width:9px}
 ::-webkit-scrollbar-thumb{background:#443659;border-radius:6px}
@@ -1060,7 +1071,7 @@ function modal(html,btns){
     el.innerHTML=b.t;el.onclick=b.fn;bb.appendChild(el)});
   $("modal").style.display="flex";
 }
-function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(G)render()}
+function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(typeof TD!=="undefined"&&TD&&TD.on)tdCleanup();if(G)render()}
 function modalOpen(){return $("modal").style.display==="flex"}
 let HCASH=null,HTW=null;
 function hdr(){
@@ -1490,7 +1501,7 @@ function bidModal(c){
    +'<div class="center"><b id="bidv" class="money">'+fmt(v)+'</b></div>'
    +'<div id="odds1">'+oddsHtml(bidOdds(v))+'</div>'
    +(HAG.tries?'<div class="small dim" style="margin-top:4px">Poging '+(HAG.tries+1)+' — hij begint het beu te worden.</div>':''),
-  [{t:"💬 Doe bod",fn:doBid},{t:"🌀 Bekijk in 3D",cls:"ghost",fn:()=>show3D(HAG.c,true)},{t:"Laat staan",cls:"ghost",fn:closeModal}]);
+  [{t:"💬 Doe bod",fn:doBid},{t:"🛞 Proefrit"+(c.tested?" ✓":""),cls:"ghost",fn:()=>testDrive(HAG.c,"market")},{t:"🌀 3D",cls:"ghost",fn:()=>show3D(HAG.c,true)},{t:"Laat staan",cls:"ghost",fn:closeModal}]);
 }
 function doTalkBuy(k){
   if($("bidsl"))HAG.bid=+$("bidsl").value;
@@ -1527,15 +1538,17 @@ function buyCar(c,price){
 }
 function mkCarSheet(c,mine){
   const d=CARS[c.ci];
-  const qs=c.quirks.filter(q=>{const Q=QUIRKS.find(x=>x.id===q);return mine||!Q.hide});
+  const qs=c.quirks.filter(q=>{const Q=QUIRKS.find(x=>x.id===q);return mine||!Q.hide||(c.known&&c.known.includes(q))});
   return '<div class="carpic big">'+carArt(c,240)+'</div><div class="row"><div><b>'+esc(carName(c))+'</b> <span class="dim">('+c.year+')</span>'
    +(d.rar>0?' <span class="pill '+(d.rar===3?"bad":"warn")+'">'+RARN[d.rar]+'</span>':'')
    +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+" · "+d.body+(c.tuned?" · getuned ⚡".repeat(1):"")+'</div></div></div>'
    +'<div style="margin:6px 0">'+condPill(c.eng,"motor")+condPill(c.body,"koets")
+   +'<span class="pill info">± '+topSpeed(c)+' km/u</span>'
    +'<span class="pill">'+c.km.toLocaleString().replace(/,/g,".")+' km'+(mine&&c.rolled?' <span class="neg">(echt: '+c.kmReal.toLocaleString().replace(/,/g,".")+')</span>':'')+'</span>'
+   +(!mine&&c.known&&c.known.includes("__rolled")?'<span class="pill bad">👀 teller teruggedraaid</span>':'')
    +'<span class="pill '+(c.papers===0?"good":c.papers===1?"warn":"bad")+'">'+PAPN[c.papers]+'</span>'
    +(mine&&c.hot?'<span class="pill bad">🔥 mogelijk gestolen</span>':'')+'</div>'
-   +(qs.length?'<div class="small">'+qs.map(q=>{const Q=QUIRKS.find(x=>x.id===q);return '<span class="pill '+(Q.v>0?"good":"bad")+'">'+Q.t+'</span>'}).join("")+'</div>':'');
+   +(qs.length?'<div class="small">'+qs.map(q=>{const Q=QUIRKS.find(x=>x.id===q);return '<span class="pill '+(Q.v>0?"good":"bad")+'">'+Q.t+(Q.hide&&!mine?' 👀':'')+'</span>'}).join("")+'</div>':'');
 }
 /* ============ JOURNEY HOME ============ */
 function driveHome(){
@@ -1686,6 +1699,7 @@ function openCar(id){
    +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(25000)+'</span></button>'
    +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(RESPRAY_COST)+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
+   +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
    +'</div><hr><div class="small dim">🚬 De achterkamer (Alin kent iemand):</div><div class="tablebtns">'
    +'<button class="btn shady" onclick="rollKm('+c.id+')">🔧 Teller "corrigeren"<br><span class="small">'+fmt(rollC)+' · +heat</span></button>'
    +'<button class="btn shady" onclick="fixPapers('+c.id+')" '+(c.papers===0&&!c.hot?"disabled":"")+'>📄 Papieren opfrissen<br><span class="small">'+fmt(papC)+' · +heat</span></button>'
@@ -2094,6 +2108,165 @@ function lotScene(){
    +'<div class="lot-char">'+chr().face+'<div class="lot-smoke"><i></i><i></i><i></i></div></div>'
    +'</div>';
 }
+/* ============ TEST DRIVE (outrun-lite) ============ */
+let TD=null,ENGO=null,ENGG=null;
+function engineStart(){if(MUTE)return;
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+  ENGO=AC.createOscillator();ENGG=AC.createGain();ENGO.type="sawtooth";
+  ENGG.gain.value=.03;ENGO.frequency.value=55;ENGO.connect(ENGG).connect(AC.destination);ENGO.start()}catch(e){}}
+function engineSet(sp){try{if(ENGO)ENGO.frequency.setTargetAtTime(52+sp*.95,AC.currentTime,.05)}catch(e){}}
+function engineStop(){try{if(ENGO){ENGO.stop();ENGO=null}}catch(e){}}
+const BODY_TOP={hatch:165,sedan:182,wagon:172,coupe:196,cabrio:186,sport:238,van:128,suv:142};
+function topSpeed(c){const d=CARS[c.ci];
+  let v=(BODY_TOP[d.body]||170)*(0.62+0.38*Math.min(1,Math.sqrt(d.base/500000)));
+  v*=(0.72+0.28*(c.eng==null?80:c.eng)/100);
+  v*=1+0.07*(c.tuned||0);
+  return Math.round(v);}
+function tdKD(e){if(!TD)return;if(e.key==="ArrowLeft"||e.key==="a")TD.dir=-1;if(e.key==="ArrowRight"||e.key==="d")TD.dir=1}
+function tdKU(e){if(!TD)return;if(["ArrowLeft","ArrowRight","a","d"].includes(e.key))TD.dir=0}
+function tdCleanup(){if(!TD)return;TD.on=false;
+  if(TD.raf)cancelAnimationFrame(TD.raf);
+  window.removeEventListener("keydown",tdKD);window.removeEventListener("keyup",tdKU);
+  engineStop();}
+function tdReveal(q,txt){const c=TD.c;
+  if(q&&c.known.includes(q))return;
+  if(q)c.known.push(q);
+  TD.reveals.push(txt);toast("👀 "+txt);sfx("bad");popNum("🔍","pamber");}
+function testDrive(c,mode){
+  if(mode==="market"&&c.tested){toast("De verkoper: \"Eén proefrit is genoeg, vriend.\"");return}
+  if(mode==="market")c.tested=true;
+  const w=Math.min(window.innerWidth-70,460),h=Math.round(w*.66);
+  TD={c,mode,on:true,t:0,dur:26,speed:0,top:0,dist:0,x:0,dir:0,hits:0,hitCd:0,reveals:[],
+    curve:0,curveT:0,curveTarget:0,pos:0,obs:[],spawnT:.8,sput:false,sputT:2.5+Math.random()*2.5,
+    maxV:topSpeed(c),lt:0,raf:0,w,h,
+    electrAt:c.quirks.includes("electr")&&!c.known.includes("electr")?3+Math.random()*6:1e9,
+    floodAt:c.quirks.includes("flood")&&!c.known.includes("flood")?5+Math.random()*8:1e9,
+    taxiAt:c.quirks.includes("taxi")&&!c.known.includes("taxi")?4+Math.random()*7:1e9,
+    gearArm:c.quirks.includes("gearbox")&&!c.known.includes("gearbox"),
+    pull:c.quirks.includes("crash")?.09:0,pullAt:6};
+  modal('<div class="tdwrap" id="tdwrap"><canvas id="tdc" width="'+w+'" height="'+h+'"></canvas>'
+   +'<div class="tdhud"><span>⏱ <b id="tdtime">'+TD.dur+'</b></span><span><b id="tdspd">0</b> km/u</span><span>📏 <b id="tddist">0.0</b> km</span></div>'
+   +'<div class="tdcar" id="tdcar">'+carArt(c,120)+'</div>'
+   +'<div class="tdzone" style="left:0" ontouchstart="TD&&(TD.dir=-1)" ontouchend="TD&&(TD.dir=0)"></div>'
+   +'<div class="tdzone" style="right:0" ontouchstart="TD&&(TD.dir=1)" ontouchend="TD&&(TD.dir=0)"></div></div>'
+   +'<div class="tdhint">◀ raak links / rechts aan ▶ · of pijltjes/A-D · ontwijk het verkeer</div>',
+  [{t:"⏹ Inleveren",cls:"ghost",fn:()=>tdEnd(false)}]);
+  window.addEventListener("keydown",tdKD);window.addEventListener("keyup",tdKU);
+  engineStart();
+  TD.raf=requestAnimationFrame(tdLoop);
+}
+function tdLoop(ts){
+  if(!TD||!TD.on)return;
+  const dt=Math.min(.05,TD.lt?(ts-TD.lt)/1000:.016);TD.lt=ts;
+  tdTick(dt);if(TD&&TD.on)tdDraw();
+  if(TD&&TD.on)TD.raf=requestAnimationFrame(tdLoop);
+}
+function tdTick(dt){
+  const c=TD.c,eng=(c.eng==null?80:c.eng),body=(c.body==null?80:c.body);
+  TD.t+=dt;
+  // speed: acceleration scales with engine condition
+  const accel=34*(0.45+0.55*eng/100);
+  TD.speed=Math.min(TD.maxV,TD.speed+accel*dt);
+  // engine sputter on a worn motor
+  if(eng<50){TD.sputT-=dt;
+    if(TD.sputT<=0){TD.sputT=2.5+Math.random()*3;TD.speed*=.62;sfx("bad");
+      if(!TD.sput){TD.sput=true;toast("💨 De motor sputtert en vangt zich weer. Hmm.")}}}
+  // gearbox crunch when 'shifting' past 90
+  if(TD.gearArm&&TD.speed>90){TD.gearArm=false;TD.speed-=14;
+    tdReveal("gearbox","KRRRK bij het schakelen — de versnellingsbak kraakt in z'n 3e.")}
+  if(TD.t>TD.electrAt){TD.electrAt=1e9;const el=$("tdwrap");if(el){el.classList.remove("tdflick");void el.offsetWidth;el.classList.add("tdflick")}
+    tdReveal("electr","Het dashboard flikkert even helemaal weg. Elektriek doet raar.")}
+  if(TD.t>TD.floodAt){TD.floodAt=1e9;tdReveal("flood","Er klotst iets achter de deurbekleding. Waterschade, gegarandeerd.")}
+  if(TD.t>TD.taxiAt){TD.taxiAt=1e9;tdReveal("taxi","De bestuurderszetel zit door tot op de veren. Ex-taxi, dit.")}
+  // steering: body condition = tightness; crash quirk = constant pull
+  const steer=(1.15+0.5*body/100)*(0.4+0.6*Math.min(1,TD.speed/80));
+  TD.x+=TD.dir*steer*dt;
+  TD.x+=Math.sin(TD.t*11)*dt*(1-body/100)*.9;
+  if(TD.pull){TD.x+=TD.pull*dt;
+    if(TD.t>TD.pullAt&&!c.known.includes("crash")){TD.pullAt=1e9;tdReveal("crash","Hij trekt vanzelf naar rechts. Chassis niet meer recht — overgespoten na een klapper.")}}
+  // curves push you out
+  TD.curveT-=dt;
+  if(TD.curveT<=0){TD.curveT=4+Math.random()*3;TD.curveTarget=(Math.random()*1.8-0.9)}
+  TD.curve+=(TD.curveTarget-TD.curve)*dt*.7;
+  TD.x-=TD.curve*dt*(TD.speed/240)*1.4;
+  // off-road rumble
+  if(Math.abs(TD.x)>1.05){TD.speed=Math.max(40,TD.speed-90*dt);TD.x=clamp(TD.x,-1.35,1.35)}
+  // traffic
+  TD.spawnT-=dt;
+  if(TD.spawnT<=0){TD.spawnT=1.15+Math.random()*1.1;
+    TD.obs.push({z:260,lane:pick([-0.55,0,0.55]),e:pick(["🚗","🚙","🚚","🚜","🚌"]),v:55+Math.random()*30})}
+  TD.hitCd=Math.max(0,TD.hitCd-dt);
+  for(const o of TD.obs){o.z-=(TD.speed-o.v)*dt*.62;
+    if(o.z<16&&o.z>2&&TD.hitCd<=0&&Math.abs(o.lane-TD.x*.8)<.34){
+      o.z=-99;TD.hits++;TD.hitCd=1;TD.speed*=.4;ouch();popNum("💥","pred");
+      if(TD.mode==="market"&&TD.hits>=3){toast("De verkoper wordt lijkbleek en wuift je naar de kant.");tdEnd(true);return}}}
+  TD.obs=TD.obs.filter(o=>o.z>0&&o.z<300);
+  TD.pos+=TD.speed*dt*.6;
+  TD.dist+=TD.speed*dt/3600;
+  TD.top=Math.max(TD.top,TD.speed);
+  engineSet(TD.speed);
+  const s=$("tdspd"),ti=$("tdtime"),di=$("tddist");
+  if(s)s.textContent=Math.round(TD.speed);
+  if(ti)ti.textContent=Math.max(0,Math.ceil(TD.dur-TD.t));
+  if(di)di.textContent=TD.dist.toFixed(1);
+  const carEl=$("tdcar");
+  if(carEl)carEl.style.transform="translateX(calc(-50% + "+(TD.x*TD.w*.3)+"px)) rotate("+(TD.dir*3+TD.curve*-2)+"deg)";
+  if(TD.t>=TD.dur)tdEnd(false);
+}
+function tdDraw(){
+  const cv=$("tdc");if(!cv)return;
+  const x=cv.getContext("2d"),W=TD.w,H=TD.h,hor=H*.4;
+  const sky=x.createLinearGradient(0,0,0,hor);
+  sky.addColorStop(0,"#181040");sky.addColorStop(.7,"#5d3a78");sky.addColorStop(1,"#a04e6e");
+  x.fillStyle=sky;x.fillRect(0,0,W,hor);
+  x.fillStyle="#ffb347";x.beginPath();x.arc(W*.68,hor*.72,16,0,7);x.fill();
+  x.fillStyle="#241a37";x.beginPath();x.moveTo(0,hor);
+  for(let i=0;i<=8;i++)x.lineTo(i*W/8,hor-8-Math.abs(Math.sin(i*2.1+1))*14);
+  x.lineTo(W,hor);x.fill();
+  const bend=t=>W/2+TD.curve*(1-t)*(1-t)*W*.5;
+  const half=t=>10+t*t*W*.46;
+  for(let y=Math.round(hor);y<H;y+=2){
+    const t=(y-hor)/(H-hor);
+    const wz=TD.pos+(1-t)*260/(t+.14);
+    const st=Math.floor(wz/26)%2;
+    x.fillStyle=st?"#2c2444":"#332a4e";x.fillRect(0,y,W,2);
+    const cx=bend(t),hw=half(t);
+    x.fillStyle=st?"#3a3350":"#413a58";x.fillRect(cx-hw,y,hw*2,2);
+    x.fillStyle=st?"#d5001c":"#e8e6df";
+    x.fillRect(cx-hw-4*t-2,y,4*t+2,2);x.fillRect(cx+hw,y,4*t+2,2);
+    if(st){x.fillStyle="#e8d98a";x.fillRect(cx-2*t,y,4*t,2)}
+  }
+  x.textAlign="center";
+  for(const o of TD.obs){
+    if(o.z<=0||o.z>=260)continue;
+    const t=1-o.z/260;if(t<=0.02)continue;
+    const y=hor+t*(H-hor),size=6+t*40;
+    const cx=bend(t),hw=half(t);
+    x.font=size+"px serif";
+    x.fillText(o.e,cx+o.lane*hw,y);
+  }
+}
+function tdEnd(early){
+  if(!TD)return;
+  tdCleanup();
+  const c=TD.c;
+  let dmg=0;
+  if(TD.mode==="own"&&TD.hits){dmg=Math.min(6,TD.hits*2);c.body=clamp(c.body-dmg,5,100)}
+  if(TD.mode==="market"&&c.rolled&&!c.known.includes("__rolled")&&TD.dist>1.0&&Math.random()<.65){
+    c.known.push("__rolled");stamp("TELLERFRAUDE!","pink");
+    TD.reveals.push("De teller zegt "+c.km.toLocaleString().replace(/,/g,".")+" km, maar alles voelt dubbel zo versleten. Teruggedraaid!")}
+  addXP(TD.mode==="market"?4+TD.reveals.length*5:6);
+  save();
+  modal('<b>🛞 Proefrit voorbij.</b>'+(early?" Iets te enthousiast.":"")
+   +'<hr><div class="spread"><span class="dim">Topsnelheid gehaald</span><b>'+Math.round(TD.top)+' km/u <span class="small dim">(op papier ±'+topSpeed(c)+')</span></b></div>'
+   +'<div class="spread"><span class="dim">Afstand</span><b>'+TD.dist.toFixed(1)+' km</b></div>'
+   +'<div class="spread"><span class="dim">Brokken</span><b>'+TD.hits+(dmg?' <span class="neg">(-'+dmg+'% koets)</span>':'')+'</b></div>'
+   +(TD.sput?'<div class="spread"><span class="dim">Motor</span><b class="neg">sputtert — conditie laat te wensen over</b></div>':'')
+   +(TD.reveals.length?'<hr><div class="small">👀 Ontdekt tijdens het rijden:</div>'+TD.reveals.map(r=>'<div class="logline small">'+esc(r)+'</div>').join(""):'')
+   +'<div class="small dim" style="margin-top:6px">+'+(TD.mode==="market"?4+TD.reveals.length*5:6)+' XP</div>',
+  [{t:"Terug",fn:()=>{const m=TD.mode,cc=TD.c;TD=null;if(m==="market"&&HAG&&HAG.c===cc)bidModal(cc);else if(m==="own")openCar(cc.id);else closeModal()}}]);
+}
+function testDriveOwn(id){const c=getCar(id);if(c)testDrive(c,"own")}
 /* border post with barrier */
 function borderScene(){
   const c=MK&&MK.bought&&MK.bought.length?MK.bought[0]:null;
