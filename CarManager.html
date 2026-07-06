@@ -178,6 +178,31 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   border:2px solid #b8bac2;box-shadow:inset 0 2px 4px rgba(255,255,255,.4), 0 3px 8px rgba(0,0,0,.4);
   color:#4a4d55;font-weight:900;user-select:none}
 .scr.open{background:#191225;border-color:var(--edge2);cursor:default;color:inherit}
+.duel{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin:2px 0 6px}
+.actor{text-align:center;min-width:64px;flex:0 0 auto}
+.dface{font-size:44px;line-height:1.15;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45));animation:idlebob 2.8s ease-in-out infinite}
+.actor.right .dface{animation-delay:1.4s}
+@keyframes idlebob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.bubcol{flex:1;min-width:0}
+.bub{position:relative;border-radius:12px;padding:7px 11px;font-size:13px;line-height:1.35;margin:4px 0;animation:bubin .2s ease}
+.bub.you{background:rgba(76,120,255,.14);border:1px solid #4a5ea8;margin-right:14%}
+.bub.them{background:rgba(255,93,158,.10);border:1px solid #7c4a63;margin-left:14%}
+@keyframes bubin{from{opacity:0;transform:translateY(5px) scale(.95)}to{opacity:1;transform:none}}
+.choicebtn{display:block;width:100%;text-align:left;margin:5px 0;font-weight:normal;font-size:13px}
+.roadscene{position:relative;height:215px;border-radius:14px;overflow:hidden;margin:2px 0;
+  background:linear-gradient(180deg,#181040 0%,#472a5e 38%,#a04e6e 52%,#221a38 52.5%)}
+.rs-sun{position:absolute;left:64%;top:16%;width:38px;height:38px;border-radius:50%;
+  background:radial-gradient(circle,#ffd76a,#ff8a5c 70%);box-shadow:0 0 26px #ff8a5c;opacity:.9}
+.rs-trees{position:absolute;top:38%;left:0;white-space:nowrap;font-size:27px;animation:scrollx 7s linear infinite}
+.rs-posts{position:absolute;top:60%;left:0;white-space:nowrap;font-size:15px;opacity:.8;animation:scrollx 2.6s linear infinite}
+@keyframes scrollx{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.rs-road{position:absolute;left:0;right:0;bottom:0;height:36%;background:#241e33;border-top:3px solid #40385c}
+.rs-dash{position:absolute;left:0;right:0;bottom:16%;height:5px;
+  background:repeating-linear-gradient(90deg,#e8d98a 0 34px,transparent 34px 82px);animation:dashmove .45s linear infinite}
+@keyframes dashmove{from{background-position:0 0}to{background-position:-82px 0}}
+.rs-car{position:absolute;left:24%;bottom:8%;animation:carbob .4s ease-in-out infinite}
+@keyframes carbob{0%,100%{transform:translateY(0) rotate(-.4deg)}50%{transform:translateY(-3px) rotate(.4deg)}}
+.rs-txt{position:absolute;left:0;right:0;top:9px;text-align:center;color:#f3ecdf;font-size:13px;text-shadow:0 1px 5px #000}
 hr{border:none;border-top:1px dashed var(--edge);margin:10px 0}
 ::-webkit-scrollbar{width:9px}
 ::-webkit-scrollbar-thumb{background:#443659;border-radius:6px}
@@ -717,20 +742,21 @@ function plateCode(){return "ZZ-"+ri(100,999)+"-"+String.fromCharCode(65+ri(0,25
 
 /* ============ CUSTOMERS ============ */
 const VIPTITLES=["Wielerkampioen","Schlagerzanger","Notaris","TV-presentator","Voorzitter van de duivenbond","Frituuruitbater op pensioen"];
+const CFACES=["👨","👩","🧓","👵","👨‍🦰","👱‍♀️","🧔","👩‍🦱","👨‍🦳","🧑"];
 function genCustomers(){
   const n=clamp(1+OFFICES[G.office].cust-1+Math.round(G.rep/45)+ri(0,1)+(G.vlan?1:0),1,6);
   G.custs=[];
   for(let i=0;i<n;i++){
     const ty=pick(CUSTTYPES);
-    const cu={id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:ty.fuss,
+    const cu={id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:ty.fuss,face:pick(CFACES),
       budget:Math.round(ty.want.maxB*rnd(.55,1.05)/1000)*1000,tried:false};
-    if(Math.random()<.08){cu.vip=true;cu.name=pick(VIPTITLES)+" "+cu.name;
+    if(Math.random()<.08){cu.vip=true;cu.name=pick(VIPTITLES)+" "+cu.name;cu.face="🕴️";
       cu.budget=Math.round(cu.budget*2.2/1000)*1000;cu.fuss=Math.min(.9,cu.fuss+.2);}
     G.custs.push(cu);
   }
   if(G.web&&G.web.live){
     const ty=pick(CUSTTYPES);
-    G.custs.push({id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:ty.fuss,net:true,
+    G.custs.push({id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:ty.fuss,net:true,face:"🧑‍💻",
       budget:Math.round(ty.want.maxB*rnd(.7,1.2)/1000)*1000,tried:false});
   }
 }
@@ -1314,7 +1340,8 @@ function goTrip(k){
   [{t:"Rijden!",fn:()=>{closeModal();G.cash-=m.travel;
      if(k==="pl"||k==="ua")G.mile.eastTrip=1;
      MK={k, cars:Array.from({length:ri(4,6)},()=>genCar(k)), bought:[]};
-     log("Vertrokken naar "+m.n+" ("+m.city+").");CUR="travel";render()}},
+     log("Vertrokken naar "+m.n+" ("+m.city+").");CUR="travel";render();
+     driveScene("Richting "+m.fl+" "+m.n+" — sloffen sigaretten op de passagierszetel...",closeModal)}},
    {t:"Toch niet",cls:"ghost",fn:closeModal}]);
 }
 function renderMarket(){
@@ -1335,20 +1362,28 @@ function renderMarket(){
   $("view").innerHTML=h;
 }
 let HAG=null;
+const MFACES={de:"👨‍💼",nl:"🧔",pl:"👨‍🦱",ua:"👴"};
+const MSELLERS={de:"Jürgen",nl:"Henk",pl:"Marek",ua:"Bohdan"};
+function hagBonus(){return (HAG&&HAG.talk&&HAG.talk.bonus)||0}
 function bidOdds(bid){
   const c=HAG.c;
   let t=.80+HAG.tries*.06;
   if(isCh("alan"))t-=.09; if(isCh("thomas"))t-=.06; if(G.rb){t-=.05}
-  return clamp((bid/c.ask-t)/(1-t),.03,.97);
+  return clamp((bid/c.ask-t)/(1-t)+hagBonus(),.03,.97);
 }
 function openMarketCar(id){
   const c=MK.cars.find(x=>x.id===id);if(!c)return;
-  HAG={c,tries:0};
+  HAG={c,tries:0,bid:Math.round(c.ask*.85),
+    talk:{bonus:0,left:2,lastYou:"",
+      lastThem:pick(["'Kijk gerust. Topwagen.' Hij tikt op het dak.","Hij veegt met zijn mouw over de motorkap. 'Zo goed als nieuw.'","'Voor u, speciale prijs.' Dat zegt hij tegen iedereen."]),
+      choices:pickTalks("buy",3)}};
   bidModal(c);
 }
 function bidModal(c){
-  const v=Math.round(c.ask*.85);
-  modal(mkCarSheet(c,false)
+  const v=HAG.bid;
+  modal(duelHtml({face:MFACES[MK.k]||"🧔",name:MSELLERS[MK.k]||"De verkoper"},HAG.talk)
+   +talkButtons("buy",HAG.talk,"doTalkBuy")+'<hr>'
+   +mkCarSheet(c,false)
    +'<hr><div class="small dim">De verkoper vraagt <b class="money">'+fmt(c.ask)+'</b>. Jouw bod:</div>'
    +'<input type="range" class="slider" id="bidsl" min="'+Math.round(c.ask*.6)+'" max="'+Math.round(c.ask*1.02)+'" value="'+v+'" step="1000" oninput="updBid()">'
    +'<div class="center"><b id="bidv" class="money">'+fmt(v)+'</b></div>'
@@ -1356,9 +1391,15 @@ function bidModal(c){
    +(HAG.tries?'<div class="small dim" style="margin-top:4px">Poging '+(HAG.tries+1)+' — hij begint het beu te worden.</div>':''),
   [{t:"💬 Doe bod",fn:doBid},{t:"🌀 Bekijk in 3D",cls:"ghost",fn:()=>show3D(HAG.c,true)},{t:"Laat staan",cls:"ghost",fn:closeModal}]);
 }
-function updBid(){const b=+$("bidsl").value;$("bidv").textContent=fmt(b);$("odds1").innerHTML=oddsHtml(bidOdds(b))}
+function doTalkBuy(k){
+  if($("bidsl"))HAG.bid=+$("bidsl").value;
+  applyTalk("buy",HAG.talk,k);
+  bidModal(HAG.c);hdr();
+}
+function updBid(){const b=+$("bidsl").value;HAG.bid=b;$("bidv").textContent=fmt(b);$("odds1").innerHTML=oddsHtml(bidOdds(b))}
 function doBid(){
   const c=HAG.c,bid=+$("bidsl").value;
+  HAG.bid=bid;
   if(G.cash-bid<creditLimit()){toast("Dat kan je niet betalen.");return}
   const p=bidOdds(bid);
   HAG.tries++;
@@ -1405,9 +1446,9 @@ function driveHome(){
   runEvents(evs,0);
 }
 function runEvents(evs,i){
-  if(i>=evs.length){arriveHome();return}
+  if(i>=evs.length){driveScene("De kerktoren van Essene komt in zicht...",arriveHome);return}
   const next=()=>runEvents(evs,i+1);
-  evs[i](next);
+  driveScene(pick(["De E40 gonst onder de banden...","Vangrails, tankstations, vlakte...","Een bord: ANTWERPEN 412 km. Zucht.","De trailer ratelt gezellig mee...","Regen op de voorruit, cassette in de radio..."]),()=>evs[i](next));
 }
 function arriveHome(){
   for(const c of MK.bought){c.transit=false;c.known=c.quirks.slice();G.cars.push(c);
@@ -1420,6 +1461,7 @@ function arriveHome(){
   modal("<b>🏠 Terug thuis.</b><br>"+(n?("De "+(n>1?n+" wagens staan":"wagen staat")+" op het koertje. Je monteur loopt er al rond met een spiegel op een stok en een sigaret in zijn mondhoek."):"Volgende keer beter. De buschauffeur van Koudenberg lacht je uit."),
    [{t:"Naar de garage",fn:()=>{closeModal();CUR="garage";endWeek();render()}}]);
 }
+let CST=null;
 function evCustoms(next){
   const m=MARKETS[MK.k];
   const hasPlate=validPlate(),pl=bestPlate();
@@ -1431,16 +1473,32 @@ function evCustoms(next){
   if(Math.random()>clamp(danger,.1,.9)){
     modal("<b>🛂 Grenspost.</b> Lange rij, zenuwachtige vingers op het stuur"+(hasPlate?"":", en dat zonder ZZ-plaat")+"... maar de douanier heeft pauze over vijf minuten en wuift iedereen door. "+chr().n+" steekt opgelucht een sigaret op.",[{t:"Doorrijden",fn:()=>{closeModal();next()}}]);return;
   }
-  const fine=(hasPlate?30000:60000)+risky.length*20000;
-  const bribe=Math.round((12000+10000*m.risk)*(isCh("alan")?.7:1)/1000)*1000;
-  modal("<b>🛂 Grenspost. Controle.</b><br>De douanier stapt traag rond de wagens. "+(hasPlate?"":"\"Geen transitplaten?\" ")+(risky.length?"Hij bladert door de papieren van de "+esc(carName(risky[0]))+" en fronst. ":"")+"Hij kijkt je aan. Het soort blik dat een prijs heeft.",
-  [{t:"💶 Iets regelen ("+fmt(bribe)+") <span class='small'>🎲 ±"+(isCh("alan")?95:70)+"%</span>",cls:"shady",fn:()=>{
+  CST={bonus:0,left:1,lastYou:"",
+    lastThem:"Hij stapt traag rond de wagens. "+(hasPlate?"":"\"Geen transitplaten?\" ")+(risky.length?"Hij bladert door de papieren van de "+esc(carName(risky[0]))+" en fronst. ":"")+"Zijn blik heeft een prijs.",
+    choices:pickTalks("cop",3),
+    _next:next,
+    _fine:(hasPlate?30000:60000)+risky.length*20000,
+    _bribe:Math.round((12000+10000*m.risk)*(isCh("alan")?.7:1)/1000)*1000,
+    _risky:risky};
+  copModal();
+}
+function doTalkCop(k){applyTalk("cop",CST,k);copModal();hdr()}
+function copModal(){
+  const st=CST,next=st._next,bribe=st._bribe,risky=st._risky;
+  const glad=clamp((isCh("thomas")?.65:.3)+st.bonus*1.2,.05,.95);
+  const brib=clamp((isCh("alan")?.95:.7)+st.bonus,.1,.98);
+  const fine=Math.max(5000,Math.round(st._fine*(1-st.bonus*1.5)/1000)*1000);
+  modal("<b>🛂 Grenspost. Controle.</b>"
+   +duelHtml({face:"👮",name:"De douanier"},st)
+   +talkButtons("cop",st,"doTalkCop")
+   +'<hr><div class="small dim">En nu?</div>',
+  [{t:"💶 Iets regelen ("+fmt(bribe)+") <span class='small'>🎲 ±"+Math.round(brib*100)+"%</span>",cls:"shady",fn:()=>{
       if(G.cash-bribe<creditLimit()){toast("Geen cash genoeg om te 'regelen'.");return}
       G.cash-=bribe;
-      if(Math.random()<(isCh("alan")?.95:.7)){heatAdd(4);log("Douanier 'geregeld' aan de grens. (-"+fmt(bribe)+")");closeModal();modal("Het bankbiljet verdwijnt in een borstzak. \"Goeie reis verder.\" ",[{t:"Gas geven",fn:()=>{closeModal();next()}}])}
+      if(Math.random()<brib){heatAdd(4);log("Douanier 'geregeld' aan de grens. (-"+fmt(bribe)+")");closeModal();modal("Het bankbiljet verdwijnt in een borstzak. \"Goeie reis verder.\" ",[{t:"Gas geven",fn:()=>{closeModal();next()}}])}
       else{ouch();heatAdd(12);G.cash-=fine;log("Omkoping mislukt! Boete "+fmt(fine)+" en een nota in een dossier ergens.");closeModal();modal("Verkeerde douanier. Hij schrijft ALLES op. Boete: <b>"+fmt(fine)+"</b>, plus de omkoopsom is hij ook 'kwijt'.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}},
-   {t:"😇 Gladpraten <span class='small'>🎲 ±"+(isCh("thomas")?65:30)+"%</span>",fn:()=>{
-      if(Math.random()<(isCh("thomas")?.65:.3)){log("Uit een controle gepraat aan de grens. Charme werkt.");closeModal();modal("Vijf minuten over het weer, voetbal, en de kwaliteit van Duitse autosnelwegen later... wuift hij je door. Ongelooflijk.",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}])}
+   {t:"😇 Gladpraten <span class='small'>🎲 ±"+Math.round(glad*100)+"%</span>",fn:()=>{
+      if(Math.random()<glad){log("Uit een controle gepraat aan de grens. Charme werkt.");closeModal();modal("Vijf minuten over het weer, voetbal, en de kwaliteit van Duitse autosnelwegen later... wuift hij je door. Ongelooflijk.",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}])}
       else{ouch();G.cash-=fine;heatAdd(8);
         let txt="Hij trapt er niet in. Boete: <b>"+fmt(fine)+"</b>.";
         if(risky.length&&Math.random()<.5){const c=risky[0];MK.bought=MK.bought.filter(x=>x.id!==c.id);txt+="<br>Erger: de <b>"+esc(carName(c))+"</b> wordt aangeslagen. Papieren 'ter controle'. Die zie je nooit terug.";log(carName(c)+" aangeslagen aan de grens.")}
@@ -1614,7 +1672,7 @@ function renderSell(){
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">🙋 '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+'</h3>'
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -1625,7 +1683,7 @@ function renderSell(){
 let NEG=null;
 function openCust(cid){
   const cu=G.custs.find(x=>x.id===cid);if(!cu)return;
-  let h='<b>🙋 '+cu.name+'</b> <span class="dim small">'+cu.t+'</span><hr>';
+  let h='<b>'+(cu.face||"🙋")+' '+cu.name+'</b> <span class="dim small">'+cu.t+'</span><hr>';
   for(const c of G.cars){
     const m=carMatches(c,cu.want);
     h+='<div class="carline" onclick="openNeg('+cid+','+c.id+')"><div class="carpic" style="width:86px">'+carArt(c,88)+'</div><div style="flex:1"><b>'+esc(carName(c))+'</b> <span class="small dim">('+c.year+')</span>'
@@ -1643,6 +1701,278 @@ function hiddenIssues(c){
   if(c.papers===2||c.hot)list.push({id:"__pap",t:"papieren zijn... creatief",pen:.2});
   return list;
 }
+/* ============ FACE-TO-FACE TALKS ============ */
+// g: "charm" (Thomas +), "shady" (Alin +, may add heat), "zakelijk" (Martine +), null
+// p: base success chance · e: effect on the deal odds · h: heat on shady success
+// ok/no: counterpart reactions on success/failure
+const TALK={
+sell:[
+ {t:"Eén eigenaar. Een oud madammeke. Reed enkel naar de kerk.",g:"shady",h:2,p:.5,e:.09,
+  ok:["'Ah, van een madammeke...' De klant streelt het dashboard alsof het een relikwie is.","'Dat voelt ge hé, zo'n verzorgde wagen.' Slik. Ja. Verzorgd."],
+  no:["'De kerk van Francorchamps zeker?' De klant wijst naar de sportuitlaat.","'Mijn bomma rijdt ook zo. 40.000 km per jaar, allemaal naar de kerk?'"]},
+ {t:"Hoort ge die motor? Als een naaimachine.",p:.6,e:.07,
+  ok:["De klant legt een oor op de motorkap en knikt gewijd.","'Singer of Bernina?' Hij lacht. Hij is binnen."],
+  no:["'Een naaimachine met een hoestbui dan.' Au.","De klant hoort iets tikken. Gij hoort het nu ook. Verdorie."]},
+ {t:"Vanmorgen stond hier nog iemand voor exact deze wagen.",g:"shady",h:1,p:.5,e:.1,
+  ok:["'Echt?' De klant kijkt nerveus naar de poort. Niets werkt beter dan concurrentie die niet bestaat.","'Dan moet ik rap zijn!' Ja. Ja, dat moet ge."],
+  no:["'Waar is die dan naartoe?' Euh. Naar... de bakker.","'Dat zegt ge zeker tegen iedereen.' Tegen iedereen die het gelooft, ja."]},
+ {t:"Voor u leg ik er een set wintervelgen bij. Gratis.",g:"zakelijk",p:.65,e:.06,
+  ok:["'Gratis?' Het magische woord. De klant rekent al uit wat die 'waard' zijn.","'Met banden erop?' Details. Maar hij smelt."],
+  no:["'Die liggen al drie jaar achter uw container, hé.' Klopt verdomd goed.","'Ik heb al velgen.' Wie HEEFT er nu al velgen?"]},
+ {t:"Da's geen auto, da's een belegging.",p:.55,e:.07,
+  ok:["'Mijn schoonbroer zei ook al zoiets.' De schoonbroer is uw beste verkoper.","De klant knikt traag, zoals mensen doen die 'belegging' een mooi woord vinden."],
+  no:["'Mijn spaarboekje lekt anders geen olie.' Touché.","'Beleggen doe ik bij de ASLK, met koffie erbij.'"]},
+ {t:"Mijn eigen zoon rijdt exact dezelfde.",g:"charm",p:.6,e:.07,
+  ok:["'Ah, dan is 't goed volk.' Familie verkoopt beter dan folders.","'En is hij content?' Hij is fictief, dus ja, heel content."],
+  no:["'Uw zoon? Hoe oud is die dan?' Snel rekenen. Te traag.","'Vorige week zei ge dat uw zoon met de trein ging.' Oeps."]},
+ {t:"Deze kleur maken ze volgend jaar niet meer.",p:.55,e:.06,
+  ok:["'Dus hij wordt zeldzaam...' De klant ziet zichzelf al in een collector's item.","'Da's waar, ge ziet die kleur nergens.' Omdat niemand ze wou. Maar goed."],
+  no:["'Daar zal een reden voor zijn.' Die was er. Esthetisch van aard.","'Mijn vrouw haat die kleur.' Tegen de vrouw kan niemand verkopen."]},
+ {t:"Ik verdien hier amper aan. Ik zweer het op mijn asbak.",p:.5,e:.08,
+  ok:["De klant kijkt naar de overvolle asbak en gelooft u om de één of andere reden.","'Ge moet toch ook leven.' Zo is dat. Ruim leven."],
+  no:["'Op uw asbak? Die is anders goed gevuld voor een arme mens.'","De klant lacht hardop. Dat was niet de bedoeling."]},
+ {t:"Onderhoudsboekje volledig ingevuld. Met twee kleuren stylo.",g:"shady",h:2,p:.5,e:.08,
+  ok:["'Amai, zelfs de kleine beurten.' Vooral die van gisterenavond, in uw handschrift.","De klant bladert erdoor en ruikt aan de inkt. Vers. Maar hij zegt niks."],
+  no:["'Rare... al die stempels zien er hetzelfde uit.' Eén stempel, veel geduld.","'Deze pagina plakt nog.' De inkt moest nog drogen, meneer."]},
+ {t:"Ge kunt er vandaag nog mee naar Zuid-Frankrijk.",p:.6,e:.06,
+  ok:["'Zuid-Frankrijk...' De klant staart dromerig langs de E40. Verkocht aan de verbeelding.","'Zou hij dat halen?' Hij haalt Ninove gegarandeerd. Frankrijk is een detail."],
+  no:["'Ik moet gewoon naar mijn werk in Aalst.' Ook goed. Aalst is het Zuid-Frankrijk van Denderland.","'Met deze? Dan slaap ik in Rijsel op de pechstrook.'"]},
+ {t:"De vorige eigenaar was piloot. Die mensen letten op details.",g:"shady",h:2,p:.5,e:.09,
+  ok:["'Een piloot!' De klant gaat rechter staan. Luchtvaart verkoopt.","'Daarom staat hij zo strak afgesteld.' Precies. Cockpitgevoel."],
+  no:["'Piloot van wat, de botsauto's?' De klant wijst naar de deuk.","'En die vloog zeker ook door de wasstraat?' Het interieur verraadt u."]},
+ {t:"Kijk, ik hou hem anders zelf. Ik meen het.",p:.5,e:.09,
+  ok:["'Nee nee, ik neem hem!' Niets doet kopen zoals bijna niet mogen kopen.","De klant grijpt de deurklink vast alsof ge hem gaat afpakken. Hebbes."],
+  no:["'Hou hem dan.' Bluf gecounterd. Aiaiai.","'Ge zegt dat met uw handen al open voor mijn geld.'"]},
+ {t:"Koffie? Red Bull? Neem uw tijd. Schoon wagens lopen niet weg.",g:"charm",p:.65,e:.06,
+  ok:["De klant ontspant met een dampende koffie. Een klant die zit, koopt.","'Gij zijt tenminste geen opdringerige.' O, schat."],
+  no:["'Ik heb haast.' Haastige klanten voelen vallen. Rap dan maar.","'Van Red Bull krijg ik hartkloppingen.' Van de prijs straks ook."]},
+ {t:"Voor dat geld vindt ge in heel Brabant niks beter. Zoek maar.",g:"zakelijk",p:.55,e:.08,
+  ok:["'Ik heb eigenlijk al overal gekeken...' Weet ik. Daarom staat ge hier.","De klant zucht. De zucht van iemand die al zes koertjes heeft afgeschuimd."],
+  no:["'In Zellik staat net dezelfde, 20.000 goedkoper.' Zellik. Altijd Zellik.","'Dat ga ik dan eerst eens doen.' Verdorie. Te veel zelfvertrouwen."]},
+ {t:"Ziet gij roest? Ik zie geen roest.",g:"shady",h:1,p:.45,e:.07,
+  ok:["De klant tuurt, waar gij net niet wijst. 'Nee, eigenlijk niet.' Zo hoort het.","'Onder dat plastic zit toch niks?' Onder dat plastic zit vooral plastic."],
+  no:["De klant krabt met zijn sleutel aan de wielkast. Het geluid zegt genoeg.","'Ik zie vooral verse antiroest-spray.' Een kenner. Vervelend."]},
+ {t:"Deze komt uit Duitsland. Autobahn-onderhouden.",p:.6,e:.07,
+  ok:["'Ah, Duits onderhoud!' Twee woorden die elke Vlaming geruststellen.","'Dan heeft hij tenminste kunnen lopen.' Gelopen heeft hij zeker."],
+  no:["'De pedalen zijn anders wel Pools versleten.' Aardrijkskunde, altijd lastig.","'Mijn gebuur zei dat gij alles uit Polen haalt.' Uw gebuur moet zwijgen."]},
+ {t:"Ik doe de eerste tank vol. Afgesproken?",g:"zakelijk",p:.65,e:.05,
+  ok:["'Vol?' Voor 800 frank benzine glimt de klant alsof ge hem een Rolex geeft.","'Da's tenminste service.' Zo werkt dat: klein geven, groot krijgen."],
+  no:["'Die tank is zo lek als een zeef zeker?' Hé. Alleen bij regen.","'Ik rij op LPG.' Wie rijdt er nu op LPG. Vooruit dan."]},
+ {t:"De radio alleen al is 15.000 frank waard.",p:.5,e:.06,
+  ok:["'Blaupunkt?' Klinkt Duits genoeg. Knikken maar.","De klant draait aan de knoppen en vindt Radio Donna. Deal-muziek."],
+  no:["'Er hangt een draadje uit.' Da's de... antenneversterker.","'15.000? Voor een cassettespeler die opeet wat ge insteekt?'"]},
+ {t:"Mijn schoonmoeder wou hem kopen. Ik heb nee gezegd.",g:"charm",p:.6,e:.07,
+  ok:["'Tegen uw schoonmoeder nee zeggen?' De klant heeft respect. En interesse.","'Dan moet het wel een goeie zijn.' De logica klopt niet, maar ze werkt."],
+  no:["'Waarom mocht uw schoonmoeder hem niet?' Omdat... ze te goed onderhandelt.","'Ik ken uw schoonmoeder van de kaartclub. Die heeft een BMW.' Klein dorp."]},
+ {t:"Da's het model uit die film. Ge weet wel, met dinges.",g:"shady",h:1,p:.45,e:.08,
+  ok:["'Ah ja! Met... dinges!' Niemand weet welke film. Iedereen knikt.","'Die achtervolging hé!' Juist. Die. Legendarisch."],
+  no:["'Welke film dan?' De stilte duurt drie jaar.","'In die film reed een Amerikaanse.' Filmkenners. De pest voor de handel."]},
+ {t:"Vorige week stond een tweeling te wenen omdat ze niet konden kiezen.",g:"shady",h:1,p:.45,e:.08,
+  ok:["'Een tweeling?' De klant gelooft het niet maar vindt het een schoon verhaal. Dat volstaat.","'Dan pak ik hem voor ze terugkomen.' De tweeling groet u."],
+  no:["'En waar is die tweeling nu?' In hetzelfde land als de piloot en het madammeke.","De klant kijkt u aan zoals een leerkracht naar een slecht excuus."]},
+ {t:"Als hij binnen 't jaar kapot gaat, moogt ge hier gratis komen zagen.",g:"charm",p:.6,e:.06,
+  ok:["'Gratis zagen? Da's meer garantie dan bij de dealer!' Zo is dat.","De klant lacht en geeft u een klop op de schouder. Verkocht aan de sympathie."],
+  no:["'Ik wil geen zaagrecht, ik wil garantie op papier.' Papier, altijd papier.","'Mijn vrouw zaagt al genoeg.' Dan weet hij hoe weinig het kost."]},
+ {t:"Deze verbruikt minder dan een brommer. Bijna.",p:.5,e:.06,
+  ok:["'Zuinig is belangrijk tegenwoordig.' Het is 1995, benzine kost bijna niks, maar goed.","'Bijna zoals een brommer!' Het woord 'bijna' doet al het werk."],
+  no:["'Er staat 3.0 V6 op de flank, vriend.' Ja. Een zuinige V6.","'Mijn brommer moet dan wel een tanker zijn.'"]},
+ {t:"Ik zet er vandaag nog een grote strik op als ge wilt.",g:"charm",p:.55,e:.06,
+  ok:["'Voor mijn vrouw haar verjaardag...' De klant ziet het al voor zich. De strik verkoopt de auto.","'Hebt ge echt een strik?' Er ligt er één van een fruitmand. Groot genoeg."],
+  no:["'Ik ben 52, geen 8.' Sommige mensen hebben geen dromen.","'Een strik verandert de prijs niet.' Boekhouders, herkenbaar aan alles."]},
+],
+buy:[
+ {t:"Amai, die wielkasten. Hoort gij dat knarsen ook?",p:.6,e:.08,
+  ok:["De verkoper kijkt zenuwachtig naar de wielkast. 'Da's... normaal bij dit weer.' De prijs wordt zachter.","'Knarsen? Dat is euh...' Hij weet het ook niet. Voordeel: u."],
+  no:["'Da's het grind, slimmeke.' Hij tikt op de kast: massief. Verdorie.","'Bij mij knarst niks behalve klanten die zagen.'"]},
+ {t:"Cash. Nu. Geen gezever, geen papierwinkel.",g:"zakelijk",p:.6,e:.08,
+  ok:["Het woord 'cash' doet zijn ogen glinsteren. De vraagprijs krijgt vleugels — naar beneden.","'Nu direct?' Hij ruikt de bankbiljetten al. Iedereen heeft haast naar geld."],
+  no:["'Cash is normaal, vriend. Wat dacht gij, een cheque?' Hm.","'Gezever is mijn marge.' Een eerlijke crimineel, dat siert hem."]},
+ {t:"Ik ken deze motoren. De distributie is eraan op dit bouwjaar.",p:.55,e:.09,
+  ok:["'De distributie...' Hij weet duidelijk niet wat dat is. Gij wint.","Hij krabt in zijn nek. 'Daar zou iets van kunnen kloppen.' Kassa."],
+  no:["'Vervangen vorige maand, hier is de factuur.' Een factuur. Wie had dat verwacht.","'Deze heeft een ketting, geen riem, professor.' Au. Huiswerk niet gemaakt."]},
+ {t:"Gisteren exact dezelfde gezien. 30.000 goedkoper.",g:"shady",h:1,p:.5,e:.1,
+  ok:["'Waar dan?' Paniek in de ogen. 'Allee, voor u doe ik iets.'","Hij spuwt op de grond. 'Concurrentie, altijd hetzelfde.' En hij zakt."],
+  no:["'Koop die dan.' De kortste onderhandeling ooit.","'Dezelfde? Met deze opties? Dat bestaat niet.' Hij heeft gelijk en hij weet het."]},
+ {t:"'t Is voor mijn dochter. Studente. Hebt gij kinderen?",g:"charm",p:.6,e:.08,
+  ok:["'Drie.' Hij zucht diep en de prijs zucht mee naar beneden.","'Een studente moet veilig rijden.' Hij wordt er week van. Werkt altijd."],
+  no:["'Mijn kinderen betalen vol pot.' Gezellige thuis daar.","'Uw dochter? Gij komt hier elke maand een andere smoes halen.'"]},
+ {t:"Die kilometerstand... vertel eens eerlijk.",p:.55,e:.08,
+  ok:["Hij kijkt weg. 'Wat wilt ge insinueren...' De prijs plooit onder het gewicht van zijn geweten.","'Eerlijk?' Het woord alleen al doet hem transpireren. Zakken maar."],
+  no:["'Zo eerlijk als uw gezicht, makker.' Impasse.","Hij haalt een stapel keuringsbewijzen boven. Allemaal kloppend. Straf."]},
+ {t:"Ik neem hem vandaag mee, dan zijt ge ervan af.",g:"zakelijk",p:.6,e:.07,
+  ok:["'Vandaag nog?' Hij kijkt naar de wagen zoals naar een schoonbroer die te lang blijft logeren.","'Da's dan minder staangeld.' Rekenen kan hij wel. Deal wordt soepeler."],
+  no:["'Die staat hier goed. Hij betaalt geen huur.' Grappenmaker.","'Haast kost extra, vriend.' Omgekeerde wereld hier in 't oosten."]},
+ {t:"Ruikt gij ook benzine? Ik ruik benzine.",p:.5,e:.08,
+  ok:["Hij snuift nadrukkelijk. 'Ik ruik niks.' Maar zijn prijs ruikt plots wel naar korting.","'Da's van de vorige klant die morste.' Ja ja. Zakken."],
+  no:["'Da's van de pomp hiernaast, genie.' Er staat inderdaad een pomp.","'Benzinegeur betekent dat er benzine IN zit. Luxe hier.'"]},
+ {t:"'t Is het einde van de maand, hé vriend. Voor ons allebei.",g:"charm",p:.55,e:.07,
+  ok:["Hij knikt traag. Einde van de maand is internationaal verstaanbaar.","'Voor ons allemaal.' Solidariteit onder handelaars: zeldzaam maar goud."],
+  no:["'Bij mij is het altijd einde van de maand.' Sterker verhaal. Hij wint.","'Dan komt ge begin volgende maand terug met meer geld.'"]},
+ {t:"Ik moet er nog een trailer voor huren. Da's ook geld.",g:"zakelijk",p:.55,e:.06,
+  ok:["'Transport is uw probleem... maar bon, ik doe iets.' Elke frank telt.","Hij kent de trailerprijzen. Hij zakt uit medelijden."],
+  no:["'Rij er dan mee naar huis, hij rijdt.' Dat is nog maar de vraag.","'Trailer? Deze verdient een limousinetransport.' Verkopers."]},
+ {t:"Deze kleur verkoopt niet. Dat weet gij ook.",p:.55,e:.08,
+  ok:["Hij kijkt naar de wagen. Beige-groen-iets. Hij weet het. Iedereen weet het.","'Da's een KLASSIEKE kleur — bon, ik zak al.'"],
+  no:["'Deze kleur is volgend jaar mode.' Waar heb ik dat nog gehoord.","'Smaken verschillen.' De zijne alvast van iedereen."]},
+ {t:"Mijn compagnon zei: maximum de helft. Ik zit er al boven.",g:"shady",h:1,p:.5,e:.09,
+  ok:["'Uw compagnon is een bandiet.' Klopt. Maar het werkt: hij zakt.","Hij vloekt in drie talen naar de onzichtbare compagnon. Prijs daalt in alle drie."],
+  no:["'Laat uw compagnon dan komen.' Die bestaat sinds vanmorgen.","'Ik heb ook een compagnon: mijn vraagprijs.'"]},
+ {t:"Schoon bakje. Jammer van de deuk. En die. En die daar.",p:.6,e:.08,
+  ok:["Bij de derde deuk stopt hij met tegenspreken. Bij de vierde zakt de prijs.","'Dat zijn... karakterlijnen.' Karakter kost korting."],
+  no:["'Die deuken zitten IN de prijs, daarom is hij zo scherp.' Hm. Geloofwaardig.","'Wilt ge er zonder deuken één? Da's de dubbele prijs.'"]},
+ {t:"Ik kom van ver, hé makker. Essene is niet naast de deur.",g:"charm",p:.5,e:.06,
+  ok:["'Essene?' Hij kent het niet, maar het klinkt ver en triest. Hij zakt.","'Belg?' Hij begint over zijn nicht in Gent. De prijs wordt familiaal."],
+  no:["'Dan hebt ge al veel benzine betaald — nog eentje kan er wel bij.' Slim.","'Niemand heeft u gevraagd te komen.' Gastvrijheid van hier."]},
+ {t:"Bon. Laatste bod, en anders stap ik op.",p:.45,e:.11,
+  ok:["Ge draait u al om. 'WACHT.' Muziek in de oren.","Hij kijkt naar de lucht, vloekt, en steekt zijn hand uit. Bluf gewonnen."],
+  no:["'Saluut dan.' Hij steekt een sigaret op. Nu terugkrabbelen is duur.","Hij wuift. Gij staat daar. Iemand moet nu iets zeggen en het wordt gij."]},
+ {t:"Deze stond vorige maand toch ook al hier?",p:.55,e:.08,
+  ok:["'Nee! ... Ja.' Een wagen die niet verkoopt, is een wagen die zakt.","Hij veegt denkbeeldig stof van de motorkap. Het stof wint. Prijs zakt."],
+  no:["'Dat was zijn tweelingbroer.' Touché, die is goed.","'Goeie wagens mogen rijpen, zoals wijn.' Wijn met roest."]},
+ {t:"Leg er een setje banden bij en we praten verder.",g:"zakelijk",p:.6,e:.06,
+  ok:["Hij kijkt naar een stapel halfversleten banden. 'Deal.' Alles is winst.","'Banden heb ik genoeg.' Precies. Daarom vraag ik ze."],
+  no:["'Banden zijn extra.' Alles is hier extra. Ademen ook?","'Die banden zijn meer waard dan uw bod.' Hij meent het nog ook."]},
+ {t:"Ik zeg niks over de papieren als gij zakt met de prijs.",g:"shady",h:3,p:.5,e:.1,
+  ok:["Zijn ogen worden smal. Dan lacht hij. 'Gij zijt van 't vak.' De prijs wordt collegiaal.","Hij kijkt links, rechts, en schrijft een nieuw cijfer op zijn handpalm."],
+  no:["'Mijn papieren zijn PERFECT.' Te luid geroepen om waar te zijn, maar bon.","Hij wordt bleek en de prijs stijgt. Zenuwen kosten geld."]},
+ {t:"Mijn vrouw vermoordt mij als ik te veel betaal. Help mij.",g:"charm",p:.6,e:.07,
+  ok:["'Vrouwen...' Hij staart in de verte naar een eigen oorlogsverhaal. Hij zakt uit solidariteit.","'Voor uw huwelijk dan.' De prijs daalt, het huwelijk is gered."],
+  no:["'Zeg haar dat het een koopje was. Liegen kunt ge toch al.' Auw.","'Mijn vrouw doet de prijzen hier.' Dan is het hopeloos."]},
+ {t:"Ik betaal in Duitse marken als 't moet.",g:"zakelijk",p:.55,e:.08,
+  ok:["'Marken?' Zijn houding verandert compleet. Harde valuta, zachte prijs.","Hij fluistert een nieuw bedrag. In marken is alles bespreekbaar."],
+  no:["'Frank, mark, zloty — cijfers blijven cijfers.' Een filosoof.","'Marken? Waar denkt ge dat ge zijt?' Euh. Katowice?"]},
+ {t:"De banden zijn versleten tot op 't doek, vriend.",p:.6,e:.07,
+  ok:["Hij kijkt. Het doek kijkt terug. 'Bon. Ik doe er iets af.'","'Da's sportief profiel.' Zelfs hij lacht ermee. En zakt."],
+  no:["'Die zijn vorige week nieuw gezet.' Ze glimmen inderdaad verdacht.","'Banden slijten, wagens niet.' Diepzinnig. En fout."]},
+ {t:"Hoeveel bakken olie moet ik meebestellen bij deze?",p:.55,e:.07,
+  ok:["'Hij gebruikt een béétje olie...' Een béétje. De prijs gebruikt ook een beetje.","De verkoper kijkt naar de plas onder de wagen. De plas wint het pleidooi."],
+  no:["'Nul komma nul.' Hij toont de peilstok: goudgeel. Indrukwekkend.","'Bij een diesel HOORT wat rook.' Het is een benzine. Zwijgen."]},
+ {t:"Iedereen hier kent Alin. Alin zou zeggen: veel te duur.",g:"shady",h:1,p:.5,e:.09,
+  ok:["'Gij kent Alin?' Zijn toon verandert compleet. Vriendenprijs, plots.","'Zeg Alin dat hij zijn schulden betaalt.' Maar hij zakt wel. Respect is respect."],
+  no:["'ALIN? Die is mij nog 20.000 schuldig!' Foute naam gedropt.","'Ik ken geen Alin.' Iedereen kent Alin. Hij liegt. Maar hij zakt niet."]},
+ {t:"Ik zwijg over die geur binnenin als gij zakt.",p:.55,e:.07,
+  ok:["'Welke geur?' Hij weet perfect welke geur. Iedereen binnen 50 meter weet het.","'Da's karakter.' Karakter van een natte hond met een sigaar. Hij zakt."],
+  no:["'Dat is ODEUR, meneer. Frans leer.' Frans leer met kieuwen dan.","'Zet het raam open en rij door de carwash.' Adviezen genoeg hier."]},
+],
+cop:[
+ {t:"Dag meneer de agent. Schoon weer voor een controle.",p:.55,e:.06,
+  ok:["'Hm.' Hij plooit zijn map al half dicht. Weerpraatjes: onderschat wapen.","'Kon slechter.' Hij ontspant. De pet gaat een centimeter omhoog."],
+  no:["'Schoon weer om alles uit te laden, ja.' Dat was niet de bedoeling.","'Regen of zon, papieren zijn papieren.' Een dichter met een fluitje."]},
+ {t:"Wij zijn van hetzelfde jaar, denk ik? Goeie lichting.",g:"charm",p:.55,e:.07,
+  ok:["''58?' '57.' 'Goei jaren!' En zo praat ge over vroeger in plaats van over de lading.","Hij glimlacht heel even. Onder die pet zit een mens."],
+  no:["'Ik ben van '71.' De stilte is pijnlijker dan de boete.","'Leeftijd doet er niet toe. Kilometers wel.' Hij tikt op de teller. Slik."]},
+ {t:"Mijn nonkel was rijkswachter. Groot verlies voor het korps.",g:"shady",h:1,p:.5,e:.08,
+  ok:["'Hoe heette hij?' Ge noemt een naam. Hij knikt vaag. Iedereen kent iedereen half.","'Familie van 't korps...' Zijn toon wordt drie graden warmer."],
+  no:["'Rijkswacht en douane is NIET hetzelfde.' Gevoelig punt, blijkbaar.","'Mijn nonkel was smokkelaar. Zo hebben we allemaal familie.' Gevat."]},
+ {t:"Lange dienst zeker? Hier, een Red Bull van 't huis.",g:"charm",p:.55,e:.07,
+  ok:["Hij kijkt naar het blikje, dan naar zijn collega, en steekt het weg. Verstandhouding.","'Sinds vier uur op.' Hij drinkt het in één teug leeg. Ge zijt vrienden nu."],
+  no:["'Poging tot beïnvloeding van een ambtenaar met een frisdrank.' Hij noteert het écht.","'Ik drink enkel koffie.' Principes. De vervelendste soort mens."]},
+ {t:"Alles legaal, meneer. Kijk gerust. Niet té lang.",g:"shady",h:1,p:.45,e:.08,
+  ok:["Hij lacht om 'niet té lang' en kijkt effectief minder lang. Psychologie.","'Eerlijke mensen zeggen dat nooit.' Maar hij wuift u toch bijna door."],
+  no:["'Niet te lang? Dan kijk ik extra traag.' Hij doet het nog ook.","Zijn collega komt er nu ook bij staan. Twee petten. Slecht teken."]},
+ {t:"Is 't voor de trailer? Die slingert altijd, da's normaal bij Duitse.",p:.5,e:.06,
+  ok:["'Duitse trailers hé.' Hij knikt begripvol. Duitsland verklaart alles.","Hij kijkt naar de trailer, dan naar zijn eigen combi. 'Kweet het. Materiaal.'"],
+  no:["'Die trailer is Belgisch, dat staat erop.' Lezen. Altijd dat lezen.","'Slingeren is een overtreding, geen nationaliteit.'"]},
+ {t:"Kennen wij mekaar niet van 't voetbal? Derde provinciale?",g:"charm",p:.5,e:.07,
+  ok:["'Speelde gij bij Essene?' Nu wel. 'Linksback.' Hij begint over de kantine.","'Ah, tegen Affligem, die match met de rode kaart!' Ge waart erbij. Vanaf nu wel."],
+  no:["'Ik voetbal niet. Ik loop marathons.' Natuurlijk doet hij dat.","'Nee. En probeer geen vrienden te worden.' Directe mens."]},
+ {t:"Ik ga eerlijk zijn met u.",p:.5,e:.08,
+  ok:["'Da's al meer dan de vorige tien vandaag.' Hij luistert echt. Eerlijkheid, wie had dat gedacht.","Hij zet zijn stylo neer. 'Zeg maar.' De toon is meteen anders."],
+  no:["'Dat zegt iedereen juist vóór de leugen.' Hij heeft dienstjaren, dat merkt ge.","'Eerlijk? Doe maar gewoon uw koffer open.'"]},
+ {t:"Die wagens zijn voor een goed doel. Min of meer.",g:"shady",h:2,p:.45,e:.08,
+  ok:["'Welk doel?' 'Jeugdbeweging.' Hij vraagt gelukkig niet welke.","'Min of meer...' Hij lacht ondanks zichzelf. Eerlijke oneerlijkheid ontwapent."],
+  no:["'Het goede doel genaamd uw portefeuille?' Scherp geschoten.","'Ik doe ook aan goeie doelen: de staatskas.' Hij klikt zijn stylo open."]},
+ {t:"Ik heb haast, mijn schoonmoeder wacht op mij.",p:.5,e:.06,
+  ok:["'Uw SCHOONMOEDER?' Hij krijgt medelijden. Iedereen heeft er één.","'Dan zal ik u niet langer martelen dan nodig.' Solidariteit bestaat."],
+  no:["'Dan doe ik extra traag, spaar ik u wat tijd bij haar uit.' Humor. Vervelende humor.","'Haast is verdacht.' Alles is hier verdacht."]},
+ {t:"Straffe kerels, de douane. Zeg ik altijd tegen iedereen.",p:.5,e:.06,
+  ok:["Hij probeert niet te glimlachen en verliest. 'Bon. Papieren, snel dan.'","'Eindelijk iemand die het beseft.' IJdelheid: de achilleshiel van elk uniform."],
+  no:["'Slijmen staat in mijn handboek onder verdacht gedrag, pagina één.'","'Zeg dat tegen mijn chef, die vindt van niet.' Bitter mannetje."]},
+ {t:"Die wagen? Geërfd van mijn matant. God hebbe haar ziel.",g:"shady",h:2,p:.45,e:.09,
+  ok:["Hij doet bijna zijn pet af uit respect. De matant beschermt de lading.","'Gecondoleerd.' Hij bladert sneller. Rouw versnelt elke controle."],
+  no:["'Uw matant had vier zomerbanden en een trekhaak?' Sportief madammeke.","'Vorige maand was het uw nonkel. Grote sterfte in uw familie.' Bijgehouden ook nog."]},
+ {t:"Wilt ge de motor eens horen? Loopt als een naaimachine.",p:.5,e:.06,
+  ok:["Tegen alle verwachting in wil hij dat. Twee minuten motorpraat later zijt ge halve maten.","'Mooi rond stationair.' Een liefhebber! De map blijft dicht."],
+  no:["'Ik wil vooral het chassisnummer horen.' Die zit minder mooi rond.","'Naaimachines smokkelen ook.' Wat betekent dat zelfs?"]},
+ {t:"Ik declareer altijd alles. Meestal. Altijd!",p:.45,e:.07,
+  ok:["'Meestal-altijd, de nationale sport.' Hij zucht en wuift half. Eerlijk genoeg voor vandaag.","Hij waardeert de zelfcorrectie. 'Toon maar gewoon de helft dan.'"],
+  no:["'Meestal.' Hij schrijft het op. Woordelijk. Met aanhalingstekens.","'Dat woordje gaat u geld kosten.' Taal is duur aan de grens."]},
+ {t:"De frituur verderop is open. Ik trakteer. Bij een VOLGENDE controle.",g:"shady",h:2,p:.5,e:.09,
+  ok:["'Grote met stoofvleessaus.' Genoteerd. De controle wordt opeens erg oppervlakkig.","Hij kijkt naar zijn collega. 'Frituur Nadia?' Iedereen heeft een prijs. De zijne is friet."],
+  no:["'Poging tot omkoping met gefrituurde waren.' Hij vindt zichzelf heel grappig.","'Ik ben op dieet.' Een douanier op dieet. Vandaag zit alles tegen."]},
+ {t:"Gij ziet er ook niet uit alsof ge hier graag staat.",g:"charm",p:.5,e:.07,
+  ok:["'Vier jaar nog tot mijn pensioen.' Hij vertelt zijn leven. De lading is vergeten.","Hij zucht zo diep dat zijn fluitje meetrilt. Lotgenoten nu."],
+  no:["'Ik sta hier UITSTEKEND.' Verkeerde snaar. Strakke blik.","'En gij ziet eruit alsof ge iets verbergt.' Eerlijk is eerlijk."]},
+ {t:"'t Is voor een museum. Belgisch erfgoed op wielen.",g:"shady",h:1,p:.45,e:.08,
+  ok:["'Erfgoed...' Hij kijkt naar de roestige Lada. 'Bon, cultuur is cultuur.'","'Welk museum?' 'Dat van... Essene.' Hij knikt. Niemand checkt Essene."],
+  no:["'Erfgoed heeft ook papieren nodig. Historische.' Slim voor een pet.","'Het museum van rap rijk worden zeker?' Hij kent het genre."]},
+ {t:"Zwijgen en vriendelijk knikken.",p:.6,e:.04,
+  ok:["Stilte. Hij knikt terug. Soms is niks zeggen het beste verhaal.","Hij waardeert mensen die hem niet vollullen. Vlotte controle."],
+  no:["'Niks te zeggen? Verdacht.' Zelfs zwijgen is hier strafbaar.","De stilte duurt te lang en wordt ongemakkelijk. Hij begint éxtra grondig."]},
+],
+neutral:[
+ "Een lange stilte. Ergens blaft een hond.",
+ "'Mmm.' Meer komt er niet.",
+ "Hij krabt zijn kin en kijkt naar de lucht.",
+ "Er passeert een tractor. Iedereen kijkt naar de tractor.",
+ "'Tja.' Het universele woord voor niks.",
+ "Hij steekt een sigaret op en biedt er u ook één aan. Wapenstilstand.",
+ "De radio speelt Vaya Con Dios. Iedereen zwijgt tot het refrein voorbij is.",
+ "Hij kijkt op zijn horloge. Gij op het uwe. Gelijkspel.",
+]};
+const TAGICON={charm:"😏",shady:"🚬",zakelijk:"💼"};
+function talkRoll(mv){
+  let p=mv.p+Math.min(.08,((G.lvl||1)-1)*.006);
+  if((mv.g==="charm"&&isCh("thomas"))||(mv.g==="shady"&&isCh("alan"))||(mv.g==="zakelijk"&&isCh("martine")))p+=.15;
+  const r=Math.random();
+  return r<p?1:r<p+.18?0:-1;
+}
+function pickTalks(ctx,n){
+  const pool=TALK[ctx],ix=[];
+  let guard=0;
+  while(ix.length<n&&ix.length<pool.length&&guard++<100){const i=Math.floor(Math.random()*pool.length);if(!ix.includes(i))ix.push(i)}
+  for(let i=0;ix.length<Math.min(n,pool.length)&&i<pool.length;i++)if(!ix.includes(i))ix.push(i);
+  return ix;
+}
+function duelHtml(op,st){
+  return '<div class="duel"><div class="actor"><div class="dface">'+chr().face+'</div><div class="small dim">'+chr().n+'</div></div>'
+   +'<div class="bubcol">'
+   +(st.lastYou?'<div class="bub you">'+st.lastYou+'</div>':'')
+   +(st.lastThem?'<div class="bub them">'+st.lastThem+'</div>':'')
+   +'</div>'
+   +'<div class="actor right"><div class="dface">'+op.face+'</div><div class="small dim">'+esc(op.name)+'</div></div></div>';
+}
+function talkButtons(ctx,st,fnName){
+  if(st.left<=0)return '<div class="small dim">🗨️ Uitgepraat — nu de cijfers.</div>';
+  return '<div class="small dim">🗨️ Zeg eens iets ('+st.left+' kans'+(st.left>1?"en":"")+'):</div>'
+   +st.choices.map((mi,k)=>{const mv=TALK[ctx][mi];
+     return '<button class="btn choicebtn" onclick="'+fnName+'('+k+')">'+(TAGICON[mv.g]?TAGICON[mv.g]+" ":"")+'“'+mv.t+'”</button>'}).join("");
+}
+function applyTalk(ctx,st,k){
+  const mv=TALK[ctx][st.choices[k]];
+  const out=talkRoll(mv);
+  st.lastYou=mv.t;st.left--;
+  if(out===1){st.bonus=clamp(st.bonus+mv.e,-.25,.25);st.lastThem=pick(mv.ok);
+    if(mv.h){heatAdd(mv.h);popNum("+"+mv.h+" 🔥","pred")}
+    popNum("+"+Math.round(mv.e*100)+"% 🎲","pgreen");sfx("kaching");}
+  else if(out===-1){st.bonus=clamp(st.bonus-mv.e*.8,-.25,.25);st.lastThem=pick(mv.no);
+    popNum("-"+Math.round(mv.e*80)+"% 🎲","pred");sfx("bad");}
+  else{st.lastThem=pick(TALK.neutral);}
+  st.choices=pickTalks(ctx,3);
+  return out;
+}
+/* ============ DRIVE SCENE ============ */
+function driveScene(txt,cb){
+  if(!REEL_MS){cb();return}
+  const c=MK&&MK.bought&&MK.bought.length?MK.bought[MK.bought.length-1]:null;
+  const strip="🌲 🌳 🏠 🌲 🐄 🌾 ⛪ 🌲 🌳 🛖 🌲 ";
+  modal('<div class="roadscene"><div class="rs-sun"></div>'
+   +'<div class="rs-trees">'+strip+strip+'</div>'
+   +'<div class="rs-road"><div class="rs-dash"></div><div class="rs-posts">'+"| ".repeat(60)+'</div></div>'
+   +'<div class="rs-car">'+(c?carArt(c,150):'<div style="font-size:54px">🚚</div>')+'</div>'
+   +'<div class="rs-txt">'+txt+'</div></div>',[]);
+  setTimeout(cb,1500);
+}
 function percFor(cu,c,disclosed){
   let perc=askValue(c)*(carMatches(c,cu.want)?1.06:.82)*OFFICES[G.office].bonus*(isCh("martine")?1.05:1);
   if(isTrend(c))perc*=1.12;
@@ -1653,36 +1983,52 @@ function sellOdds(cu,price,perc){
   return clamp(1.45-(price/perc)*1.2+G.rep/350+(G.rb?.08:0)+(isCh("thomas")?.10:0)
     +Math.min(.06,((G.lvl||1)-1)*.008)-cu.fuss*.15,.03,.96);
 }
+function moodFace(p){return p>.65?"😍":p>.45?"🙂":p>.3?"🤨":"😬"}
+function negBonus(){return (NEG&&NEG.talk&&NEG.talk.bonus)||0}
 function openNeg(cid,carId){
   const cu=G.custs.find(x=>x.id===cid),c=getCar(carId);if(!cu||!c)return;
-  NEG={cid,carId,tries:0};
   const base=askValue(c);
-  const iss=hiddenIssues(c);
-  const v0=Math.round(base*1.05/1000)*1000;
-  const p0=sellOdds(cu,v0,percFor(cu,c,[]));
-  let h='<span class="mood" id="mood">'+(p0>.65?"😍":p0>.45?"🙂":p0>.3?"🤨":"😬")+'</span> <b>'+cu.name+'</b>'+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+' bekijkt de <b>'+esc(carName(c))+'</b>. '+pick(["Schopt tegen een band.","Vraagt of er nog koffie is.","Ruikt aan het interieur.","Vraagt 'wat is er mis mee?' Grapje. Half."])+'<hr>'
+  NEG={cid,carId,tries:0,price:Math.round(base*1.05/1000)*1000,disclosed:[],
+    talk:{bonus:0,left:2,lastYou:"",
+      lastThem:pick(["Schopt tegen een band en kijkt u aan.","Vraagt of er nog koffie is.","Ruikt aan het interieur en trekt één wenkbrauw op.","'Wat is er mis mee?' Grapje. Half."]),
+      choices:pickTalks("sell",3)}};
+  negModal();
+}
+function negModal(){
+  const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);if(!cu||!c)return;
+  const base=askValue(c),iss=hiddenIssues(c);
+  const p0=clamp(sellOdds(cu,NEG.price,percFor(cu,c,NEG.disclosed))+negBonus(),.03,.97);
+  let h=duelHtml({face:cu.face||"🙂",name:cu.name+(cu.vip?" ⭐":"")+(cu.net?" 🌐":"")},NEG.talk)
+   +talkButtons("sell",NEG.talk,"doTalkSell")+'<hr>'
    +(isTrend(c)?'<div class="small"><span class="pill warn">📈 in trend: '+BODN[G.trendBody]+' (+12%)</span></div>':'')
-   +'<div class="small dim">Marktwaarde zoals hij op het koertje staat: <b class="money">'+fmt(base)+'</b></div>'
+   +'<div class="small dim"><b>'+esc(carName(c))+'</b> · marktwaarde <b class="money">'+fmt(base)+'</b> · humeur: <span class="mood" id="mood">'+moodFace(p0)+'</span></div>'
    +'<div class="small dim">Jouw vraagprijs:</div>'
-   +'<input type="range" class="slider" id="prsl" min="'+Math.round(base*.5/1000)*1000+'" max="'+Math.round(base*1.6/1000)*1000+'" value="'+v0+'" step="1000" oninput="updPr()">'
-   +'<div class="center"><b id="prv" class="money">'+fmt(v0)+'</b></div>'
+   +'<input type="range" class="slider" id="prsl" min="'+Math.round(base*.5/1000)*1000+'" max="'+Math.round(base*1.6/1000)*1000+'" value="'+NEG.price+'" step="1000" oninput="updPr()">'
+   +'<div class="center"><b id="prv" class="money">'+fmt(NEG.price)+'</b></div>'
    +'<div id="odds2">'+oddsHtml(p0)+'</div>';
   if(iss.length){
     h+='<hr><div class="small">🤫 Wat je <b>niet</b> per se moet vertellen:</div>'
-     +iss.map(i=>'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" class="dis" value="'+i.id+'" onchange="updPr()"> eerlijk zeggen: '+esc(i.t)+'</label>').join("")
+     +iss.map(i=>'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" class="dis" value="'+i.id+'"'+(NEG.disclosed.includes(i.id)?" checked":"")+' onchange="updPr()"> eerlijk zeggen: '+esc(i.t)+'</label>').join("")
      +'<div class="small dim">Eerlijkheid drukt de prijs maar voorkomt boze terugkomers (en is goed voor je reputatie).</div>';
   }
   modal(h,[{t:"💬 Doe je voorstel",fn:trySell},{t:"Sluiten",cls:"ghost",fn:closeModal}]);
 }
+function doTalkSell(k){
+  if($("prsl"))NEG.price=+$("prsl").value;
+  NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
+  applyTalk("sell",NEG.talk,k);
+  negModal();hdr();
+}
 function updPr(){
   const price=+$("prsl").value;
+  if(NEG)NEG.price=price;
   $("prv").textContent=fmt(price);
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   if(!cu||!c||!$("odds2"))return;
-  const disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  const p=sellOdds(cu,price,percFor(cu,c,disclosed));
+  NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
+  const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus(),.03,.97);
   $("odds2").innerHTML=oddsHtml(p);
-  const md=$("mood");if(md)md.textContent=p>.65?"😍":p>.45?"🙂":p>.3?"🤨":"😬";
+  const md=$("mood");if(md)md.textContent=moodFace(p);
 }
 function trySell(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
@@ -1691,7 +2037,7 @@ function trySell(){
   const iss=hiddenIssues(c);
   const perc=percFor(cu,c,disclosed);
   const bust=price>cu.budget*1.12;
-  const p=sellOdds(cu,price,perc);
+  const p=clamp(sellOdds(cu,price,perc)+negBonus(),.03,.97);
   G.rb=false;
   const win=!bust&&Math.random()<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
