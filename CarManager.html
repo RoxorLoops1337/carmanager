@@ -2368,7 +2368,7 @@ function testDrive(c,mode){
   closeModal();
   const d=CARS[c.ci];
   TD={c,mode,on:true,t:-3.6,dur:45,V:0,speed:0,top:0,dist:0,x:0,steer:0,kL:0,kR:0,gas:0,brake:0,
-    hits:0,hitCd:0,reveals:[],pos:0,segs:buildTrack(),cars:[],skid:0,gear:1,rpm:0,psi:0,delta:0,
+    hits:0,hitCd:0,reveals:[],pos:0,segs:buildTrack(),cars:[],skid:0,gear:1,rpm:0,lat:0,steerVis:0,
     sput:false,sputT:2.5+Math.random()*2.5,lt:0,raf:0,skyX:0,cntShown:null,
     maxV:topSpeed(c)/3.6,body:d.body,hex:COLORS[c.col].h,
     electrAt:c.quirks.includes("electr")&&!c.known.includes("electr")?4+Math.random()*8:1e9,
@@ -2529,16 +2529,17 @@ function td3dInit(){
   }
 }
 function td3dFrame(dt){
-  const m=TD.pos/M2U,lat=TD.x*6.2;
+  const m=TD.pos/M2U,lat=TD.lat*.94;
   td3dPos(m,lat,T3.tmp);
   const h=T3.tmp.h;
+  const driftYaw=TD.steerVis*(0.12+TD.skid*0.4);
   T3.car.position.set(T3.tmp.x,T3.tmp.y+0.02,T3.tmp.z);
-  T3.car.rotation.y=Math.PI/2-h-(TD.psi+TD.delta*.6);
-  T3.car.rotation.z=Math.sin(TD.t*21)*(TD.V>2?.008:0)+(TD.psi+TD.delta)*.16;
+  T3.car.rotation.y=Math.PI/2-h-driftYaw;
+  T3.car.rotation.z=Math.sin(TD.t*21)*(TD.V>2?.008:0)-TD.steerVis*TD.V*0.0016;
   // chase cam (Jellei HQ style lerp)
   td3dPos(Math.max(0,m-8.2),lat*.55,T3.tmp2);
   const cx=T3.tmp2.x,cy=T3.tmp2.y+3.1,cz=T3.tmp2.z;
-  const k=Math.min(1,dt*4.5);
+  const k=Math.min(1,dt*3);
   T3.cam.position.x+=(cx-T3.cam.position.x)*k;
   T3.cam.position.y+=(cy-T3.cam.position.y)*k;
   T3.cam.position.z+=(cz-T3.cam.position.z)*k;
@@ -2581,11 +2582,11 @@ function tdTick(dt){
   TD.t+=dt;
   if(TD.t>1.4){const ce=$("tdcnt");if(ce&&ce.textContent&&ce.textContent!=="GO!")ce.textContent=""}
   /* --- longitudinal physics --- */
-  const power=8.4*(0.5+0.5*eng/100)*(1+0.06*(c.tuned||0));
   const Vn=TD.V/TD.maxV;
-  if(TD.gas)TD.V+=power*(1-Vn*Vn)*dt;
-  if(TD.brake)TD.V=Math.max(0,TD.V-13.5*dt);
-  if(!TD.gas&&!TD.brake)TD.V=Math.max(0,TD.V-(1.1+2.2*Vn)*dt);
+  let acc=(TD.gas?1:0)*21*(0.55+0.45*eng/100)*(1+0.06*(c.tuned||0))*(1-Math.pow(Math.min(1,Vn),1.7));
+  acc-=(TD.brake?1:0)*26;
+  acc-=0.0022*TD.V*TD.V;
+  TD.V=Math.max(0,TD.V+acc*dt);
   /* hills */
   const bi=Math.floor(TD.pos/SEGL)%TD.segs.length;
   const slope=(TD.segs[(bi+1)%TD.segs.length].y-TD.segs[bi].y)/SEGL;
@@ -2603,31 +2604,27 @@ function tdTick(dt){
   else if(g<TD.gear)TD.gear=g;
   TD.rpm=clamp((Vn-GR[TD.gear-1])/(GR[TD.gear]-GR[TD.gear-1]),0,1);
   engineRPM(TD.gas?TD.rpm:TD.rpm*.8,TD.gear);
-  /* --- lateral physics: bicycle model with grip limit --- */
-  const steerTarget=clamp(TD.steer+(TD.kR-TD.kL),-1,1);
-  // smoothed, speed-sensitive steering angle (rad)
-  const dMax=.34/(1+TD.V/30);
-  TD.delta+=((steerTarget*dMax)-TD.delta)*Math.min(1,dt*9);
-  if(TD.pull)TD.delta+=TD.pull*.06*Math.min(1,TD.V/15);
-  if(bod<60)TD.delta+=Math.sin(TD.t*2.3)*dt*.05*(1-bod/100); // loose old bodywork wanders slowly
-  // yaw rate demanded vs grip available
-  let yaw=TD.V/2.6*Math.tan(TD.delta);
-  const aMax=9.8*(0.9+0.5*bod/100);
-  const aNeed=Math.abs(TD.V*yaw);
-  if(aNeed>aMax&&TD.V>8){yaw=Math.sign(yaw)*aMax/TD.V;
-    TD.skid=Math.min(1,TD.skid+dt*4);TD.V=Math.max(0,TD.V-(aNeed-aMax)*.25*dt);}
-  else TD.skid=Math.max(0,TD.skid-dt*3);
-  skidVol(TD.skid*.06);
-  // heading relative to the road tangent; road curvature turns under the car
-  const kap=TD.segs[bi].curve*.0011;
-  TD.psi+=(yaw-kap*TD.V)*dt;
-  TD.psi-=TD.psi*Math.min(1,TD.V/18)*1.6*dt; // tires self-align when you release
-  TD.psi=clamp(TD.psi,-.9,.9);
-  TD.x+=TD.V*Math.sin(TD.psi)*dt/6.4;
+  /* --- lateral physics: ported from the Jellei HQ engine --- */
+  const steerIn=clamp(TD.steer+(TD.kR-TD.kL),-1,1);
+  TD.steerVis+=(steerIn-TD.steerVis)*Math.min(1,dt*7);
+  if(TD.pull)TD.steerVis+=TD.pull*.5*Math.min(1,TD.V/15)*dt*7;
+  if(bod<60)TD.steerVis+=Math.sin(TD.t*1.9)*(1-bod/100)*.12*dt*7;
+  const steerPow=(5.5+TD.V*.135)*(0.8+0.4*bod/100);
+  const cf=TD.segs[bi].curve*.0011*TD.V*TD.V*.5;
+  let latV=TD.steerVis*steerPow-cf;
+  TD.lat=clamp(TD.lat+latV*dt,-16,16);
+  TD.x=TD.lat/6.6;
+  // drift: demand beyond grip scrubs speed + screeches (grip from bodywork)
+  const demand=Math.abs(TD.steerVis*steerPow*.85-cf);
+  const gripLim=6.5+3*bod/100;
+  const driftTarget=TD.V>32?clamp((demand-gripLim)/6,0,1):0;
+  TD.skid+=(driftTarget-TD.skid)*Math.min(1,dt*5);
+  if(TD.skid>.25)TD.V=Math.max(0,TD.V-TD.skid*5.5*dt);
+  skidVol(TD.skid>.3&&TD.V>15?TD.skid*.07:0);
   if(TD.t>TD.pullAt&&TD.pull&&!c.known.includes("crash")){TD.pullAt=1e9;
     tdReveal("crash","Hij trekt vanzelf opzij — chassis niet meer recht na een klapper.")}
   /* off-road */
-  if(Math.abs(TD.x)>1.12){TD.V=Math.max(6,TD.V-26*dt);TD.x=clamp(TD.x,-1.6,1.6);
+  if(Math.abs(TD.lat)>7.7){if(TD.V>10)TD.V=Math.max(10,TD.V-(6+(TD.V-24>0?(TD.V-24)*1.3:0))*dt);
     if(Math.random()<dt*8)popNum("💨","pblue")}
   /* quirk events */
   if(TD.t>TD.electrAt){TD.electrAt=1e9;const el=$("tdfs");
@@ -2640,7 +2637,7 @@ function tdTick(dt){
   for(const o of TD.cars){
     o.z=(o.z+o.v*dt*14+trackLen)%trackLen;
     let rel=o.z-TD.pos;if(rel<-trackLen/2)rel+=trackLen;if(rel>trackLen/2)rel-=trackLen;
-    if(rel>-SEGL&&rel<SEGL*1.4&&TD.hitCd<=0&&Math.abs(o.lane-TD.x*.62)<.3&&TD.V>o.v*1.05){
+    if(rel>-SEGL&&rel<SEGL*1.4&&TD.hitCd<=0&&Math.abs(o.lane*6.2-TD.lat)<2.1&&TD.V>o.v*1.05){
       TD.hits++;TD.hitCd=1.2;TD.V=Math.min(TD.V,o.v)*0.55;ouch();popNum("💥","pred");
       if(TD.mode==="market"&&TD.hits>=3){toast("De verkoper wordt lijkbleek en wuift je naar de kant.");tdEnd(true);return}}}
   /* progress */
@@ -2740,7 +2737,7 @@ function tdDraw(){
   /* player car */
   const spr=tdSprite(TD.hex,TD.body,!!TD.brake);
   const pw=Math.min(W*.30,300),ph=pw*(150/190);
-  const lean=clamp((TD.psi+TD.delta)*.5,-.3,.3);
+  const lean=clamp(TD.steerVis*(.12+TD.skid*.3),-.3,.3);
   const bounce=Math.sin(TD.t*23)*(TD.V>2?2.2:0)*(TD.dpr||1);
   x.save();
   x.translate(W/2,H*.80+bounce);
