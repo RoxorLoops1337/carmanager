@@ -616,6 +616,7 @@ function newGame(ch){
      xp:0, lvl:1, spun:false, wkStart:c.cash, wkSold:0,
      mech:0, combo:0, postcards:[], lotto:false, kras:0,
      gastonHere:false, bet:null, tip:false, recProfit:0, modelsSold:{},
+     sloffen:0, alinHere:false, martineCalls:0,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
      comebacks:[], mile:{}, over:false};
@@ -646,6 +647,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.phoneDeal=G.phoneDeal||null;G.auction=G.auction||null;G.web=G.web||null;
   G.orders=G.orders||[];G.ordersDone=G.ordersDone||0;G.gastonWins=G.gastonWins||0;
   G.exported=G.exported||0;G.staff=G.staff||{};G.salonYear=G.salonYear||0;
+  G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
 /* ---- goal chain: always something to look forward to ---- */
@@ -1063,6 +1065,10 @@ function endWeek(silent){
   // the GSM rings
   G.phoneDeal=(G.unlocks.gsm&&Math.random()<.45)?genPhoneDeal():null;
   if(G.phoneDeal)extra.push(["📱 GSM","er heeft iemand gebeld — kijk op het bureau",""]);
+  // Thomas (if he's not the boss) spots deals on computer club boards
+  if(!G.phoneDeal&&G.unlocks.gsm&&!isCh("thomas")&&Math.random()<.15){
+    G.phoneDeal=genPhoneDeal();G.phoneDeal.viaThomas=1;
+    extra.push(["😁 Thomas","'iets gezien op het prikbord van de computerclub' — kijk op het bureau",""]);}
   // staff wages & effects
   for(const k in G.staff){const st=STAFFDEF[k];G.cash-=st.cost;
     extra.push([st.face+" "+st.n,"-"+fmt(st.cost),"neg"])}
@@ -1078,6 +1084,7 @@ function endWeek(silent){
   // who's at the gate next week
   G.gastonHere=!G.bet&&Math.random()<.25;
   G.tip=Math.random()<.20;
+  G.alinHere=!isCh("alan")&&(G.sloffen||0)<4&&Math.random()<.16;
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
@@ -1331,18 +1338,24 @@ function renderOffice(){
   if(!undone.length)h+='<div class="dim small">Alles behaald. Gij zijt de handel. 🏡</div>';
   h+='</div>';
   if(G.phoneDeal){const pd=G.phoneDeal;
-    h+='<div class="card"><h3>📱 De GSM rinkelde</h3>'
+    h+='<div class="card"><h3>'+(pd.viaThomas?'📱 Thomas belde':'📱 De GSM rinkelde')+'</h3>'
      +'<div class="carline" style="cursor:default"><div class="carpic" style="width:86px">'+carArt(pd.c,88)+'</div>'
      +'<div style="flex:1"><b>'+esc(carName(pd.c))+'</b> <span class="small dim">('+pd.c.year+')</span>'
-     +'<div class="small dim">"Ik moet er vandaag nog vanaf, vriend. Cash en ik lever hem af."</div></div>'
+     +'<div class="small dim">'+(pd.viaThomas?'"Stond op het prikbord van de computerclub in Asse. Bel rap, die mens moet er dringend vanaf. Zeg niet dat het van mij komt."':'"Ik moet er vandaag nog vanaf, vriend. Cash en ik lever hem af."')+'</div></div>'
      +'<div class="money small">'+fmt(pd.price)+'</div></div>'
      +'<button class="btn primary" onclick="phoneBuy()">Kopen ('+fmt(pd.price)+')</button>'
      +'<button class="btn ghost" onclick="G.phoneDeal=null;save();render()">Afwimpelen</button></div>';
   }
   if(G.unlocks.webOffer&&!G.web){
-    h+='<div class="card"><h3>💾 Het Internet is er!</h3>'
-     +'<div class="small dim">De computerwinkel in Asse verkoopt Skynet-abonnementen. Eigen website mét bezoekersteller en gastenboek: <b>'+fmt(60000)+'</b>, alles inbegrepen (modem, kabels, een neef die HTML kent).</div>'
-     +'<button class="btn primary" onclick="launchWeb()">🌐 Lanceer www.carmanager.be</button></div>';
+    if(!isCh("thomas")){
+      h+='<div class="card"><h3>💾 Thomas belt: "Het Internet!"</h3>'
+       +'<div class="small dim">"Ik heb het thuis al draaien. Modem, Skynet-abonnement, bezoekersteller, gastenboek — ik zet alles op voor <b>'+fmt(35000)+'</b>, materiaal inbegrepen. De computerwinkel in Asse vraagt 60.000 voor exact hetzelfde, en die kunnen niet eens typen."</div>'
+       +'<button class="btn primary" onclick="launchWeb(35000,1)">🌐 Laat Thomas het opzetten ('+fmt(35000)+')</button></div>';
+    }else{
+      h+='<div class="card"><h3>💾 Het Internet is er!</h3>'
+       +'<div class="small dim">De computerwinkel in Asse verkoopt Skynet-abonnementen. Eigen website mét bezoekersteller en gastenboek: <b>'+fmt(60000)+'</b>, alles inbegrepen (modem, kabels, een neef die HTML kent).</div>'
+       +'<button class="btn primary" onclick="launchWeb()">🌐 Lanceer www.carmanager.be</button></div>';
+    }
   }
   if(G.web&&G.web.live){
     h+='<div class="card"><div class="spread"><h3 style="margin:0">🌐 www.carmanager.be</h3><span class="pill good">ONLINE</span></div>'
@@ -1383,9 +1396,16 @@ function renderOffice(){
      +'<div class="small dim">"Een boer in Aalst heeft al jaren iets onder een zeil in de schuur staan." Het adres kost <b>5.000 BEF</b>. 🎲 ±45% dat het wat is.</div>'
      +'<button class="btn shady" onclick="followTip()">🚜 Erheen rijden (5.000 BEF)</button></div>';
   }
+  if(G.alinHere&&!isCh("alan")){
+    h+='<div class="card"><h3>🕶️ Alin rijdt het koertje op</h3>'
+     +'<div class="small dim">Kofferbak open: sloffen Poolse sigaretten, zonder accijnszegel. "Twee voor <b>3.000</b>. Voor de zenuwen, of voor... onderweg. Vraag niet hoe ik eraan kom." Ge vraagt niet hoe hij eraan komt.</div>'
+     +'<button class="btn shady" onclick="buySloffen()">🚬 Twee sloffen (3.000 BEF)</button>'
+     +'<button class="btn ghost" onclick="G.alinHere=false;save();render()">Niet vandaag, Alin</button></div>';
+  }
   h+='<div class="card"><h3>☕ Op het bureau</h3><div class="tablebtns">'
    +'<button class="btn primary" onclick="doEndWeek()">⏭ Week afsluiten</button>'
    +'<button class="btn" onclick="smoke()" '+(G.smokes>=3?"disabled":"")+'>🚬 Sigaret op het koertje</button>'
+   +(G.sloffen>0?'<button class="btn shady" onclick="useSloffe()">🚬 Sloffe opentrekken (nog '+G.sloffen+')<br><span class="small">-4 🔥 · van Alin</span></button>':'')
    +'<button class="btn" onclick="redbull()" '+(G.rb?"disabled":"")+'>🪽 Red Bull (60 BEF)</button>'
    +'<button class="btn shady" onclick="spinWheel()" '+(G.spun?"disabled":"")+'>🎡 Rad van Koudenberg'+(G.spun?"<br><span class=\'small\'>volgende week weer</span>":"<br><span class=\'small\'>1× gratis per week</span>")+'</button>'
    +'<button class="btn" onclick="buyLotto()" '+(G.lotto?"disabled":"")+'>🎟️ Lotto-briefje'+(G.lotto?"<br><span class=\'small\'>trekking bij weekafsluiting</span>":"<br><span class=\'small\'>100 BEF</span>")+'</button>'
@@ -1406,6 +1426,19 @@ function doEndWeek(){endWeek();log("Week afgesloten. Huur betaald, asbak geleegd
 function smoke(){if(G.smokes>=3)return;G.smokes++;G.heat=clamp(G.heat-1,0,100);
   toast(pick(["🚬 Ahh. Dat lucht op.","🚬 Peuk erbij aan halte Koudenberg.","🚬 De zenuwen zakken."]));render()}
 function redbull(){if(G.rb)return;if(G.cash-60<creditLimit()){toast("Te weinig geld.");return}G.cash-=60;G.rb=true;toast("🪽 Vleugels! Volgende onderhandeling +");render()}
+function buySloffen(){
+  if(!G.alinHere)return;
+  if(G.cash-3000<creditLimit()){toast("Te weinig cash. Alin lacht, klapt de kofferbak dicht en rijdt weg.");return}
+  G.cash-=3000;G.sloffen=(G.sloffen||0)+2;G.alinHere=false;save();sfx("kaching");
+  log("Twee sloffen van Alin gekocht. Geen kwitantie, natuurlijk. (-"+fmt(3000)+")");
+  toast("🚬 Twee sloffen in de kast. Goed voor de zenuwen — of voor een douanier.");render();
+}
+function useSloffe(){
+  if(!(G.sloffen>0))return;
+  G.sloffen--;G.heat=clamp(G.heat-4,0,100);save();
+  toast(pick(["🚬 Sloffe open, heel het koertje rookt mee. De zenuwen zakken zienderogen.","🚬 Zelfs de buschauffeur van lijn 129 komt er eentje meeroken.","🚬 Een uur pauze, twee volle asbakken, een kalme kop."]));
+  log("Sloffe van Alin opengetrokken op het koertje. Iedereen kalm. (-4 🔥)");render();
+}
 /* ---- unlockable extensions ---- */
 const SPAM=[
  "📧 E-mail: 'GEFELICITEERD! U bent bezoeker 100.000!' Vast wel.",
@@ -1455,15 +1488,15 @@ function exportCar(id){
       save();closeModal()}},
    {t:"Toch niet",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
 }
-function launchWeb(){
-  if(G.web)return;
-  if(G.cash-60000<creditLimit()){toast("Te weinig geld voor de toekomst.");return}
-  G.cash-=60000;save();sfx("modem");
+function launchWeb(cost,viaThomas){
+  if(G.web)return;cost=cost||60000;
+  if(G.cash-cost<creditLimit()){toast("Te weinig geld voor de toekomst.");return}
+  G.cash-=cost;save();sfx("modem");
   suspense(["💾","📞","🖥️","🌐"],"De modem kraakt, piept en zingt... 33.6k verbonden.",()=>{
     G.web={live:1,hits:ri(8,25)};save();
     stamp("ONLINE!","gold");confetti(80);sfx("win");addXP(40);
-    log("🌐 www.carmanager.be gelanceerd! De neef die HTML kent, krijgt een bak Red Bull.");
-    modal("<b>🌐 www.carmanager.be is LIVE!</b><br>Grijze achtergrond, een GIF van een draaiende wagen, een teller en een gastenboek. De eerste bezoeker is de buschauffeur van Koudenberg, vanuit de bib van Asse.<br><br>Vanaf nu komt er wekelijks volk 'van het internet' langs — en die hebben nét iets diepere zakken.",
+    log(viaThomas?"🌐 www.carmanager.be gelanceerd! Thomas heeft alles aangesloten en weigert er geld voor de pizza's bij te vragen.":"🌐 www.carmanager.be gelanceerd! De neef die HTML kent, krijgt een bak Red Bull.");
+    modal("<b>🌐 www.carmanager.be is LIVE!</b><br>"+(viaThomas?"Thomas heeft een hele avond zitten prutsen, twee pizza's opgegeten en een teller geïnstalleerd 'met extra cijfers, voor als het druk wordt'. ":"Grijze achtergrond, een GIF van een draaiende wagen, een teller en een gastenboek. ")+"De eerste bezoeker is de buschauffeur van Koudenberg, vanuit de bib van Asse.<br><br>Vanaf nu komt er wekelijks volk 'van het internet' langs — en die hebben nét iets diepere zakken.",
      [{t:"De toekomst!",fn:closeModal}]);
   });
 }
@@ -1852,6 +1885,7 @@ function evCustoms(next){
     _next:next,
     _fine:(hasPlate?30000:60000)+risky.length*20000,
     _bribe:Math.round((12000+10000*m.risk)*(isCh("alan")?.7:1)/1000)*1000,
+    _mart:!isCh("martine")&&Math.random()<.55,
     _risky:risky};
   copModal();
 }
@@ -1861,28 +1895,47 @@ function copModal(){
   const glad=clamp((isCh("thomas")?.65:.3)+st.bonus*1.2,.05,.95);
   const brib=clamp((isCh("alan")?.95:.7)+st.bonus,.1,.98);
   const fine=Math.max(5000,Math.round(st._fine*(1-st.bonus*1.5)/1000)*1000);
-  modal("<b>🛂 Grenspost. Controle.</b>"
-   +duelHtml({face:"👮",name:"De douanier"},st)
-   +talkButtons("cop",st,"doTalkCop")
-   +'<hr><div class="small dim">En nu?</div>',
-  [{t:"💶 Iets regelen ("+fmt(bribe)+") <span class='small'>🎲 ±"+Math.round(brib*100)+"%</span>",cls:"shady",fn:()=>{
+  const btns=[{t:"💶 Iets regelen ("+fmt(bribe)+") <span class='small'>🎲 ±"+Math.round(brib*100)+"%</span>",cls:"shady",fn:()=>{
       if(G.cash-bribe<creditLimit()){toast("Geen cash genoeg om te 'regelen'.");return}
       G.cash-=bribe;
       if(Math.random()<brib){heatAdd(4);log("Douanier 'geregeld' aan de grens. (-"+fmt(bribe)+")");closeModal();modal(borderScene()+"Het bankbiljet verdwijnt in een borstzak. \"Goeie reis verder.\" ",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
-      else{ouch();heatAdd(12);G.cash-=fine;log("Omkoping mislukt! Boete "+fmt(fine)+" en een nota in een dossier ergens.");closeModal();modal("Verkeerde douanier. Hij schrijft ALLES op. Boete: <b>"+fmt(fine)+"</b>, plus de omkoopsom is hij ook 'kwijt'.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}},
-   {t:"😇 Gladpraten <span class='small'>🎲 ±"+Math.round(glad*100)+"%</span>",fn:()=>{
+      else{ouch();heatAdd(12);G.cash-=fine;log("Omkoping mislukt! Boete "+fmt(fine)+" en een nota in een dossier ergens.");closeModal();modal("Verkeerde douanier. Hij schrijft ALLES op. Boete: <b>"+fmt(fine)+"</b>, plus de omkoopsom is hij ook 'kwijt'.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}}];
+  if(G.sloffen>0){
+    const slof=clamp(.8+st.bonus,.1,.98);
+    btns.push({t:"🚬 Sloffe toestoppen (nog "+G.sloffen+") <span class='small'>🎲 ±"+Math.round(slof*100)+"%</span>",cls:"shady",fn:()=>{
+      G.sloffen--;
+      if(Math.random()<slof){heatAdd(2);log("Douanier 'bedankt' met een sloffe Poolse sigaretten. Rook lost alles op.");closeModal();modal(borderScene()+"De sloffe glijdt onder de balie alsof hij daar altijd al lag. \"Mooi merk.\" De slagboom gaat open.",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
+      else{ouch();heatAdd(8);G.cash-=fine;log("Sloffe geweigerd aan de grens! Boete "+fmt(fine)+".");closeModal();modal("\"Ik rook niet.\" Hij houdt de sloffe 'als bewijsstuk' én schrijft de boete: <b>"+fmt(fine)+"</b>.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}});
+  }
+  if(st._mart){
+    const mc=Math.round(15000*Math.pow(1.6,G.martineCalls||0)/1000)*1000;
+    btns.push({t:"📞 Bel Martine ("+fmt(mc)+") <span class='small'>🎲 ±92%</span>",fn:()=>{
+      if(G.cash-mc<creditLimit()){toast("Te weinig geld. Martine werkt niet op de poef.");return}
+      G.cash-=mc;G.martineCalls=(G.martineCalls||0)+1;
+      if(Math.random()<.92){log("Martine uit een grenscontrole gebeld. Alles 'officieel geregeld'. (-"+fmt(mc)+")");closeModal();modal(borderScene()+"Ge geeft de GSM aan de douanier. Martine vraagt naar zijn overste, noemt twee voornamen en een dossiernummer. Hij geeft je de papieren terug alsof ze gloeien. \"In orde, meneer. Goeie reis.\"",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
+      else{ouch();G.cash-=fine;heatAdd(2);log("Zelfs Martine kreeg er geen beweging in. Boete "+fmt(fine)+".");closeModal();modal("Martine zucht door de telefoon. \"Die ken ik niet. Betaal de boete, hou het proper, en zeg tegen niemand dat ge mij gebeld hebt.\" Boete: <b>"+fmt(fine)+"</b>.",[{t:"Betalen",fn:()=>{closeModal();next()}}])}}});
+  }
+  btns.push({t:"😇 Gladpraten <span class='small'>🎲 ±"+Math.round(glad*100)+"%</span>",fn:()=>{
       if(Math.random()<glad){log("Uit een controle gepraat aan de grens. Charme werkt.");closeModal();modal(borderScene()+"Vijf minuten over het weer, voetbal, en de kwaliteit van Duitse autosnelwegen later... wuift hij je door. Ongelooflijk.",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();G.cash-=fine;heatAdd(8);
         let txt="Hij trapt er niet in. Boete: <b>"+fmt(fine)+"</b>.";
         if(risky.length&&Math.random()<.5){const c=risky[0];MK.bought=MK.bought.filter(x=>x.id!==c.id);txt+="<br>Erger: de <b>"+esc(carName(c))+"</b> wordt aangeslagen. Papieren 'ter controle'. Die zie je nooit terug.";log(carName(c)+" aangeslagen aan de grens.")}
         closeModal();modal(txt,[{t:"Au.",fn:()=>{closeModal();next()}}])}}},
-   {t:"Boete betalen ("+fmt(fine)+")",cls:"ghost",fn:()=>{G.cash-=fine;heatAdd(3);log("Boete aan de grens: "+fmt(fine));closeModal();next()}}]);
+   {t:"Boete betalen ("+fmt(fine)+")",cls:"ghost",fn:()=>{G.cash-=fine;heatAdd(3);log("Boete aan de grens: "+fmt(fine));closeModal();next()}});
+  modal("<b>🛂 Grenspost. Controle.</b>"
+   +duelHtml({face:"👮",name:"De douanier"},st)
+   +talkButtons("cop",st,"doTalkCop")
+   +'<hr><div class="small dim">En nu?</div>',btns);
 }
 function evPolice(next){
   if(Math.random()<.5){modal("<b>🚓 Politiecontrole</b> op de parking van een tankstation. Ze checken vooral de vrachtwagens. Jij koopt intussen een Red Bull en doet heel gewoon.",[{t:"Verder",fn:()=>{closeModal();G.rb=true;next()}}]);return}
   const fine=8000;
-  modal("<b>🚓 Politie.</b> \"Uw trailer slingert, meneer.\" Ter plekke alles hersjorren en een boete van <b>"+fmt(fine)+"</b> erbij.",
-  [{t:"Betalen",fn:()=>{G.cash-=fine;closeModal();next()}}]);
+  const opts=[{t:"Betalen",fn:()=>{G.cash-=fine;closeModal();next()}}];
+  if(G.sloffen>0)opts.push({t:"🚬 Sloffe aanbieden (nog "+G.sloffen+") <span class='small'>🎲 ±75%</span>",cls:"shady",fn:()=>{
+    G.sloffen--;
+    if(Math.random()<.75){heatAdd(2);log("Agent 'bedankt' met een sloffe. De boete verdampt in rook.");closeModal();modal("De agent kijkt links, kijkt rechts. De sloffe verdwijnt onder de passagierszetel van de combi. \"Rij maar voorzichtig verder, meneer.\"",[{t:"Braaf knikken",fn:()=>{closeModal();next()}}])}
+    else{ouch();G.cash-=fine;heatAdd(4);log("Sloffe geweigerd door de politie. Boete én sloffe kwijt.");closeModal();modal("\"Serieus? Omkoping?\" Hij houdt de sloffe én schrijft de boete: <b>"+fmt(fine)+"</b>. Dubbel verlies.",[{t:"Au.",fn:()=>{closeModal();next()}}])}}});
+  modal("<b>🚓 Politie.</b> \"Uw trailer slingert, meneer.\" Ter plekke alles hersjorren en een boete van <b>"+fmt(fine)+"</b> erbij.",opts);
 }
 function evBreakdown(next){
   if(MK.bought.length===0){evFlavor(next);return}
