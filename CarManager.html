@@ -1113,7 +1113,7 @@ function confetti(n){for(let i=0;i<(n||36);i++){const d=document.createElement("
   d.style.setProperty("--dx",(Math.random()*180-90)+"px");d.style.setProperty("--dy",(130+Math.random()*280)+"px");
   d.style.setProperty("--rot",(Math.random()*720-360)+"deg");d.style.animationDelay=(Math.random()*.18)+"s";
   document.body.appendChild(d);setTimeout(()=>d.remove(),1750)}}
-function ouch(){sfx("bad");document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
+function ouch(){sfx("bad");if(typeof TD!=="undefined"&&TD&&TD.on){TD.shake=Math.min(.6,(TD.shake||0)+.42);return}document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
 let REEL_MS=950,WIV=null,SWEEP=null;
 function suspense(faces,txt,cb,sceneHtml){
   if(!REEL_MS){cb();return}
@@ -2368,7 +2368,7 @@ function testDrive(c,mode){
   closeModal();
   const d=CARS[c.ci];
   TD={c,mode,on:true,t:-3.6,dur:45,V:0,speed:0,top:0,dist:0,x:0,steer:0,kL:0,kR:0,gas:0,brake:0,
-    hits:0,hitCd:0,reveals:[],pos:0,segs:buildTrack(),cars:[],skid:0,gear:1,rpm:0,lat:0,steerVis:0,
+    hits:0,hitCd:0,reveals:[],pos:0,segs:buildTrack(),cars:[],skid:0,shake:0,gear:1,rpm:0,lat:0,steerVis:0,
     sput:false,sputT:2.5+Math.random()*2.5,lt:0,raf:0,skyX:0,cntShown:null,
     maxV:topSpeed(c)/3.6,body:d.body,hex:COLORS[c.col].h,
     electrAt:c.quirks.includes("electr")&&!c.known.includes("electr")?4+Math.random()*8:1e9,
@@ -2545,6 +2545,9 @@ function td3dFrame(dt){
   T3.cam.position.z+=(cz-T3.cam.position.z)*k;
   td3dPos(m+16,0,T3.tmp2);
   T3.cam.lookAt(T3.tmp2.x,T3.tmp2.y+1.1,T3.tmp2.z);
+  if(TD.shake>0){const q=TD.shake*TD.shake;
+    T3.cam.position.x+=Math.sin(TD.t*47)*q*2.2;
+    T3.cam.position.y+=Math.sin(TD.t*61+1.7)*q*1.6;}
   T3.sunS.position.set(T3.cam.position.x-420,T3.cam.position.y+150,T3.cam.position.z-780);
   for(const t of T3.traffic){
     td3dPos((t.o.z/M2U)%3800,t.o.lane*6.2,T3.tmp2);
@@ -2580,6 +2583,7 @@ function tdTick(dt){
     return;
   }
   TD.t+=dt;
+  if(TD.shake)TD.shake=Math.max(0,TD.shake-dt*1.7);
   if(TD.t>1.4){const ce=$("tdcnt");if(ce&&ce.textContent&&ce.textContent!=="GO!")ce.textContent=""}
   /* --- longitudinal physics --- */
   const Vn=TD.V/TD.maxV;
@@ -2637,8 +2641,8 @@ function tdTick(dt){
   for(const o of TD.cars){
     o.z=(o.z+o.v*dt*14+trackLen)%trackLen;
     let rel=o.z-TD.pos;if(rel<-trackLen/2)rel+=trackLen;if(rel>trackLen/2)rel-=trackLen;
-    if(rel>-SEGL&&rel<SEGL*1.4&&TD.hitCd<=0&&Math.abs(o.lane*6.2-TD.lat)<2.1&&TD.V>o.v*1.05){
-      TD.hits++;TD.hitCd=1.2;TD.V=Math.min(TD.V,o.v)*0.55;ouch();popNum("💥","pred");
+    if(rel>-3*M2U&&rel<5*M2U&&TD.hitCd<=0&&Math.abs(o.lane*6.2-TD.lat)<1.85&&TD.V>o.v*1.02){
+      TD.hits++;TD.hitCd=1.2;TD.V=Math.min(TD.V,o.v)*0.6;ouch();popNum("💥","pred");
       if(TD.mode==="market"&&TD.hits>=3){toast("De verkoper wordt lijkbleek en wuift je naar de kant.");tdEnd(true);return}}}
   /* progress */
   TD.pos=(TD.pos+TD.V*dt*14)%trackLen;
@@ -2657,6 +2661,7 @@ function tdTick(dt){
 function tdDraw(){
   const cv=$("tdc");if(!cv)return;
   const x=cv.getContext("2d"),W=TD.W,H=TD.H;
+  x.save();if(TD.shake>0){const q=TD.shake*TD.shake;x.translate(Math.sin(TD.t*47)*q*10,Math.sin(TD.t*61)*q*7)}
   const segs=TD.segs,N=segs.length,trackLen=N*SEGL;
   const base=Math.floor(TD.pos/SEGL)%N;
   const camY=segs[base].y+CAMH;
@@ -2747,6 +2752,7 @@ function tdDraw(){
   if(TD.skid>.4&&TD.V>10){x.fillStyle="rgba(200,200,210,.5)";
     x.beginPath();x.arc(W/2-pw*.32+Math.random()*8,H*.80,6*(TD.dpr||1),0,7);x.fill();
     x.beginPath();x.arc(W/2+pw*.32-Math.random()*8,H*.80,6*(TD.dpr||1),0,7);x.fill();}
+  x.restore();
 }
 function poly(x,x1,y1,x2,y2,x3,y3,x4,y4){x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.lineTo(x3,y3);x.lineTo(x4,y4);x.closePath();x.fill()}
 function tdEnd(early){
