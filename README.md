@@ -27,13 +27,30 @@ Play as Martine (the CEO), Alin (the fixer) or Thomas (the charmer).
   modem serenade included.
 - **Gamble everywhere**: fortune wheel, Nationale Lotto, scratch cards,
   Gaston's weekly bet, barn-find tips, blind auction lots.
+- **The bosses you didn't pick stay in the game**: Alin drops by with
+  duty-free sloffen (calm the heat, or slip one to a customs officer),
+  Thomas pitches tech ideas and sets up your website at mate's rates,
+  and Martine can talk you out of a border control — if she picks up,
+  and her invoice grows every time you call. Playing Alin himself? He
+  chain-smokes (5 a week instead of 3, but under 3 the nerves add heat)
+  and scores cheap sloffen at tankstops and from his Katowice contacts.
 - **Full-3D test drives** (OutRun-style, joystick + gas/brake, the car's
   real stats drive the physics) that double as an inspection tool —
   hidden defects reveal themselves on the road, including rolled-back
   odometers.
 - Late game: collector zoekopdrachten with fat premiums, staff to hire
-  (Roger, Vera, Bert and nonkel Staf), a January stand at the Autosalon
+  (Roger, Vera, Bert, nonkel Staf, plus Jempi the driver, Sonja the
+  detailer and Dree the night watchman), a January stand at the Autosalon
   van Brussel, and a 25-goal chain ending in the 10M IMPERIUM.
+- **Unlockable shady markets**: Marseille's docks (sports cars with
+  freshly polished chassis numbers), the Balaton route (German premium,
+  Balkan prices) and discreet Geneva estate sales (pristine classics the
+  taxman never saw).
+- **De Schuur**: your private collection barn — park cars you love as an
+  investment; they appreciate weekly (rare ones faster) but the damp
+  creeps in, so watch for rust. Expandable, and Dree keeps the worst out.
+- A McDonald's stop on the road home — "Bieg Mek", and sometimes a rep
+  at the next table selling his lease car cheap.
 - Animated driving scenes, workshop repairs with sparks and paint mist,
   border barriers, sale drive-offs, chiptune sound effects and confetti.
 
