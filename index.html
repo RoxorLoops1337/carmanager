@@ -2609,6 +2609,12 @@ function importSave(){modal('<b>Plak je save-code:</b><br><textarea id="impbox" 
 /* ============ TRAVEL & MARKET ============ */
 function renderTravel(){
   let h='<h2>🗺️ Inkooptrip</h2><p class="small dim">Een trip kost geld en een week. Zonder geldige <span class="plate">ZZ</span>-plaat over de grens rijden kan... maar de douane houdt niet van verrassingen.</p>';
+  {const s=season().n;
+   const fc=s==="Winter"?["❄️","Sneeuw & ijzel op de baan — trage, riskantere terugreis"]
+     :s==="Herfst"?["🌫️","Mist of regen mogelijk — mist verbergt u wél voor de flitspalen"]
+     :s==="Lente"?["🌦️","Wisselvallige lentebuien — meestal meevallen"]
+     :["🔆","Hittegolf & wegenwerken — dikke motoren kunnen oververhitten"];
+   h+='<div class="card flat"><span class="small"><b>'+fc[0]+' Weerbericht ('+s+')</b> · <span class="dim">'+fc[1]+'</span></span></div>';}
   if(!validPlate())h+='<div class="card flat"><span class="pill bad">⚠ Geen geldige ZZ-plaat</span> <span class="small dim">Regel er één via het ZZ-platen tabblad, of leef gevaarlijk.</span></div>';
   if(G.unlocks.auction){
     const on=G.week%4===2,until=((2-(G.week%4))+4)%4;
@@ -2756,12 +2762,48 @@ function mkCarSheet(c,mine){
    +(qs.length?'<div class="small">'+qs.map(q=>{const Q=QUIRKS.find(x=>x.id===q);return '<span class="pill '+(Q.v>0?"good":"bad")+'">'+Q.t+(Q.hide&&!mine?' 👀':'')+'</span>'}).join("")+'</div>':'');
 }
 /* ============ JOURNEY HOME ============ */
+/* ---- weer op de terugreis: seizoensgebonden, meestal sfeer met af en toe een echt gevolg ---- */
+const TRIP_WEATHER={
+  snow:{emo:"❄️",n:"Sneeuw & ijzel",extra:1,
+    line:"sneeuw en pekel op de E40, de trailer glijdt in de bochten. Traag rijden, dubbel opletten."},
+  fog:{emo:"🌫️",n:"Dichte mist",extra:0,
+    line:"dikke herfstmist — je ziet de vangrail amper, maar de flitspalen zien jóu ook niet."},
+  rain:{emo:"🌧️",n:"Herfstregen",extra:0,
+    line:"gietende regen, ruitenwissers op tien. De banden zoeken grip op het natte wegdek."},
+  showers:{emo:"🌦️",n:"Lentebuien",extra:0,
+    line:"wisselvallige lentebuien: even zon, dan weer een plensbui over de voorruit."},
+  heat:{emo:"🔆",n:"Hittegolf & wegenwerken",extra:0,
+    line:"bloedhitte boven het asfalt en overal wegenwerken. De temperatuurmeter kruipt omhoog."},
+};
+function tripWeather(){
+  const s=season().n;
+  if(s==="Winter")return {id:"snow",...TRIP_WEATHER.snow};
+  if(s==="Herfst")return Math.random()<.5?{id:"fog",...TRIP_WEATHER.fog}:{id:"rain",...TRIP_WEATHER.rain};
+  if(s==="Lente")return {id:"showers",...TRIP_WEATHER.showers};
+  return {id:"heat",...TRIP_WEATHER.heat}; // Zomer
+}
+function evHeatwave(next){
+  const guz=MK.bought.filter(c=>isGuzzler(c));
+  if(!guz.length){modal("<b>🔆 Hittegolf.</b> Het asfalt trilt, de airco in de trekker geeft de geest. "+chr().n+" rijdt op wilskracht en lauwe Red Bull. De trailer houdt het gelukkig droog.",[{t:"Doorzweten",fn:()=>{closeModal();next()}}]);return}
+  const c=pick(guz);
+  modal("<b>🔆 Oververhitting!</b> In de file bij de wegenwerken kookt de <b>"+esc(carName(c))+"</b> bijna over — dikke motor, veel warmte, stilstaand verkeer. Laten afkoelen bij een tankstation (<b>"+fmt(2000)+"</b> water + koelvloeistof) of doorrijden en hopen?",
+  [{t:"Laten afkoelen (2.000 BEF)",fn:()=>{G.cash-=2000;closeModal();modal("Motorkap open, damp eraf, een halfuur schaduw. De "+esc(carName(c))+" komt er zonder kleerscheuren vanaf.",[{t:"Verder",fn:()=>{closeModal();next()}}])}},
+   {t:"Doorrijden <span class='small'>🎲 riskant</span>",cls:"ghost",fn:()=>{
+     if(Math.random()<.45){c.eng=clamp(c.eng-14,5,100);log("🔆 De "+carName(c)+" is oververhit onderweg — de motor heeft geleden.");closeModal();modal("Te laat gestopt. De "+esc(carName(c))+" pruttelt en de koelvloeistof staat op het asfalt. De motor is er slechter aan toe.",[{t:"Verdorie.",fn:()=>{closeModal();next()}}])}
+     else{closeModal();modal("Nét op tijd een tankstation gehaald. De naald zakt terug. Geluk gehad.",[{t:"Oef.",fn:()=>{closeModal();next()}}])}}}]);
+}
 function driveHome(){
   const m=MARKETS[MK.k],evs=[];
   if(MK.bought.length>0)evs.push(evCustoms);
+  const w=tripWeather();MK.weather=w.id;
+  log(w.emo+" Onderweg: "+w.line);
   const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip,evMcDo,evSpeedCamera,evFlatTire,evPigeonRace,evFuelSmuggler,evNostalgia,evBridalParty];
-  const n=Math.max(0,m.risk+(Math.random()<.5?1:0)-(hasStaff("jempi")?1:0));
+  const n=Math.max(0,m.risk+(Math.random()<.5?1:0)-(hasStaff("jempi")?1:0))+(w.extra||0);
   for(let i=0;i<n;i++)evs.push(pick(pool));
+  // weersgebonden events: sneeuw → motelovernachting/panne, regen → klapband, hitte → oververhitting
+  if(w.id==="snow"&&Math.random()<.6)evs.splice(Math.min(1,evs.length),0,evSnow);
+  if(w.id==="rain"&&Math.random()<.4)evs.splice(Math.min(1,evs.length),0,evFlatTire);
+  if(w.id==="heat"&&MK.bought.some(c=>isGuzzler(c))&&Math.random()<.6)evs.push(evHeatwave);
   runEvents(evs,0);
 }
 function runEvents(evs,i){
@@ -2947,6 +2989,10 @@ function evMcDo(next){
   modal("<b>🍟 De gele bogen</b> doemen op langs de snelweg. Zo'n Amerikaans ding — "+chr().n+" bestelt onwennig een \"Bieg Mek\". Aan het tafeltje ernaast zit een vertegenwoordiger met een map vol staaltjes en een zucht.",opts);
 }
 function evSpeedCamera(next){
+  if(MK&&MK.weather==="fog"){
+    modal("<b>📸 Flitspaal in de mist.</b> Ergens links flitst iets flauw op door de dichte mist — maar op die foto staat niets dan grijze soep en een vage nummerplaat. Onleesbaar. \"Da's het enige voordeel van dit rotweer,\" grijnst "+chr().n+".",
+    [{t:"Doorrijden, ongeflitst",fn:()=>{closeModal();next()}}]);return;
+  }
   modal("<b>📸 FLITS.</b> De trailer ging nét iets te enthousiast bergaf. In de achteruitkijkspiegel gloeit de flitspaal nog na. \"Die komt met de post,\" zucht "+chr().n+".",
   [{t:"Doorrijden alsof er niks gebeurd is",fn:()=>{
       G.mail=G.mail||[];G.mail.push({eta:ri(2,3),amount:12000,t:"boete van de flitspaal"});
