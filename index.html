@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -797,6 +797,8 @@ const GOALS=[
  {id:"carmeet",t:"Ga naar Koffie & Karren met je stock",r:"+70 XP · onder de liefhebbers",c:()=>!!G.mile.carMeet,fn:()=>addXP(70)},
  {id:"punchcard",t:"Vul je eerste klantenkaart",r:"+80 XP · vaste klanten, vaste zaak",c:()=>!!G.mile.punchcard,fn:()=>addXP(80)},
  {id:"punchcard5",t:"Vul 5 klantenkaarten",r:"+300 XP · huisleverancier van heel Essene",c:()=>(G.cardsFull||0)>=5,fn:()=>addXP(300)},
+ {id:"bargain",t:"Koop een project uit de koopjesbak",r:"+70 XP · handige harry",c:()=>!!G.mile.bargain,fn:()=>addXP(70)},
+ {id:"bargainflip",t:"Verkoop een opgeknapt koopjesbak-project met winst",r:"+130 XP · van schroot naar schat",c:()=>!!G.mile.bargainFlip,fn:()=>addXP(130)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1574,6 +1576,8 @@ function endWeek(silent){
   G.danyDeal=G.danyHere?genDanyDeal():null;
   // Koffie & Karren: af en toe een weekendmeet voor liefhebbers
   if(!G.carMeet&&Math.random()<.12)G.carMeet=true;
+  // scratch-and-dent koopjesbak: af en toe een spotgoedkoop project
+  if(!G.bargain&&Math.random()<.13)G.bargain=genBargain();
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   // reclamecampagne aftellen (na genCustomers, zodat deze week nog meetelt)
   if((G.adWeeks||0)>0){G.adWeeks--;repAdd(1);
@@ -2042,6 +2046,17 @@ function renderOffice(){
      +'<button class="btn primary" onclick="goCarMeet()">☕ Naar de meet ('+fmt(CARMEET_COST)+')</button>'
      +'<button class="btn ghost" onclick="G.carMeet=false;save();render()">Dit weekend niet</button></div>';
   }
+  // scratch-and-dent koopjesbak
+  if(G.bargain){const b=G.bargain;
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">🔧 Koopjesbak</h3><span class="pill">voetstoots</span></div>'
+     +'<div class="small dim">Iemand wil van een project af — "as is, geen garantie, ge ziet wat ge koopt." Ruwe staat, maar spotgoedkoop. Iets voor de handige garagist.</div>'
+     +'<div class="carline" style="cursor:default"><div class="carpic" style="width:86px">'+carArt(b.c,88)+'</div>'
+     +'<div style="flex:1"><b>'+esc(carName(b.c))+'</b> <span class="small dim">('+b.c.year+')</span>'
+     +'<div>'+condPill(b.c.eng,"motor")+condPill(b.c.body,"koets")+'</div></div>'
+     +'<div class="money small">'+fmt(b.price)+'</div></div>'
+     +'<button class="btn primary" onclick="buyBargain()">🔧 Kopen ('+fmt(b.price)+') <span class="small">· project</span></button>'
+     +'<button class="btn ghost" onclick="passBargain()">Laten staan</button></div>';
+  }
   // overname van de concurrentie (endgame): zichtbaar zodra je één rivaal aankan of er al één overnam
   {const rk=Object.keys(RIVALS);
    const show=rk.some(k=>rivalEligible(k))||(G.boughtOut||[]).length>0;
@@ -2282,6 +2297,27 @@ function genDanyDeal(){
   c.known=[]; // je ziet het niet meteen — het is Dany
   return {c,price:Math.round(trueValue(c)*rnd(.5,.66)/1000)*1000};
 }
+/* scratch-and-dent koopjesbak: ruwe voetstoots-project, spotgoedkoop maar met gebreken */
+function genBargain(){
+  const c=genCar(pick(["nl","de","pl","nl"]));c.transit=false;
+  c.eng=clamp(c.eng-ri(25,45),6,60);c.body=clamp(c.body-ri(25,45),6,60);
+  if(c.quirks.filter(q=>{const Q=QUIRKS.find(x=>x.id===q);return Q&&Q.hide}).length<1){
+    const n=pick(["gearbox","electr","warm","rust","crash"]);if(!c.quirks.includes(n))c.quirks.push(n);}
+  c.known=c.quirks.slice(); // voetstoots: je ziet wél dat het een project is
+  c.papers=Math.random()<.4?1:0;c.hot=false;c.rolled=false;
+  const price=Math.max(4000,Math.round(trueValue(c)*rnd(.30,.45)/1000)*1000);
+  return {c,price};
+}
+function buyBargain(){
+  const b=G.bargain;if(!b)return;
+  if(G.cash-b.price<creditLimit()){toast("Te weinig geld voor de koopjesbak.");return}
+  const c=b.c;G.cash-=b.price;G.spent+=b.price;c.paid=b.price;c.bargain=1;
+  G.cars.push(c);G.bargain=null;G.mile.bargain=1;save();
+  popNum("-"+fmt(b.price),"pred");sfx("kaching");addXP(6);
+  log("🔧 Koopjesbak: "+carName(c)+" gekocht voor "+fmt(b.price)+" — voetstoots, geen garantie. "+pick(["Een project voor de garage.","Wat liefde en onderdelen en 't wordt weer wat.","Goedkoop binnen, hopelijk duur buiten."]));
+  toast("🔧 Project binnengehaald: "+carName(c));render();
+}
+function passBargain(){G.bargain=null;save();render();}
 function danyBuy(){
   const dd=G.danyDeal;if(!dd)return;
   if(G.cash-dd.price<creditLimit()){toast("Zoveel cash heb je niet, en Dany geeft geen krediet.");return}
@@ -3170,7 +3206,7 @@ function renderGarage(){
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
@@ -4499,6 +4535,8 @@ function doSale(cu,c,price,disclosed,iss){
     toast("🔄 Inruilwagen op het koertje: "+carName(tc));}
   // een ooit-ingeruilde wagen met winst doorverkopen
   if(c.tradein&&(price-tradeCut)>(c.paid||0))G.mile.tradeFlip=1;
+  // een koopjesbak-project met winst doorverkopen
+  if(c.bargain&&(price-tradeCut)>(c.paid||0))G.mile.bargainFlip=1;
   stamp("DEAL!","gold");popNum("+"+fmt(price-tradeCut),"pgreen");sfx("kaching");confetti(26);driveOff(c);
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak
