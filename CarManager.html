@@ -729,6 +729,7 @@ const GOALS=[
  {id:"m100",t:"Verhandel 100 verschillende modellen",r:"+500 XP",c:()=>Object.keys(G.modelsSold||{}).length>=100,fn:()=>addXP(500)},
  {id:"c20m",t:"Spaar 20.000.000 BEF: het keizerrijk",r:"👑 De kroon op het werk. Een gouden asbak op het bureau.",c:()=>G.cash>=20000000,fn:()=>{stamp("KEIZERRIJK","gold");confetti(180);sfx("win");addXP(400)}},
  {id:"dany",t:"Laat Dany uit Ninove je 5× de loef afsteken (en overleef het)",r:"+120 XP · rivaliteit maakt scherp",c:()=>(G.danyBeat||0)>=5,fn:()=>addXP(120)},
+ {id:"trade",t:"Neem je eerste inruilwagen aan",r:"+60 XP · handelaarsbloed",c:()=>!!G.mile.tradeIn,fn:()=>addXP(60)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -756,6 +757,8 @@ function syncUID(){
   const pools=[G.cars,G.custs,G.collection||[]];
   if(G.mk){pools.push(G.mk.cars,G.mk.bought)}
   if(G.phoneDeal&&G.phoneDeal.c)pools.push([G.phoneDeal.c]);
+  if(G.danyDeal&&G.danyDeal.c)pools.push([G.danyDeal.c]);
+  const trades=(G.custs||[]).filter(x=>x.tradeIn).map(x=>x.tradeIn);if(trades.length)pools.push(trades);
   if(G.auction)pools.push(G.auction.lots);
   let m=0;for(const a of pools)for(const x of a||[])if(x.id>m)m=x.id;
   UID=Math.max(UID,m+1);
@@ -1048,6 +1051,18 @@ function plateCode(){return "ZZ-"+ri(100,999)+"-"+String.fromCharCode(65+ri(0,25
 /* ============ CUSTOMERS ============ */
 const VIPTITLES=["Wielerkampioen","Schlagerzanger","Notaris","TV-presentator","Voorzitter van de duivenbond","Frituuruitbater op pensioen","Burgemeester","Veearts","Aannemer","Cafébaas van Den Engel","Voorzitter van de fanfare","Uitbater van de frituur op de markt","Ex-winnaar van Tien om te Zien","Kermiskramer met een goed jaar","Voorzitter van de duivenmelkersbond Zellik","Makelaar met een dikke Rolex","Kapper met drie zaken","Gewezen renner van de zesdaagse","Immo-baron van de kust","Presentator van het weerbericht"];
 const CFACES=["👨","👩","🧓","👵","👨‍🦰","👱‍♀️","🧔","👩‍🦱","👨‍🦳","🧑"];
+function genTradeIn(){
+  // een oude getrouwe: hoog km, matige staat, verborgen gebreken, eigenaar overschat 'm
+  const mk=pick(["nl","nl","de"]);
+  const c=genCar(mk);
+  c.transit=false;c.eng=clamp(c.eng-ri(10,35),8,80);c.body=clamp(c.body-ri(10,35),8,80);
+  c.km=Math.round(c.km*rnd(1.1,1.5)/1000)*1000;c.kmReal=Math.max(c.kmReal,c.km);c.rolled=false;
+  if(c.quirks.filter(q=>{const Q=QUIRKS.find(x=>x.id===q);return Q&&Q.hide}).length<1){
+    const n=pick(["gearbox","electr","warm","flood","crash"]);if(!c.quirks.includes(n))c.quirks.push(n);}
+  c.known=[];c.papers=0;c.hot=false;
+  const claim=Math.round(trueValue(c)*rnd(1.1,1.4)/1000)*1000; // hij vraagt te veel voor z'n schat
+  return {c,claim};
+}
 function genCustomers(){
   const n=clamp(1+OFFICES[G.office].cust-1+Math.round(G.rep/45)+ri(0,1)+(G.vlan?1:0)+(G.staff&&G.staff.vera?1:0),1,7);
   G.custs=[];
@@ -1057,6 +1072,7 @@ function genCustomers(){
       budget:Math.round(ty.want.maxB*rnd(.55,1.05)/1000)*1000,tried:false};
     if(Math.random()<.08){cu.vip=true;cu.name=pick(VIPTITLES)+" "+cu.name;cu.face="🕴️";
       cu.budget=Math.round(cu.budget*2.2/1000)*1000;cu.fuss=Math.min(.9,cu.fuss+.2);}
+    if(!cu.vip&&Math.random()<.18){const t=genTradeIn();cu.tradeIn=t.c;cu.tradeClaim=t.claim;}
     G.custs.push(cu);
   }
   if(G.web&&G.web.live){
@@ -3393,11 +3409,21 @@ function negModal(){
      +iss.map(i=>'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" class="dis" value="'+i.id+'"'+(NEG.disclosed.includes(i.id)?" checked":"")+' onchange="updPr()"> eerlijk zeggen: '+esc(i.t)+'</label>').join("")
      +'<div class="small dim">Eerlijkheid drukt de prijs maar voorkomt boze terugkomers (en is goed voor je reputatie).</div>';
   }
+  if(cu.tradeIn){const tc=cu.tradeIn;
+    h+='<hr><div class="small">🔄 <b>'+cu.name+' wil zijn oude wagen inruilen:</b></div>'
+     +'<div class="carline" style="cursor:default;padding:6px 0"><div class="carpic" style="width:72px">'+carArt(tc,74)+'</div>'
+     +'<div style="flex:1"><b>'+esc(carName(tc))+'</b> <span class="small dim">('+tc.year+')</span>'
+     +'<div class="small dim">'+tc.km.toLocaleString().replace(/,/g,".")+' km · staat: op \'t zicht matig · "loopt nog perfect hoor"</div></div>'
+     +'<div class="money small">wil '+fmt(cu.tradeClaim)+'</div></div>'
+     +'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="tradebox"'+(NEG.trade?" checked":"")+' onchange="updPr()"> ✅ Inruil aanvaarden (hij trekt '+fmt(cu.tradeClaim)+' van de cash af, jij krijgt zijn wagen)</label>'
+     +'<div class="small dim">Hij is er meer aan gehecht dan hij waard is. Wat er écht onder de motorkap zit, zie je pas op het koertje.</div>';
+  }
   modal(h,[{t:"💬 Doe je voorstel",fn:trySell},{t:"Sluiten",cls:"ghost",fn:closeModal}]);
 }
 function doTalkSell(k){
   if($("prsl"))NEG.price=+$("prsl").value;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
+  if($("tradebox"))NEG.trade=$("tradebox").checked;
   applyTalk("sell",NEG.talk,k);
   negModal();hdr();
 }
@@ -3408,7 +3434,8 @@ function updPr(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   if(!cu||!c||!$("odds2"))return;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus(),.03,.97);
+  if($("tradebox"))NEG.trade=$("tradebox").checked;
+  const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus()+(NEG.trade?.08:0),.03,.97);
   $("odds2").innerHTML=oddsHtml(p);
   const md=$("mood");if(md)md.textContent=moodFace(p);
 }
@@ -3416,10 +3443,12 @@ function trySell(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   const price=+$("prsl").value;
   const disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
+  if($("tradebox"))NEG.trade=$("tradebox").checked;
+  const useTrade=!!(cu.tradeIn&&NEG.trade);cu._useTrade=useTrade;
   const iss=hiddenIssues(c);
   const perc=percFor(cu,c,disclosed);
-  const bust=price>cu.budget*1.12;
-  const p=clamp(sellOdds(cu,price,perc)+negBonus(),.03,.97);
+  const bust=price>(cu.budget+(useTrade?cu.tradeClaim:0))*1.12;
+  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0),.03,.97);
   G.rb=false;
   const win=!bust&&Math.random()<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
@@ -3444,8 +3473,14 @@ function trySell(){
   });
 }
 function doSale(cu,c,price,disclosed,iss){
-  G.cash+=price;G.earned+=price;G.sold++;G.wkSold=(G.wkSold||0)+1;
-  stamp("DEAL!","gold");popNum("+"+fmt(price),"pgreen");sfx("kaching");confetti(26);driveOff(c);
+  const useTrade=!!(cu._useTrade&&cu.tradeIn);
+  const tradeCut=useTrade?Math.min(cu.tradeClaim,price):0;
+  G.cash+=price-tradeCut;G.earned+=price-tradeCut;G.sold++;G.wkSold=(G.wkSold||0)+1;
+  if(useTrade){const tc=cu.tradeIn;tc.paid=tradeCut;tc.known=tc.quirks.slice();
+    if(tc.rolled)tc.known.push("__rolled");G.cars.push(tc);G.mile.tradeIn=1;
+    log("🔄 "+cu.name+" ruilde zijn "+carName(tc)+" in ("+fmt(tradeCut)+" van de prijs). Nu maar hopen dat 't meevalt.");
+    toast("🔄 Inruilwagen op het koertje: "+carName(tc));}
+  stamp("DEAL!","gold");popNum("+"+fmt(price-tradeCut),"pgreen");sfx("kaching");confetti(26);driveOff(c);
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak
   G.combo=(G.combo||0)+1;
