@@ -801,6 +801,8 @@ const GOALS=[
  {id:"bargainflip",t:"Verkoop een opgeknapt koopjesbak-project met winst",r:"+130 XP · van schroot naar schat",c:()=>!!G.mile.bargainFlip,fn:()=>addXP(130)},
  {id:"referral",t:"Verkoop aan een doorverwezen klant",r:"+80 XP · mond-tot-mondreclame",c:()=>!!G.mile.referral,fn:()=>addXP(80)},
  {id:"referchain",t:"Bouw een verwijsketen van 3 diep",r:"+220 XP · heel de familie rijdt nu bij u",c:()=>!!G.mile.referChain,fn:()=>addXP(220)},
+ {id:"mystery",t:"Waag een verrassingskavel op de veiling",r:"+80 XP · wie niet waagt, niet wint",c:()=>!!G.mile.mysteryLot,fn:()=>addXP(80)},
+ {id:"mysterygem",t:"Vis een parel uit een verrassingskavel",r:"+250 XP · het geluk van de handelaar",c:()=>!!G.mile.mysteryGem,fn:()=>addXP(250)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -2388,12 +2390,31 @@ function genLot(night){const c=genCar(pick(night?["ua","ua","pl"]:["pl","pl","ua
     if(c.papers===0&&Math.random()<.4)c.papers=Math.random()<.5?1:2;
     if(!c.hot&&Math.random()<.25)c.hot=true;} // 'geen vragen' — vaker heet
   return c}
+/* verrassingskavel: vaste prijs, verborgen wagen — dud of parel, hoge variantie, licht positief-EV */
+function genMysteryLot(night){
+  const roll=Math.random();let c,tier;
+  if(roll<.22){ // dud: ruw project, soms slechte papieren
+    c=genCar(pick(["pl","ua"]));c.eng=clamp(c.eng-ri(20,42),6,65);c.body=clamp(c.body-ri(20,42),6,65);
+    if(c.papers===0&&Math.random()<.5)c.papers=Math.random()<.5?1:2;tier="dud";
+  } else if(roll<.80){ // gewoon
+    c=genCar(pick(["nl","de","pl","ua"]));tier="ok";
+  } else { // parel: forceer zeldzaam/legende + propere staat
+    for(let t=0;t<60&&!c;t++){const cc=genCar("ua");if(CARS[cc.ci].rar>=2)c=cc;}
+    if(!c)c=genCar("ua");
+    c.eng=Math.max(c.eng,88);c.body=Math.max(c.body,90);c.papers=0;c.rolled=false;tier="gem";
+  }
+  c.transit=false;c.known=[];
+  // prijs is VAST en onafhankelijk van de verborgen wagen (anders lek je de inhoud)
+  const price=Math.round((night?ri(70,140):ri(130,240))*1000);
+  return {price,c,tier};
+}
 function openAuction(){
   if(!G.unlocks.auction)return;
   if(G.week%4!==2){toast("De veiling in Luik is er om de 4 weken.");return}
   const wk=G.year*52+G.week;
   if(!G.auction||G.auction.wk!==wk){const night=Math.random()<.35;
-    G.auction={wk,night,lots:[genLot(night),genLot(night),genLot(night)],gone:[]};}
+    G.auction={wk,night,lots:[genLot(night),genLot(night),genLot(night)],gone:[],
+      mystery:Math.random()<.4?genMysteryLot(night):null};}
   const night=G.auction.night;
   let h=night
     ?'<b>🌙 Nachtveiling in Luik.</b> <span class="small dim">Eén lamp, veel schaduw, en mannen die liever niet gefotografeerd worden. Spotgoedkoop — maar wat ge koopt, koopt ge écht blind. En de flikken rijden ook \'s nachts rond.</span><hr>'
@@ -2404,6 +2425,13 @@ function openAuction(){
      +'<div class="small dim">'+c.km.toLocaleString().replace(/,/g,".")+' km · staat: ??? · papieren: ???</div></div>'
      +(gone?'<span class="pill">weg</span>':'<div class="money small">vanaf '+fmt(startBid(c))+'</div>')+'</div>';
   });
+  if(G.auction.mystery&&!G.auction.mystery.gone){const my=G.auction.mystery;
+    h+='<hr><div class="carline" onclick="buyMystery()" style="border:1px dashed #8a6d34"><div class="carpic" style="width:86px;display:flex;align-items:center;justify-content:center;font-size:44px">❓</div>'
+     +'<div style="flex:1"><b>🎁 Verrassingskavel</b><div class="small dim">Onder een dekzeil, niemand mag kijken. Kan een hopeloos project zijn... of de vondst van het jaar. Vaste prijs, puur gokwerk.</div></div>'
+     +'<div class="money small">'+fmt(my.price)+'</div></div>';
+  } else if(G.auction.mystery&&G.auction.mystery.gone){
+    h+='<hr><div class="carline" style="opacity:.4;cursor:default"><div class="carpic" style="width:86px;display:flex;align-items:center;justify-content:center;font-size:44px">❓</div><div style="flex:1"><b>🎁 Verrassingskavel</b></div><span class="pill">weg</span></div>';
+  }
   save();
   modal(h,[{t:"Buiten",cls:"ghost",fn:closeModal}]);
 }
@@ -2444,6 +2472,20 @@ function doAuc(i){
        [{t:"Volgende",fn:openAuction}]);
     }
     save();hdr();
+  });
+}
+function buyMystery(){
+  const my=G.auction&&G.auction.mystery;if(!my||my.gone)return;
+  if(G.cash-my.price<creditLimit()){toast("Zoveel heb je niet op zak.");return}
+  const c=my.c;my.gone=true;G.cash-=my.price;G.spent+=my.price;c.paid=my.price;
+  c.known=c.quirks.slice();if(c.rolled)c.known.push("__rolled");G.cars.push(c);
+  G.mile.mysteryLot=1;const gem=CARS[c.ci].rar>=2;if(gem)G.mile.mysteryGem=1;
+  addXP(gem?30:10);sfx("kaching");save();
+  log("🎁 Verrassingskavel gekocht voor "+fmt(my.price)+"... en het dekzeil gaat eraf: "+carName(c)+"! "+(gem?"Een échte parel — dit is winst.":my.tier==="dud"?"Tja. Een project. Ge hebt al slechter gezien. Denk ik.":"Niet slecht, niet schitterend — gewoon handel."));
+  suspense(["🎁","🥁","👀","🔦"],"Het dekzeil wordt langzaam weggetrokken...",()=>{
+    if(gem){stamp("PAREL!","pink");confetti(50)}else stamp("VERRASSING!","gold");
+    modal("<b>🎁 Het dekzeil eraf!</b> "+(gem?"Ge kunt uw ogen niet geloven — ":my.tier==="dud"?"Ah. Awel. ":"")+"onder het zeil stond:<hr>"+mkCarSheet(c,true),
+     [{t:"Naar de garage",fn:closeModal},{t:"Terug naar de veiling",cls:"ghost",fn:openAuction}]);
   });
 }
 /* legerstock depot: om de 3 weken, ontgrendelt na 6 trips */
