@@ -692,7 +692,12 @@ function addXP(n){G.xp+=n;
   while(G.xp>=G.lvl*120){G.xp-=G.lvl*120;G.lvl++;repAdd(2);
     stamp("NIVEAU "+G.lvl+"!","gold");sfx("level");confetti(40);
     toast("🎖️ "+titleFor(G.lvl)+" — niveau "+G.lvl+"! Onderhandelen gaat nét iets vlotter.")}}
-function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0;
+function migrate(){if(!G)return;
+  G.cars=G.cars||[];G.custs=G.custs||[];G.log=G.log||[];G.plates=G.plates||[];
+  G.office=G.office||0;G.week=G.week||1;G.year=G.year||1995;
+  if(G.cash==null)G.cash=0;if(G.rep==null)G.rep=30;if(G.heat==null)G.heat=0;
+  G.sold=G.sold||0;G.spent=G.spent||0;G.earned=G.earned||0;G.trips=G.trips||0;G.smokes=G.smokes||0;
+  G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0;
   G.spun=!!G.spun;if(G.wkStart==null)G.wkStart=G.cash;
   G.mech=G.mech||0;G.combo=G.combo||0;G.postcards=G.postcards||[];G.lotto=!!G.lotto;
   G.kras=G.kras||0;G.gastonHere=!!G.gastonHere;G.bet=G.bet||null;G.tip=!!G.tip;
