@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -817,6 +817,7 @@ const GOALS=[
  {id:"colormatch",t:"Lever een kleurkieskeurige klant zijn exacte kleur",r:"+90 XP · oog voor de klant",c:()=>!!G.mile.colorMatch,fn:()=>addXP(90)},
  {id:"scrapboom",t:"Sloop een wagen tijdens een schrootboom",r:"+70 XP · oud ijzer, vers geld",c:()=>!!G.mile.scrapBoom,fn:()=>addXP(70)},
  {id:"inspector",t:"Verkoop eerlijk aan een klant met een kenner erbij",r:"+110 XP · niets te verbergen",c:()=>!!G.mile.inspector,fn:()=>addXP(110)},
+ {id:"joblot",t:"Koop een hele kavel in één keer",r:"+120 XP · groothandelaar in oud ijzer",c:()=>!!G.mile.jobLot,fn:()=>addXP(120)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1687,6 +1688,8 @@ function endWeek(silent){
   if(!G.carMeet&&Math.random()<.12)G.carMeet=true;
   // scratch-and-dent koopjesbak: af en toe een spotgoedkoop project
   if(!G.bargain&&Math.random()<.13)G.bargain=genBargain();
+  // barn-clearance job-lot: zeldzamer, een hele kavel ineens
+  if(!G.jobLot&&Math.random()<.07)G.jobLot=genJobLot();
   // flip-off: een rivaal daagt je uit (alleen als de zaak wat naam heeft)
   if(!G.flipChallenge&&(G.rep>=45||G.sold>=10)&&Math.random()<.10)G.flipChallenge=genFlipDare();
   // winterse nachtvorst: bedreigt de stock op 't koertje
@@ -2193,6 +2196,15 @@ function renderOffice(){
      +'<button class="btn primary" onclick="buyBargain()">🔧 Kopen ('+fmt(b.price)+') <span class="small">· project</span></button>'
      +'<button class="btn ghost" onclick="passBargain()">Laten staan</button></div>';
   }
+  // barn-clearance job-lot
+  if(G.jobLot){const jl=G.jobLot;
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">🚜 Kavel te koop</h3><span class="pill">'+jl.n+' wagens ineens</span></div>'
+     +'<div class="small dim">'+esc(jl.seller)+' wil van heel de boel af — <b>'+jl.n+' oude wagens</b> voor één prijs, as-is. Meestal rommel, maar wie weet zit er iets tussen. Alles-of-niets.</div>'
+     +'<div class="row" style="gap:4px;flex-wrap:wrap;margin:6px 0">'+jl.cars.map(c=>'<div class="carpic" style="width:64px" title="'+esc(carName(c))+'">'+carArt(c,66)+'</div>').join("")+'</div>'
+     +'<div class="spread"><b class="money">'+fmt(jl.price)+'</b> <span class="small dim">≈ '+fmt(Math.round(jl.price/jl.n))+'/wagen</span></div>'
+     +'<button class="btn primary" onclick="buyJobLot()">🚜 Heel de kavel kopen ('+fmt(jl.price)+')</button>'
+     +'<button class="btn ghost" onclick="passJobLot()">Laten staan</button></div>';
+  }
   // winterse nachtvorst
   if(G.frost){const fc=frostCost();
     h+='<div class="card" style="border-color:#6cc4ff"><div class="spread"><h3 style="margin:0">❄️ Strenge vorst op komst</h3><span class="pill info">vannacht</span></div>'
@@ -2522,6 +2534,40 @@ function buyBargain(){
   toast("🔧 Project binnengehaald: "+carName(c));render();
 }
 function passBargain(){G.bargain=null;save();render();}
+/* barn-clearance job-lot: 3-5 wagens in één koop, spotgoedkoop maar as-is (soms een parel ertussen) */
+function genJobLot(){
+  const n=ri(3,5);const cars=[];let sumTrue=0;
+  for(let i=0;i<n;i++){
+    let c;
+    if(Math.random()<.18){ // verborgen parel
+      for(let t=0;t<40&&!c;t++){const cc=genCar("ua");if(CARS[cc.ci].rar>=2)c=cc;}
+      if(!c)c=genCar("ua");
+      c.eng=Math.max(c.eng,70);c.body=Math.max(c.body,65);
+    } else { // ruwe schuurwagen
+      c=genCar(pick(["nl","pl","ua","de"]));
+      c.eng=clamp(c.eng-ri(20,45),6,70);c.body=clamp(c.body-ri(20,45),6,70);
+      if(Math.random()<.4&&c.quirks.filter(q=>{const Q=QUIRKS.find(x=>x.id===q);return Q&&Q.hide}).length<1){
+        const q=pick(["gearbox","electr","warm","rust"]);if(!c.quirks.includes(q))c.quirks.push(q);}
+    }
+    c.transit=false;c.known=[];c.papers=Math.random()<.35?1:0;c.hot=false;c.rolled=false;
+    sumTrue+=trueValue(c);cars.push(c);
+  }
+  const price=Math.max(10000,Math.round(sumTrue*rnd(.28,.40)/1000)*1000);
+  const seller=pick(["een boer uit Gooik","een weduwe uit Lennik","de nalatenschap van een oude verzamelaar","een failliete garagist uit Halle","een hoeve-opruiming in Vollezele"]);
+  return {cars,price,seller,n};
+}
+function buyJobLot(){
+  const jl=G.jobLot;if(!jl)return;
+  if(G.cash-jl.price<creditLimit()){toast("Zoveel cash heb je niet voor heel de kavel.");return}
+  G.cash-=jl.price;G.spent+=jl.price;
+  const per=Math.round(jl.price/jl.cars.length);
+  for(const c of jl.cars){c.paid=per;c.joblot=1;c.known=c.quirks.slice();G.cars.push(c);}
+  G.jobLot=null;G.mile.jobLot=1;save();
+  popNum("-"+fmt(jl.price),"pred");sfx("kaching");addXP(14);stamp("KAVEL!","gold");confetti(30);
+  log("🚜 Job-lot van "+jl.seller+" gekocht: "+jl.cars.length+" wagens voor "+fmt(jl.price)+" samen. "+pick(["Alles op één trailer naar huis.","Wat een rommel — en misschien wat goud ertussen.","De hoeve staat weer leeg, 't koertje weer vol."]));
+  toast("🚜 Kavel binnen: "+jl.cars.length+" wagens ineens.");render();
+}
+function passJobLot(){G.jobLot=null;save();render();}
 function danyBuy(){
   const dd=G.danyDeal;if(!dd)return;
   if(G.cash-dd.price<creditLimit()){toast("Zoveel cash heb je niet, en Dany geeft geen krediet.");return}
@@ -3527,7 +3573,7 @@ function renderGarage(){
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rallyT>0?'<span class="pill good">🏁 rally-held</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rallyT>0?'<span class="pill good">🏁 rally-held</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.joblot?'<span class="pill">🚜 kavel</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
