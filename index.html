@@ -821,6 +821,7 @@ const GOALS=[
  {id:"magazine",t:"Krijg een wagen op de cover van een magazine",r:"+140 XP · beroemd tot in Gent",c:()=>!!G.mile.magazine,fn:()=>addXP(140)},
  {id:"market",t:"Sta met een kraam op de weekendmarkt",r:"+80 XP · marktkramer in hart en nieren",c:()=>!!G.mile.market,fn:()=>addXP(80)},
  {id:"barter",t:"Aanvaard een ruildeal (deels in natura)",r:"+90 XP · geld is niet alles",c:()=>!!G.mile.barter,fn:()=>addXP(90)},
+ {id:"flush",t:"Verkoop iets flashy aan een lottowinnaar",r:"+120 XP · het geld brandde in zijn zak",c:()=>!!G.mile.flush,fn:()=>addXP(120)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1328,6 +1329,9 @@ function genCustomers(){
       cu.t+=" — maar wil het per se in "+COLORS[cu.wantColor].n;cu.budget=Math.round(cu.budget*1.08/1000)*1000;}
     if(!cu.vip&&Math.random()<.10){cu.inspector=true;cu.t+=" — brengt een kenner mee die alles nakijkt";}
     if(!cu.vip&&!cu.tradeIn&&Math.random()<.10){const b=genBarter();cu.barter=b;cu.t+=" — krap bij kas, wil deels in natura betalen";}
+    if(!cu.vip&&!cu.tradeIn&&!cu.barter&&Math.random()<.06){cu.flush=true;cu.face="🤑";cu.fuss=.05;
+      cu.budget=Math.round(cu.budget*2.6/1000)*1000;cu.want={body:["sport","coupe","cabrio"]};
+      cu.t=pick(["heeft de Lotto gewonnen en het brandt in zijn zak — zoekt iets flashy","kwam net aan een erfenis, wil iets speciaals","won op een kraslot en gooit het geld liever aan een schone bak"]);}
     G.custs.push(cu);
   }
   if(G.web&&G.web.live){
@@ -3906,7 +3910,7 @@ function renderSell(){
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+'</h3>'
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -4875,8 +4879,11 @@ function percFor(cu,c,disclosed){
     if(undisc.length){for(const i of undisc)perc*=(1-i.pen*1.5);} // de kenner vindt ze — extra afstraf
     else perc*=1.08; // proper of alles eerlijk verteld → vertrouwen, premie
   }
+  if(cu&&cu.flush)perc*=carImpressive(c)?FLUSH_MUL:0.90; // lottowinnaar: dik betalen voor iets flashy, niet voor een sukkelbak
   return perc;
 }
+const FLUSH_MUL=1.25;
+function carImpressive(c){const d=CARS[c.ci];return d.rar>=1||(c.eng>=90&&c.body>=90)||["sport","coupe","cabrio"].includes(d.body);}
 function clearanceOn(){return (G.clearance||0)>0}
 const CLEARANCE_ODDS=.11;
 function sellOdds(cu,price,perc){
@@ -5033,6 +5040,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(isRadioCar(c))G.mile.radioSold=1;
   if(clearanceOn())G.mile.clearance=1;
   if(colorMatch(cu,c))G.mile.colorMatch=1;
+  if(cu.flush)G.mile.flush=1;
   if(tyresInSeason(c))G.mile.tyresSold=1;
   if(isTvFeatured(c))G.mile.tvFeature=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
