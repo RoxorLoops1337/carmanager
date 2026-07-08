@@ -712,7 +712,7 @@ function migrate(){if(!G)return;
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
-  G.loan=G.loan||0;
+  G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -759,6 +759,7 @@ const GOALS=[
  {id:"kermis",t:"Sta op de Kermis van Essene",r:"+80 XP · smoutebollen inbegrepen",c:()=>!!G.mile.kermis,fn:()=>addXP(80)},
  {id:"kerst",t:"Vier kerst op het koertje",r:"+90 XP · een boompje in de container",c:()=>!!G.mile.kerst,fn:()=>addXP(90)},
  {id:"toptier",t:"Word Legende van Essene (★85 reputatie)",r:"+200 XP · de top van de perkladder",c:()=>repTier()>=4,fn:()=>addXP(200)},
+ {id:"sabine",t:"Laat Sabine van 't Autohuis je 3× een VIP-opdracht afsnoepen",r:"+100 XP · de rivaliteit houdt u scherp",c:()=>(G.sabineSteals||0)>=3,fn:()=>addXP(100)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1338,7 +1339,13 @@ function endWeek(silent){
   // VIP droomwagen-opdracht (één tegelijk, alleen als de zaak wat naam heeft)
   if(G.vipQuest){G.vipQuest.eta--;
     if(G.vipQuest.eta<=0){extra.push(["⭐ VIP","teleurgesteld vertrokken: "+G.vipQuest.name,"neg"]);
-      log("⭐ "+G.vipQuest.name+" wachtte tevergeefs op zijn droomwagen en gaat elders zoeken. (-2 rep)");repAdd(-2);G.vipQuest=null;}}
+      log("⭐ "+G.vipQuest.name+" wachtte tevergeefs op zijn droomwagen en gaat elders zoeken. (-2 rep)");repAdd(-2);G.vipQuest=null;}
+    // Sabine van 't Autohuis kaapt trage opdrachten weg
+    else if(G.vipQuest.eta<=2&&Math.random()<.28){
+      G.sabineSteals=(G.sabineSteals||0)+1;
+      extra.push(["💃 Sabine van 't Autohuis","kaapte de opdracht van "+G.vipQuest.name+" weg","neg"]);
+      log("💃 Sabine van 't Autohuis was sneller: zij leverde "+G.vipQuest.name+" zijn droomwagen vóór u. \"Sorry schat, zaken zijn zaken.\" (-1 rep)");
+      repAdd(-1);G.vipQuest=null;}}
   if(!G.vipQuest&&G.unlocks.orders&&G.rep>=45&&Math.random()<.14){
     G.vipQuest=genVipQuest();
     extra.push(["⭐ VIP aan de deur",G.vipQuest.name,"money"]);
@@ -2039,10 +2046,13 @@ function doAuc(i){
       modal("<b>🔨 Verkocht aan de meneer uit Essene!</b> En nu mag de motorkap eindelijk open...<hr>"+mkCarSheet(c,true),
        [{t:"Naar de garage",fn:closeModal},{t:"Terug naar de veiling",cls:"ghost",fn:openAuction}]);
     }else{
-      const dany=Math.random()<.5;
-      if(dany){G.danyBeat=(G.danyBeat||0)+1;
+      const who=Math.random();
+      if(who<.4){G.danyBeat=(G.danyBeat||0)+1;
         modal("<b>🥸 Dany uit Ninove</b> steekt zijn hand op vanachter een dikke sigaar: <b>"+fmt(rival)+"</b>. Hij knipoogt naar u. \""+pick(["Volgende keer beter, collega.","Ge moet rapper zijn, manneke.","Die stond op mijn lijstje, sorry.","Ninove bedankt u voor de opwarming."])+"\" Het lot is weg.",
          [{t:"Grrr. Volgende",fn:openAuction}]);}
+      else if(who<.7){
+        modal("<b>🎩 Sjarel de Verzamelaar</b>, een oude heer met een monocle en te veel geld, tikt rustig <b>"+fmt(rival)+"</b> af. \""+pick(["Ik verzamel, ik verkoop niet. Dag meneer.","Voor mijn collectie. U begrijpt dat.","Geld is geen probleem, jongeman."])+"\" Weg is het lot.",
+         [{t:"Tja. Volgende",fn:openAuction}]);}
       else modal("Een gast met een sigaar en een gsm zo groot als een baksteen biedt <b>"+fmt(rival)+"</b>. Het lot is weg.",
        [{t:"Volgende",fn:openAuction}]);
     }
