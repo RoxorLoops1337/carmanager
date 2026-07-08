@@ -731,6 +731,7 @@ const GOALS=[
  {id:"dany",t:"Laat Dany uit Ninove je 5× de loef afsteken (en overleef het)",r:"+120 XP · rivaliteit maakt scherp",c:()=>(G.danyBeat||0)>=5,fn:()=>addXP(120)},
  {id:"trade",t:"Neem je eerste inruilwagen aan",r:"+60 XP · handelaarsbloed",c:()=>!!G.mile.tradeIn,fn:()=>addXP(60)},
  {id:"raid",t:"Overleef een razzia zonder inbeslagname",r:"+100 XP · koelbloedig",c:()=>!!G.mile.raidClean,fn:()=>addXP(100)},
+ {id:"kermis",t:"Sta op de Kermis van Essene",r:"+80 XP · smoutebollen inbegrepen",c:()=>!!G.mile.kermis,fn:()=>addXP(80)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -750,6 +751,16 @@ const BODN={hatch:"hatchbacks",sedan:"sedans",wagon:"breaks",coupe:"coupés",cab
 function rotateTrend(quiet){G.trendBody=pick(Object.keys(BODN));
   if(!quiet)log("📈 Gelezen in de gazet: "+BODN[G.trendBody]+" zijn plots gegeerd!")}
 function isTrend(c){return CARS[c.ci].body===G.trendBody}
+/* seizoenen: het weekgetal (1..52) bepaalt het seizoen; elk seizoen gegeerde carrosserie */
+const SEASONS=[
+ {n:"Winter",emo:"❄️",bodies:["suv","sedan","wagon"],w:"Sneeuw en pekel: iedereen wil iets stevigs met vier wielen die trekken."},
+ {n:"Lente",emo:"🌷",bodies:["hatch","coupe"],w:"De eerste zon: volk kijkt weer naar iets vlot en zuinig."},
+ {n:"Zomer",emo:"☀️",bodies:["cabrio","coupe","sport"],w:"Zon en vakantie: open daken en snelle bakken zijn gegeerd."},
+ {n:"Herfst",emo:"🍂",bodies:["wagon","van","suv"],w:"Terug naar school en werk: ruimte en betrouwbaarheid tellen."},
+];
+function season(){const wk=((G.week-1)%52);return SEASONS[Math.floor(wk/13)%4]}
+function isSeason(c){return season().bodies.includes(CARS[c.ci].body)}
+const SEASON_MUL=1.10;
 function creditLimit(){return isCh("martine")?-300000:0}
 function log(t){G.log.unshift("W"+G.week+" · "+t); if(G.log.length>40)G.log.pop()}
 function save(){try{if(typeof MK!=="undefined")G.mk=MK;localStorage.setItem("cm_save",JSON.stringify(G))}catch(e){}}
@@ -1096,6 +1107,7 @@ function carMatches(c,w){
 function endWeek(silent){
   const wkLbl="Week "+G.week+" '"+String(G.year).slice(2);
   let newYear=false;
+  const seasonWas=season().n;
   G.week++; if(G.week>52){G.week=1;G.year++;newYear=true;}
   const of=OFFICES[G.office];
   G.cash-=(G.staff&&G.staff.bert)?Math.round(of.rent*.75):of.rent;
@@ -1136,6 +1148,18 @@ function endWeek(silent){
   G.postcards=G.postcards.filter(pc=>pc.eta>0);
   // monthly trend
   if(G.week%4===1){rotateTrend();extra.push(["📈 Nieuwe trend",BODN[G.trendBody],""])}
+  // season change
+  const se=season();
+  if(se.n!==seasonWas){extra.push([se.emo+" "+se.n,se.bodies.map(b=>BODN[b]).join("/")+" nu gegeerd",""]);
+    log(se.emo+" "+se.n+" in Essene. "+se.w)}
+  // Kermis van Essene, één keer per jaar in september (rond week 37)
+  if(G.week>=36&&G.week<=38&&G.mile.kermisYear!==G.year){
+    G.mile.kermisYear=G.year;G.mile.kermis=1;repAdd(3);
+    const ty=pick(CUSTTYPES);
+    G.custs.push({id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:Math.max(.1,ty.fuss-.1),face:pick(CFACES),
+      budget:Math.round(ty.want.maxB*rnd(.7,1.1)/1000)*1000,tried:false});
+    extra.push(["🎡 Kermis van Essene","extra volk op 't koertje · +3 rep","money"]);
+    log("🎡 Kermis van Essene! Botsauto's op de Markt, smoutebollen, en veel volk dat 'toch eens komt kijken' naar de wagens. Eentje blijft plakken.")}
   // the radio plays on
   if(Math.random()<.3)log(pick(RADIO));
   // Vlan ad
@@ -2510,8 +2534,10 @@ function fixPapers(id){const c=getCar(id);const shM=shadyMult();const cost=Math.
 }
 /* ============ SELL ============ */
 function renderSell(){
+  const se=season();
   let h='<h2>🤝 Verkoop</h2>'
    +'<div class="row" style="margin-bottom:8px"><span class="pill warn">📈 Trend: '+BODN[G.trendBody]+' (+12%)</span>'
+   +'<span class="pill info">'+se.emo+' '+se.n+': '+se.bodies.map(b=>BODN[b]).join("/")+' gegeerd (+10%)</span>'
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
@@ -3427,6 +3453,7 @@ function fixScene(c,mode,hex){
 function percFor(cu,c,disclosed){
   let perc=askValue(c)*(carMatches(c,cu.want)?1.06:.82)*OFFICES[G.office].bonus*(isCh("martine")?1.05:1);
   if(isTrend(c))perc*=1.12;
+  if(isSeason(c))perc*=SEASON_MUL;
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
   return perc;
 }
@@ -3452,6 +3479,7 @@ function negModal(){
   let h=duelHtml({face:cu.face||"🙂",name:cu.name+(cu.vip?" ⭐":"")+(cu.net?" 🌐":"")},NEG.talk)
    +talkButtons("sell",NEG.talk,"doTalkSell")+'<hr>'
    +(isTrend(c)?'<div class="small"><span class="pill warn">📈 in trend: '+BODN[G.trendBody]+' (+12%)</span></div>':'')
+   +(isSeason(c)?'<div class="small"><span class="pill info">'+season().emo+' seizoen: nu gegeerd (+10%)</span></div>':'')
    +'<div class="small dim"><b>'+esc(carName(c))+'</b> · marktwaarde <b class="money">'+fmt(base)+'</b> · humeur: <span class="mood" id="mood">'+moodFace(p0)+'</span></div>'
    +'<div class="small dim">Jouw vraagprijs:</div>'
    +'<input type="range" class="slider" id="prsl" min="'+Math.round(base*.5/1000)*1000+'" max="'+Math.round(base*1.6/1000)*1000+'" value="'+NEG.price+'" step="1000" oninput="updPr()">'
