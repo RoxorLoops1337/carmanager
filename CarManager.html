@@ -152,6 +152,7 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   pointer-events:none;animation:stampin 1.5s ease forwards}
 .stamp.gold{color:#ffd76a;border-color:#ffd76a}
 .stamp.pink{color:var(--pink);border-color:var(--pink);text-shadow:0 0 18px rgba(255,93,158,.5)}
+.stamp.red{color:#ff6a5a;border-color:#ff6a5a;text-shadow:0 0 18px rgba(255,80,60,.55)}
 @keyframes stampin{0%{opacity:0;transform:translate(-50%,-50%) rotate(-7deg) scale(2.4)}
   16%{opacity:1;transform:translate(-50%,-50%) rotate(-7deg) scale(1)}78%{opacity:1}100%{opacity:0}}
 .reel{font-size:58px;line-height:1.25;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
@@ -715,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -784,6 +785,7 @@ const GOALS=[
  {id:"finish",t:"Geef een wagen een premium afwerking",r:"+80 XP · oog voor detail",c:()=>!!G.mile.finish,fn:()=>addXP(80)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
+ {id:"fuelcrisis",t:"Beleef een brandstofcrisis op 't koertje",r:"+80 XP · de pomp bepaalt de markt",c:()=>!!G.mile.fuelCrisis,fn:()=>addXP(80)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1333,6 +1335,18 @@ function endWeek(silent){
   const se=season();
   if(se.n!==seasonWas){extra.push([se.emo+" "+se.n,se.bodies.map(b=>BODN[b]).join("/")+" nu gegeerd",""]);
     log(se.emo+" "+se.n+" in Essene. "+se.w)}
+  // brandstofcrisis: zeldzame economische schok. Zuinige wagens gegeerd, slokops onverkoopbaar.
+  if(G.fuelCrisis&&G.fuelCrisis.weeks>0){
+    G.fuelCrisis.weeks--;
+    if(G.fuelCrisis.weeks<=0){G.fuelCrisis=null;
+      extra.push(["⛽ Crisis voorbij","de pompprijzen zakken weer","money"]);
+      log("⛽ De brandstofcrisis is voorbij — de prijs aan de pomp zakt en de dikke motoren mogen weer van 't koertje af. De 4x4's halen opgelucht adem.")}
+    else extra.push(["⛽ Brandstofcrisis","week "+ (G.fuelCrisis.tot-G.fuelCrisis.weeks) +"/"+G.fuelCrisis.tot+" · zuinig gegeerd","neg"]);
+  } else if(Math.random()<.038){
+    const tot=ri(3,5);G.fuelCrisis={weeks:tot,tot:tot};G.mile.fuelCrisis=1;
+    extra.push(["⛽ Brandstofcrisis!",tot+" weken · zuinige wagens gegeerd","neg"]);
+    log("⛽ "+pick(["Oorlog in de Golf, de benzine schiet de lucht in!","OPEC draait de kraan dicht — de pompprijzen ontploffen!","Paniek aan de tankstations, rijen tot op de baan!"])+" Iedereen wil ineens een zuinig dieseltje of een klein hatchke; de slokops (BMW's, coupés, 4x4's) blijven staan. Duurt zo'n "+tot+" weken.");
+    if(!silent){stamp("⛽ CRISIS","red");sfx("bad")}}
   // Kermis van Essene, één keer per jaar in september (rond week 37)
   if(G.week>=36&&G.week<=38&&G.mile.kermisYear!==G.year){
     G.mile.kermisYear=G.year;G.mile.kermis=1;repAdd(3);
@@ -3136,6 +3150,7 @@ function renderSell(){
    +'<span class="pill info">'+se.emo+' '+se.n+': '+se.bodies.map(b=>BODN[b]).join("/")+' gegeerd (+10%)</span>'
    +(G.cotm?'<span class="pill good">🏆 Auto v/d Maand: '+esc(G.cotm)+' (+22%)</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
+   +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
@@ -4083,12 +4098,17 @@ function fixScene(c,mode,hex){
 }
 const WARRANTY_ODDS=.06;
 function warrantyFee(c){return Math.round(askValue(c)*.04/1000)*1000}
+function fuelCrisisOn(){return !!(G.fuelCrisis&&G.fuelCrisis.weeks>0)}
+function isEco(c){const d=CARS[c.ci];return d.body==="hatch"||d.base<=170000}
+function isGuzzler(c){const d=CARS[c.ci];return ["sport","coupe","suv"].includes(d.body)||d.base>=500000}
+function fuelMod(c){if(!fuelCrisisOn())return 1;return isEco(c)?1.14:isGuzzler(c)?.80:1}
 function percFor(cu,c,disclosed){
   let perc=askValue(c)*(carMatches(c,cu.want)?1.06:.82)*OFFICES[G.office].bonus*(isCh("martine")?1.05:1);
   if(isTrend(c))perc*=1.12;
   if(isSeason(c))perc*=SEASON_MUL;
   if(isCotm(c))perc*=COTM_MUL;
   if(c.washT>0)perc*=1+WASH_BONUS;
+  perc*=fuelMod(c);
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
   return perc;
 }
@@ -4116,6 +4136,7 @@ function negModal(){
    +(isTrend(c)?'<div class="small"><span class="pill warn">📈 in trend: '+BODN[G.trendBody]+' (+12%)</span></div>':'')
    +(isSeason(c)?'<div class="small"><span class="pill info">'+season().emo+' seizoen: nu gegeerd (+10%)</span></div>':'')
    +(isCotm(c)?'<div class="small"><span class="pill good">🏆 Auto van de Maand: '+esc(G.cotm)+' (+22%)</span></div>':'')
+   +(fuelCrisisOn()?'<div class="small"><span class="pill '+(isEco(c)?"good":isGuzzler(c)?"bad":"warn")+'">⛽ Brandstofcrisis: '+(isEco(c)?"zuinig, erg gegeerd (+14%)":isGuzzler(c)?"slokop, blijft staan (−20%)":"neutraal")+'</span></div>':'')
    +'<div class="small dim"><b>'+esc(carName(c))+'</b> · marktwaarde <b class="money">'+fmt(base)+'</b> · humeur: <span class="mood" id="mood">'+moodFace(p0)+'</span></div>'
    +'<div class="small dim">Jouw vraagprijs:</div>'
    +'<input type="range" class="slider" id="prsl" min="'+Math.round(base*.5/1000)*1000+'" max="'+Math.round(base*1.6/1000)*1000+'" value="'+NEG.price+'" step="1000" oninput="updPr()">'
