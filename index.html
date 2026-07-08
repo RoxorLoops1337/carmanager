@@ -820,6 +820,7 @@ const GOALS=[
  {id:"joblot",t:"Koop een hele kavel in één keer",r:"+120 XP · groothandelaar in oud ijzer",c:()=>!!G.mile.jobLot,fn:()=>addXP(120)},
  {id:"magazine",t:"Krijg een wagen op de cover van een magazine",r:"+140 XP · beroemd tot in Gent",c:()=>!!G.mile.magazine,fn:()=>addXP(140)},
  {id:"market",t:"Sta met een kraam op de weekendmarkt",r:"+80 XP · marktkramer in hart en nieren",c:()=>!!G.mile.market,fn:()=>addXP(80)},
+ {id:"barter",t:"Aanvaard een ruildeal (deels in natura)",r:"+90 XP · geld is niet alles",c:()=>!!G.mile.barter,fn:()=>addXP(90)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1272,6 +1273,13 @@ function plateCode(){return "ZZ-"+ri(100,999)+"-"+String.fromCharCode(65+ri(0,25
 /* ============ CUSTOMERS ============ */
 const VIPTITLES=["Wielerkampioen","Schlagerzanger","Notaris","TV-presentator","Voorzitter van de duivenbond","Frituuruitbater op pensioen","Burgemeester","Veearts","Aannemer","Cafébaas van Den Engel","Voorzitter van de fanfare","Uitbater van de frituur op de markt","Ex-winnaar van Tien om te Zien","Kermiskramer met een goed jaar","Voorzitter van de duivenmelkersbond Zellik","Makelaar met een dikke Rolex","Kapper met drie zaken","Gewezen renner van de zesdaagse","Immo-baron van de kust","Presentator van het weerbericht"];
 const CFACES=["👨","👩","🧓","👵","👨‍🦰","👱‍♀️","🧔","👩‍🦱","👨‍🦳","🧑"];
+/* barter: klant betaalt een stuk in goederen i.p.v. cash (geen wagen — spullen) */
+const BARTER_ITEMS=[
+ {n:"een aanhangwagen vol bouwmateriaal",lo:15,hi:45},{n:"een zo goed als nieuwe caravan",lo:40,hi:90},
+ {n:"een buitenboordmotor en een bootje",lo:25,hi:70},{n:"een handvol gouden Napoleons",lo:30,hi:80},
+ {n:"een kist oude LP's en een jukebox",lo:10,hi:35},{n:"een vat straffe jenever en 200 sloffen",lo:12,hi:30},
+ {n:"een tractor die 'bijna' loopt",lo:20,hi:60},{n:"een verzameling koperen kranen (herkomst onduidelijk)",lo:18,hi:50}];
+function genBarter(){const it=pick(BARTER_ITEMS);return {item:it.n,value:ri(it.lo,it.hi)*1000};}
 function genTradeIn(){
   // een oude getrouwe: hoog km, matige staat, verborgen gebreken, eigenaar overschat 'm
   const mk=pick(["nl","nl","de"]);
@@ -1319,6 +1327,7 @@ function genCustomers(){
     if(!cu.tradeIn&&Math.random()<.12){cu.wantColor=ri(0,COLORS.length-1);cu.fuss=Math.min(.9,cu.fuss+.05);
       cu.t+=" — maar wil het per se in "+COLORS[cu.wantColor].n;cu.budget=Math.round(cu.budget*1.08/1000)*1000;}
     if(!cu.vip&&Math.random()<.10){cu.inspector=true;cu.t+=" — brengt een kenner mee die alles nakijkt";}
+    if(!cu.vip&&!cu.tradeIn&&Math.random()<.10){const b=genBarter();cu.barter=b;cu.t+=" — krap bij kas, wil deels in natura betalen";}
     G.custs.push(cu);
   }
   if(G.web&&G.web.live){
@@ -4918,6 +4927,11 @@ function negModal(){
      +'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="tradebox"'+(NEG.trade?" checked":"")+' onchange="updPr()"> ✅ Inruil aanvaarden (hij trekt '+fmt(cu.tradeClaim)+' van de cash af, jij krijgt zijn wagen)</label>'
      +'<div class="small dim">Hij is er meer aan gehecht dan hij waard is. Wat er écht onder de motorkap zit, zie je pas op het koertje.</div>';
   }
+  if(cu.barter){
+    h+='<hr><div class="small">🤝 <b>'+esc(cu.name)+' wil deels in natura betalen:</b> '+esc(cu.barter.item)+' <span class="money">(± '+fmt(cu.barter.value)+')</span></div>'
+     +'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="bartbox"'+(NEG.barter?" checked":"")+' onchange="updPr()"> ✅ Ruil aanvaarden ('+fmt(cu.barter.value)+' minder cash; je verzilvert de spullen voor ~90%)</label>'
+     +'<div class="small dim">Handig om een deal rond te krijgen, maar je eet een klein verlies op het doorverkopen van de goederen.</div>';
+  }
   {const wFee=warrantyFee(c);
    h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="warrbox"'+(NEG.warranty?" checked":"")+' onchange="updPr()"> 🛡️ Garantie aanbieden (+'+fmt(wFee)+', klant voelt zich veiliger)</label>'
     +'<div class="small dim">De koper betaalt '+fmt(wFee)+' extra en hapt makkelijker toe. Maar komt de wagen terug op de takelwagen, dan MOET ge herstellen — al scheelt dat wel in reputatie.</div>';}
@@ -4929,7 +4943,7 @@ function negModal(){
 function doTalkSell(k){
   if($("prsl"))NEG.price=+$("prsl").value;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
   applyTalk("sell",NEG.talk,k);
   negModal();hdr();
 }
@@ -4940,7 +4954,7 @@ function updPr(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   if(!cu||!c||!$("odds2"))return;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
   const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus()+(NEG.trade?.08:0)+(NEG.warranty?WARRANTY_ODDS:0),.03,.97);
   $("odds2").innerHTML=oddsHtml(p);
   const md=$("mood");if(md)md.textContent=moodFace(p);
@@ -4949,13 +4963,14 @@ function trySell(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   const price=+$("prsl").value;
   const disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
   const useTrade=!!(cu.tradeIn&&NEG.trade);cu._useTrade=useTrade;
+  const useBarter=!!(cu.barter&&NEG.barter);cu._useBarter=useBarter;
   const warranted=!!NEG.warranty;cu._warranty=warranted;
   const iss=hiddenIssues(c);
   const perc=percFor(cu,c,disclosed);
-  const bust=price>(cu.budget+(useTrade?cu.tradeClaim:0))*1.12;
-  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
+  const bust=price>(cu.budget+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0))*1.12;
+  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
   G.rb=false;
   const win=!bust&&Math.random()<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
@@ -4985,7 +5000,14 @@ function doSale(cu,c,price,disclosed,iss){
   const wFee=warranted?warrantyFee(c):0;
   if(wFee){price+=wFee;G.mile.warrantySold=1;}
   const tradeCut=useTrade?Math.min(cu.tradeClaim,price):0;
-  G.cash+=price-tradeCut;G.earned+=price-tradeCut;G.sold++;G.wkSold=(G.wkSold||0)+1;
+  const useBarter=!!(cu._useBarter&&cu.barter);
+  const barterCut=useBarter?Math.min(cu.barter.value,price-tradeCut):0;
+  const barterResell=useBarter?Math.round(barterCut*0.9):0; // je verzilvert de goederen voor ~90%
+  const net=price-tradeCut-barterCut+barterResell;
+  G.cash+=net;G.earned+=net;G.sold++;G.wkSold=(G.wkSold||0)+1;
+  if(useBarter){G.mile.barter=1;
+    log("🤝 "+cu.name+" betaalde deels met "+cu.barter.item+" ("+fmt(barterCut)+" van de prijs). Doorverkocht voor "+fmt(barterResell)+".");
+    toast("🤝 Ruildeal: "+cu.barter.item);}
   if(useTrade){const tc=cu.tradeIn;tc.paid=tradeCut;tc.tradein=1;tc.known=tc.quirks.slice();
     if(tc.rolled)tc.known.push("__rolled");G.cars.push(tc);G.mile.tradeIn=1;
     log("🔄 "+cu.name+" ruilde zijn "+carName(tc)+" in ("+fmt(tradeCut)+" van de prijs). Nu maar hopen dat 't meevalt.");
@@ -4994,7 +5016,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(c.tradein&&(price-tradeCut)>(c.paid||0))G.mile.tradeFlip=1;
   // een koopjesbak-project met winst doorverkopen
   if(c.bargain&&(price-tradeCut)>(c.paid||0))G.mile.bargainFlip=1;
-  stamp("DEAL!","gold");popNum("+"+fmt(price-tradeCut),"pgreen");sfx("kaching");confetti(26);driveOff(c);
+  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26);driveOff(c);
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak
   G.combo=(G.combo||0)+1;
