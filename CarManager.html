@@ -714,6 +714,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
+  G.gsmUp=G.gsmUp||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -768,6 +769,7 @@ const GOALS=[
  {id:"scrap",t:"Sloop een hopeloos geval voor onderdelen",r:"+50 XP · geen wagen te slecht om iets op te brengen",c:()=>!!G.mile.scrapped,fn:()=>addXP(50)},
  {id:"eotm",t:"Kroon een Werknemer van de Maand",r:"+70 XP · goed werkgeverschap",c:()=>!!G.mile.eotm,fn:()=>addXP(70)},
  {id:"night",t:"Koop een wagen op de nachtveiling",r:"+90 XP · wie niet waagt...",c:()=>!!G.mile.nightAuction,fn:()=>addXP(90)},
+ {id:"gsmup",t:"Waardeer je GSM op",r:"+60 XP · altijd bereikbaar",c:()=>!!G.mile.gsmUp,fn:()=>addXP(60)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1314,8 +1316,8 @@ function endWeek(silent){
   if(G.web&&G.web.live){const nh=ri(4,55)+Math.round(G.rep/2);G.web.hits+=nh;
     extra.push(["🌐 www.carmanager.be","+"+nh+" bezoekers",""]);
     if(Math.random()<.35)log(pick(SPAM));}
-  // the GSM rings
-  G.phoneDeal=(G.unlocks.gsm&&Math.random()<.45)?genPhoneDeal():null;
+  // the GSM rings (opgewaardeerd = vaker bereik)
+  G.phoneDeal=(G.unlocks.gsm&&Math.random()<(G.gsmUp?.7:.45))?genPhoneDeal():null;
   if(G.phoneDeal)extra.push(["📱 GSM","er heeft iemand gebeld — kijk op het bureau",""]);
   // Thomas (if he's not the boss) spots deals on computer club boards
   if(!G.phoneDeal&&G.unlocks.gsm&&!isCh("thomas")&&Math.random()<.15){
@@ -1750,6 +1752,14 @@ function renderOffice(){
      +'<button class="btn primary" onclick="phoneBuy()">Kopen ('+fmt(pd.price)+')</button>'
      +'<button class="btn ghost" onclick="G.phoneDeal=null;save();render()">Afwimpelen</button></div>';
   }
+  if(G.unlocks.gsm&&!G.gsmUp){
+    h+='<div class="card"><h3>📱 Nieuwe GSM met meer bereik</h3>'
+     +'<div class="small dim">De GSM-winkel in Zellik heeft een nieuw toestel: dubbel zoveel bereik, een dikker telefoonboek, en een piepertje erbij. Voor <b>'+fmt(45000)+'</b> belt er vaker iemand met een deal — en scherper geprijsd ook.</div>'
+     +'<button class="btn primary" onclick="buyGsmUp()">📶 Opwaarderen ('+fmt(45000)+')</button></div>';
+  }
+  if(G.gsmUp){
+    h+='<div class="card flat"><div class="small"><b>📶 GSM opgewaardeerd</b> <span class="dim">· vaker én scherper telefonisch koopjes</span></div></div>';
+  }
   if(G.unlocks.webOffer&&!G.web){
     if(!isCh("thomas")){
       h+='<div class="card"><h3>💾 Thomas belt: "Het Internet!"</h3>'
@@ -1989,7 +1999,9 @@ function toggleVlan(){
   render();
 }
 function genPhoneDeal(){const c=genCar(pick(["nl","de","pl"]));c.transit=false;
-  return {c,price:Math.round(trueValue(c)*rnd(.62,.8)/1000)*1000}}
+  // met de opgewaardeerde GSM krijg je scherpere prijzen (meer bereik, meer contacten)
+  const band=G.gsmUp?[.55,.72]:[.62,.8];
+  return {c,price:Math.round(trueValue(c)*rnd(band[0],band[1])/1000)*1000}}
 /* Dany's 'koopjes': cheap up front, but there's always a haar in de boter */
 function genDanyDeal(){
   const c=genCar(pick(["pl","ua","pl"]));c.transit=false;
@@ -2034,6 +2046,13 @@ function exportCar(id){
       log(carName(c)+" verscheept naar Cotonou vanaf kaai 142. Geen vragen gesteld.");
       save();closeModal()}},
    {t:"Toch niet",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
+}
+function buyGsmUp(){
+  if(!G.unlocks.gsm||G.gsmUp)return;
+  if(G.cash-45000<creditLimit()){toast("Te weinig geld voor een nieuwe GSM.");return}
+  G.cash-=45000;G.gsmUp=1;G.mile.gsmUp=1;save();sfx("kaching");popNum("-"+fmt(45000),"pred");addXP(10);
+  log("📱 Nieuwe GSM gekocht (45.000). Meer bereik, meer contacten — de deals komen nu vlotter binnen.");
+  toast("📶 Opgewaardeerd! Vanaf nu belt er vaker iemand.");render();
 }
 function launchWeb(cost,viaThomas){
   if(G.web)return;cost=cost||60000;
