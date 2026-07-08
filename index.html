@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -793,6 +793,7 @@ const GOALS=[
  {id:"buyoutall",t:"Koop álle rivalen op — heers over het Pajottenland",r:"+500 XP · onbetwiste occasiekoning",c:()=>!!G.mile.buyoutAll,fn:()=>addXP(500)},
  {id:"radiosold",t:"Verkoop de Wagen van de Week tijdens zijn radioweek",r:"+90 XP · de radio verkoopt",c:()=>!!G.mile.radioSold,fn:()=>addXP(90)},
  {id:"adcampaign",t:"Boek een reclamecampagne voor de zaak",r:"+80 XP · wie adverteert, verkoopt",c:()=>!!G.mile.adCampaign,fn:()=>addXP(80)},
+ {id:"clearance",t:"Verkoop een wagen tijdens de solden",r:"+90 XP · koopjesmaand gepakt",c:()=>!!G.mile.clearance,fn:()=>addXP(90)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1407,6 +1408,19 @@ function endWeek(silent){
         budget:Math.round(ty.want.maxB*rnd(.7,1.1)/1000)*1000,tried:false});}
     extra.push(["🐣 Paasfoor","2 extra klanten · +2 rep","money"]);
     log("🐣 Paasfoor op de Markt van Essene! De eerste zon lokt volk naar buiten, en een paar dwalen af naar 't koertje. Twee kandidaat-kopers erbij.")}
+  // Solden: wintersolden (januari) & zomersolden (juli) — koopjesjagers, verkopen gaat vlotter
+  if((G.week===1||G.week===27)&&G.mile.soldenTag!==(G.year+"-"+G.week)){
+    G.mile.soldenTag=G.year+"-"+G.week;G.clearance=3;
+    const nm=G.week===1?"Wintersolden":"Zomersolden";
+    extra.push(["🏷️ "+nm,"opruiming · kopers happen sneller (3 wk)","money"]);
+    log("🏷️ "+nm+" in Essene! "+pick(["'ALLES MOET WEG' staat met witte letters op de ruit van de container.","De koopjesjagers staan in rij aan de halte, portefeuille los.","Rode prijskaartjes, veel volk, en niemand die te lang nadenkt."])+" Drie weken lang gaat verkopen een pak vlotter.");
+    if(!silent){stamp("🏷️ SOLDEN","gold");sfx("win")}
+  } else if((G.clearance||0)>0){
+    G.clearance--;
+    if(G.clearance>0)extra.push(["🏷️ Soldenweek","koopjesjagers op 't koertje (nog "+G.clearance+" wk)","money"]);
+    else{extra.push(["🏷️ Solden afgelopen","de koopjesdrukte ebt weg",""]);
+      log("🏷️ De solden zijn voorbij. De rode kaartjes gaan van de ruit, de rust keert terug op 't koertje.")}
+  }
   // the radio plays on
   if(Math.random()<.3)log(pick(RADIO));
   // Vlan ad
@@ -3348,6 +3362,7 @@ function renderSell(){
    +'<span class="pill info">'+se.emo+' '+se.n+': '+se.bodies.map(b=>BODN[b]).join("/")+' gegeerd (+10%)</span>'
    +(G.cotm?'<span class="pill good">🏆 Auto v/d Maand: '+esc(G.cotm)+' (+22%)</span>':'')
    +(G.radioCar?'<span class="pill info">📻 Wagen v/d Week: '+esc(radioCarLabel())+' (+7%)</span>':'')
+   +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
@@ -4312,9 +4327,11 @@ function percFor(cu,c,disclosed){
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
   return perc;
 }
+function clearanceOn(){return (G.clearance||0)>0}
+const CLEARANCE_ODDS=.11;
 function sellOdds(cu,price,perc){
   return clamp(1.45-(price/perc)*1.2+G.rep/350+(G.rb?.08:0)+(isCh("thomas")?.10:0)
-    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)+(cu.returning?.08:0)-cu.fuss*.15,.03,.96);
+    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)+(cu.returning?.08:0)+(clearanceOn()?CLEARANCE_ODDS:0)-cu.fuss*.15,.03,.96);
 }
 function moodFace(p){return p>.65?"😍":p>.45?"🙂":p>.3?"🤨":"😬"}
 function negBonus(){return (NEG&&NEG.talk&&NEG.talk.bonus)||0}
@@ -4441,6 +4458,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(CARS[c.ci].rar===3)G.mile.legendSold=1;
   if(isCotm(c))G.mile.cotmSold=1;
   if(isRadioCar(c))G.mile.radioSold=1;
+  if(clearanceOn())G.mile.clearance=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
