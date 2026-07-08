@@ -3085,11 +3085,28 @@ function tdReveal(q,txt){const c=TD.c;
   if(q&&c.known.includes(q))return;
   if(q)c.known.push(q);
   TD.reveals.push(txt);toast("👀 "+txt);sfx("bad");popNum("🔍","pamber");}
+/* weer op de proefrit — gebiast door het seizoen; verandert grip, remweg en zicht */
+const WEATHER={
+ helder:{emo:"☀️",n:"helder",grip:1,brake:1,vis:1,txt:"Droog en helder. Ideaal om te voelen wat de wagen kan."},
+ regen:{emo:"🌧️",n:"regen",grip:.78,brake:.72,vis:.88,txt:"Nat wegdek: minder grip, langere remweg. Voorzichtig in de bochten."},
+ sneeuw:{emo:"❄️",n:"sneeuw",grip:.6,brake:.55,vis:.8,txt:"Sneeuw en pekel: het wil alle kanten op. Zachtjes met het gas."},
+ mist:{emo:"🌫️",n:"mist",grip:.92,brake:.95,vis:.5,txt:"Dikke mist: ge ziet nauwelijks tot aan de volgende paal."},
+};
+function pickWeather(){
+  const s=(typeof season==="function")?season().n:"Lente";
+  let pool;
+  if(s==="Winter")pool=["helder","regen","sneeuw","sneeuw","mist"];
+  else if(s==="Herfst")pool=["helder","regen","regen","mist","mist"];
+  else if(s==="Lente")pool=["helder","helder","regen","mist"];
+  else pool=["helder","helder","helder","regen"]; // Zomer
+  return WEATHER[pick(pool)];
+}
 function testDrive(c,mode){
   if(mode==="market"&&c.tested){toast("De verkoper: \"Eén proefrit is genoeg, vriend.\"");return}
   if(mode==="market")c.tested=true;
   closeModal();
   const d=CARS[c.ci];
+  const wx=pickWeather();
   TD={c,mode,on:true,t:-3.6,dur:45,V:0,speed:0,top:0,dist:0,s:0,x:0,lat:0,steerVis:0,steer:0,kL:0,kR:0,gas:0,brake:0,
     hits:0,hitCd:0,reveals:[],cars:[],skid:0,shake:0,gear:1,rpm:0,offroad:0,
     sput:false,sputT:2.5+Math.random()*2.5,lt:0,raf:0,skyX:0,cntShown:null,
@@ -3099,7 +3116,7 @@ function testDrive(c,mode){
     floodAt:c.quirks.includes("flood")&&!c.known.includes("flood")?6+Math.random()*10:1e9,
     taxiAt:c.quirks.includes("taxi")&&!c.known.includes("taxi")?5+Math.random()*9:1e9,
     gearArm:c.quirks.includes("gearbox")&&!c.known.includes("gearbox"),
-    pull:c.quirks.includes("crash")?0.12:0,pullAt:7};
+    pull:c.quirks.includes("crash")?0.12:0,pullAt:7,wx};
   TD.trk=buildTrack();
   for(let k=0;k<10;k++)TD.cars.push({s:130+k*135+Math.random()*70,
     lane:pick([-3.4,0,3.4]),v:(38+Math.random()*40)/3.6,
@@ -3107,7 +3124,7 @@ function testDrive(c,mode){
     tpl:{ci:Math.floor(Math.random()*CARS.length),col:Math.floor(Math.random()*COLORS.length),tuned:0,quirks:[],body:85}});
   const fs=document.createElement("div");fs.id="tdfs";
   fs.innerHTML='<canvas id="tdc"></canvas>'
-   +'<div class="tdtop"><span>⏱ <b id="tdtime">'+TD.dur+'</b>s<br><span class="small">📏 <b id="tddist">0.0</b> km</span></span></div>'
+   +'<div class="tdtop"><span>⏱ <b id="tdtime">'+TD.dur+'</b>s<br><span class="small">📏 <b id="tddist">0.0</b> km</span><br><span class="small">'+TD.wx.emo+' '+TD.wx.n+'</span></span></div>'
    +'<div class="tdspeedo"><b id="tdspd">0</b> <span class="small">km/u · <span id="tdgear">1</span>e</span><div class="tdtach"><i id="tdtach" style="width:0%"></i></div></div>'
    +'<button class="tdquit" id="tdquit">⏹ Inleveren</button>'
    +'<div class="tdstickzone" id="tdzone"><div class="tdstickbase" id="tdbase"><div class="tdstick" id="tdstick"></div></div></div>'
@@ -3135,6 +3152,7 @@ function testDrive(c,mode){
   TD.g3=false;
   if(typeof THREE!=="undefined"){try{td3dInit();TD.g3=true}catch(e){td3dDispose();TD.g3=false}}
   engineStart();
+  if(TD.wx&&TD.wx.n!=="helder")toast(TD.wx.emo+" "+TD.wx.txt);
   TD.raf=requestAnimationFrame(tdLoop);
 }
 /* --- full-3D renderer: single track sampled by tdPosAt (chase_hq engine) --- */
@@ -3370,7 +3388,7 @@ function tdTick(dt){
   const Vn=TD.V/TD.maxV;
   /* --- longitudinal (chase_hq) --- */
   let acc=(TD.gas?1:0)*21*(0.5+0.5*eng/100)*(1+0.06*(c.tuned||0))*(1-Math.pow(clamp(Vn,0,1),1.7));
-  acc-=(TD.brake?1:0)*26;
+  acc-=(TD.brake?1:0)*26*(TD.wx?TD.wx.brake:1);
   acc-=0.0022*TD.V*TD.V;
   acc-=9.81*P.sl*0.55;
   TD.offroad=Math.abs(TD.lat)>ROAD_HALF+0.7?1:0;
@@ -3402,7 +3420,7 @@ function tdTick(dt){
   TD.s+=TD.V*dt;
   /* drift when demand beats grip (grip from bodywork) */
   const demand=Math.abs(-TD.steerVis*steerPow*0.7+cf);
-  const gripLim=8.5*(0.7+0.5*bod/100);
+  const gripLim=8.5*(0.7+0.5*bod/100)*(TD.wx?TD.wx.grip:1);
   const driftTarget=TD.V>32?clamp((demand-gripLim)/6,0,1):0;
   TD.skid+=(driftTarget-TD.skid)*Math.min(1,dt*5);
   if(TD.skid>0.25)TD.V=Math.max(0,TD.V-TD.skid*5.5*dt);
@@ -3459,7 +3477,8 @@ function tdDraw(){
     return {sx:W/2+(dx*rx+dz*rz)/depth*foc, sy:horizon+(cy-wy)/depth*foc, depth};
   };
   const rows=[];
-  for(let d=200;d>=0;d-=4){
+  const farD=Math.round(200*(TD.wx?TD.wx.vis:1)/4)*4;
+  for(let d=farD;d>=0;d-=4){
     const s0=TD.s+d;
     const l=tdPosAt(s0,-ROAD_HALF,TD.tA),L=proj(l.x,l.y,l.z);
     const c0=tdPosAt(s0,0,TD.tA),C=proj(c0.x,c0.y,c0.z);
@@ -3504,6 +3523,19 @@ function tdDraw(){
     x.beginPath();x.arc(W/2-pw*.32+Math.random()*8,H*.80,6*(TD.dpr||1),0,7);x.fill();
     x.beginPath();x.arc(W/2+pw*.32-Math.random()*8,H*.80,6*(TD.dpr||1),0,7);x.fill();}
   x.restore();
+  // weer-overlays
+  if(TD.wx){
+    if(TD.wx.n==="mist"){ // grijze sluier die naar de horizon dichtslaat
+      const g=x.createLinearGradient(0,horizon-H*.12,0,H*.72);
+      g.addColorStop(0,"rgba(200,202,210,.85)");g.addColorStop(.5,"rgba(200,202,210,.35)");g.addColorStop(1,"rgba(200,202,210,0)");
+      x.fillStyle=g;x.fillRect(0,0,W,H*.72);}
+    else if(TD.wx.n==="regen"||TD.wx.n==="sneeuw"){
+      const snow=TD.wx.n==="sneeuw";x.strokeStyle=snow?"rgba(255,255,255,.8)":"rgba(190,205,230,.55)";
+      x.fillStyle="rgba(255,255,255,.85)";x.lineWidth=snow?1:2*(TD.dpr||1);
+      for(let i=0;i<(snow?70:60);i++){const px=(((i*97+TD.t*(snow?120:900))%W)+W)%W,py=(((i*53+TD.t*(snow?260:1600))%H)+H)%H;
+        if(snow){x.beginPath();x.arc(px,py,1.6*(TD.dpr||1),0,7);x.fill();}
+        else{x.beginPath();x.moveTo(px,py);x.lineTo(px-3,py+14*(TD.dpr||1));x.stroke();}}}
+  }
 }
 function poly(x,x1,y1,x2,y2,x3,y3,x4,y4){x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.lineTo(x3,y3);x.lineTo(x4,y4);x.closePath();x.fill()}
 function tdEnd(early){
