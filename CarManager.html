@@ -712,7 +712,7 @@ function migrate(){if(!G)return;
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
-  G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;
+  G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -763,6 +763,7 @@ const GOALS=[
  {id:"wash",t:"Poets een wagen op in de wasstraat",r:"+50 XP · blinkende koopwaar",c:()=>!!G.mile.wash,fn:()=>addXP(50)},
  {id:"warrsold",t:"Verkoop een wagen mét garantie",r:"+60 XP · vertrouwen verkoopt",c:()=>!!G.mile.warrantySold,fn:()=>addXP(60)},
  {id:"warrhon",t:"Kom een garantie eervol na",r:"+120 XP · een man/vrouw van zijn woord",c:()=>!!G.mile.warrantyHonored,fn:()=>addXP(120)},
+ {id:"loyal",t:"Verkoop een tweede wagen aan een tevreden klant",r:"+90 XP · vaste klanten, vast inkomen",c:()=>!!G.mile.loyalSold,fn:()=>addXP(90)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1174,9 +1175,23 @@ function genTradeIn(){
   const claim=Math.round(trueValue(c)*rnd(1.1,1.4)/1000)*1000; // hij vraagt te veel voor z'n schat
   return {c,claim};
 }
+const LOYAL_CAP=12;
+function enrollLoyal(name){
+  G.loyalCusts=G.loyalCusts||[];
+  if(G.loyalCusts.includes(name))return;
+  G.loyalCusts.push(name);
+  while(G.loyalCusts.length>LOYAL_CAP)G.loyalCusts.shift();
+}
 function genCustomers(){
   const n=clamp(1+OFFICES[G.office].cust-1+Math.round(G.rep/45)+ri(0,1)+(G.vlan?1:0)+(hasStaff("vera")?1:0)+(repTier()>=3?1:0),1,8);
   G.custs=[];
+  // een tevreden oude klant komt af en toe terug voor een tweede wagen
+  if((G.loyalCusts||[]).length&&Math.random()<.16){
+    const nm=pick(G.loyalCusts),ty=pick(CUSTTYPES);
+    G.custs.push({id:UID++,name:nm,t:"kwam terug — was tevreden over de vorige koop",want:ty.want,
+      fuss:Math.max(.05,ty.fuss*.6),face:pick(CFACES),returning:true,
+      budget:Math.round(ty.want.maxB*rnd(.7,1.15)/1000)*1000,tried:false});
+  }
   for(let i=0;i<n;i++){
     const ty=pick(CUSTTYPES);
     const cu={id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:ty.fuss,face:pick(CFACES),
@@ -2936,7 +2951,7 @@ function renderSell(){
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+'</h3>'
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -3889,7 +3904,7 @@ function percFor(cu,c,disclosed){
 }
 function sellOdds(cu,price,perc){
   return clamp(1.45-(price/perc)*1.2+G.rep/350+(G.rb?.08:0)+(isCh("thomas")?.10:0)
-    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)-cu.fuss*.15,.03,.96);
+    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)+(cu.returning?.08:0)-cu.fuss*.15,.03,.96);
 }
 function moodFace(p){return p>.65?"😍":p>.45?"🙂":p>.3?"🤨":"😬"}
 function negBonus(){return (NEG&&NEG.talk&&NEG.talk.bonus)||0}
@@ -4021,7 +4036,8 @@ function doSale(cu,c,price,disclosed,iss){
   const hiddenLeft=iss.filter(i=>!disclosed.includes(i.id));
   const honest=hiddenLeft.length===0;
   repAdd(honest?3:1);
-  if(honest&&Math.random()<.3)G.postcards.push({eta:ri(2,5),name:cu.name});
+  if(honest){enrollLoyal(cu.name);if(Math.random()<.3)G.postcards.push({eta:ri(2,5),name:cu.name});}
+  if(cu.returning)G.mile.loyalSold=1;
   const profit=price-(c.paid||0);
   // record profit
   if(profit>(G.recProfit||0)){
