@@ -755,6 +755,7 @@ const GOALS=[
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
  {id:"vip5",t:"Vervul 5 VIP-zoekopdrachten",r:"+350 XP · huisleverancier van de sterren",c:()=>(G.vipDone||0)>=5,fn:()=>addXP(350)},
+ {id:"barngem",t:"Grav een schuurvondst op met de metaaldetector",r:"+90 XP · gouden handjes",c:()=>!!G.mile.barnGem,fn:()=>addXP(90)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -2039,33 +2040,62 @@ function takeBet(){
   G.cash-=20000;G.bet={stake:20000};G.gastonHere=false;save();
   toast("🤠 Weddenschap met Gaston: verkoop deze week 2 wagens en win 40.000.");render();
 }
+let MD=null;
+const MD_SPOTS=6, MD_SWEEPS=3;
+function mdHint(dist){return dist===0?"🎯":dist===1?"📢 zeer warm":dist===2?"🔥 warm":dist===3?"😐 lauw":"❄️ koud"}
 function followTip(){
   if(!G.tip)return;
   if(G.cash-5000<creditLimit()){toast("Te weinig geld voor de tip.");return}
   G.tip=false;G.cash-=5000;save();
   suspense(["🚜","🛖","🐄","🌾"],"Met de camionette naar Aalst, zeil eraf...",()=>{
-    if(Math.random()<.45){
-      const c=genCar("ua");c.transit=false;
-      const offer=Math.round(trueValue(c)*.55/1000)*1000;
-      sfx("win");
-      modal(mkCarSheet(c,false)+'<hr>De boer wil er <b class="money">'+fmt(offer)+'</b> voor. "Hij staat hier al sinds den overstroming van \'88."',
-      [{t:"Kopen ("+fmt(offer)+")",fn:()=>{
-          if(G.cash-offer<creditLimit()){toast("Te weinig geld.");return}
-          G.cash-=offer;c.paid=offer;c.known=c.quirks.slice();if(c.rolled)c.known.push("__rolled");
-          G.cars.push(c);stamp("SCHUURVONDST!","gold");confetti(40);sfx("kaching");addXP(15);
-          log("Schuurvondst in Aalst gekocht: "+carName(c)+" ("+fmt(offer)+").");closeModal()}},
-       {t:"Laten staan",cls:"ghost",fn:closeModal}]);
-    }else if(Math.random()<.4){
+    if(Math.random()<.18){
       ouch();G.danyBeat=(G.danyBeat||0)+1;
-      modal("De schuur staat open, het zeil ligt al afgetrokken op de grond — en er staan verse bandensporen. \"Ne vriendelijke mens uit Ninove is mij juist vóór geweest,\" zegt de boer. \" Zei dat gij niet meer zoudt komen.\" <b>Dany.</b> Weer.",
-       [{t:"Die Dany toch.",fn:closeModal}]);
       log("Dany uit Ninove was eerder bij de schuurvondst in Aalst. Die gast is overal.");
-    }else{
-      ouch();
-      modal("Onder het zeil: een roestige kruiwagen en een halve Manta zonder motor. De boer haalt zijn schouders op. De tip was blijkbaar 5.000 BEF waard.",
-       [{t:"Tja.",fn:closeModal}]);
-      log("De tip uit Aalst was een kruiwagen. Letterlijk.");
-    }});
+      modal("De schuur staat open, het zeil ligt al afgetrokken op de grond — en er staan verse bandensporen. \"Ne vriendelijke mens uit Ninove is mij juist vóór geweest,\" zegt de boer. <b>Dany.</b> Weer.",
+       [{t:"Die Dany toch.",fn:closeModal}]);return;
+    }
+    MD={gem:ri(0,MD_SPOTS-1),left:MD_SWEEPS,hints:{}};
+    detectorModal();
+  });
+}
+function detectorModal(){
+  if(!MD)return;
+  let h='<b>🔍 Achter de schuur.</b> De boer wijst naar de weide: "Ergens onder \'t hooi staat nog iets. Zoek zelf maar." Ge haalt de metaaldetector boven.<hr>'
+   +'<div class="small dim">Nog <b>'+MD.left+'</b> sweep(s). Volg de piep: warmer = dichterbij.</div>'
+   +'<div class="tablebtns" style="margin-top:8px">';
+  for(let i=0;i<MD_SPOTS;i++){
+    const rev=MD.hints[i]!=null;
+    h+='<button class="btn'+(rev?" ghost":"")+'" '+(rev?"disabled":'onclick="mdSweep('+i+')"')+' style="min-width:60px">🌾 '+(i+1)+(rev?'<br><span class="small">'+MD.hints[i]+'</span>':'')+'</button>';
+  }
+  h+='</div>';
+  modal(h,[{t:"Opgeven en wegrijden",cls:"ghost",fn:()=>{MD=null;closeModal()}}]);
+}
+function mdSweep(i){
+  if(!MD||MD.hints[i]!=null||MD.left<=0)return;
+  const dist=Math.abs(i-MD.gem);
+  MD.hints[i]=mdHint(dist);
+  if(dist===0){const g=MD;MD=null;sfx("win");mdFound();return}
+  MD.left--;
+  if(MD.left<=0){const g=MD;MD=null;mdMiss();return}
+  sfx("tick");detectorModal();
+}
+function mdFound(){
+  const c=genCar("ua");c.transit=false;
+  const offer=Math.round(trueValue(c)*.5/1000)*1000; // zelf gevonden = betere prijs
+  G.mile.barnGem=1;
+  modal('<b>🎯 Beet!</b> Onder een berg hooi en een dekzeil: '+mkCarSheet(c,false)+'<hr>De boer krabt in zijn haar. "Amai, die was ik vergeten. <b class="money">'+fmt(offer)+'</b> en hij is van u."',
+  [{t:"Kopen ("+fmt(offer)+")",fn:()=>{
+      if(G.cash-offer<creditLimit()){toast("Te weinig geld.");return}
+      G.cash-=offer;c.paid=offer;c.known=c.quirks.slice();if(c.rolled)c.known.push("__rolled");
+      G.cars.push(c);stamp("SCHUURVONDST!","gold");confetti(40);sfx("kaching");addXP(20);
+      log("Schuurvondst in Aalst opgegraven: "+carName(c)+" ("+fmt(offer)+").");closeModal()}},
+   {t:"Laten staan",cls:"ghost",fn:closeModal}]);
+}
+function mdMiss(){
+  ouch();
+  log("De metaaldetector piepte alleen op een oude ploeg. De tip was blijkbaar 5.000 BEF waard.");
+  modal("De detector piept enthousiast — op een verroeste ploeg, een fietswiel en een blik Marveilleux uit 1979. Van een wagen geen spoor. De boer haalt zijn schouders op.",
+   [{t:"Tja.",fn:closeModal}]);
 }
 let KR=null;
 function scratchLot(){
