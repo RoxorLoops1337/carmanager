@@ -689,6 +689,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.exported=G.exported||0;G.staff=G.staff||{};G.salonYear=G.salonYear||0;
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
+  G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
 /* ---- goal chain: always something to look forward to ---- */
@@ -1115,6 +1116,8 @@ function endWeek(silent){
   G.postcards=G.postcards.filter(pc=>pc.eta>0);
   // monthly trend
   if(G.week%4===1){rotateTrend();extra.push(["📈 Nieuwe trend",BODN[G.trendBody],""])}
+  // the radio plays on
+  if(Math.random()<.3)log(pick(RADIO));
   // Vlan ad
   if(G.vlan){G.cash-=1500;extra.push(["📰 Vlan-zoekertje","-"+fmt(1500),"neg"])}
   // the website
@@ -1179,11 +1182,19 @@ function showAwards(){
 }
 function weekReport(wkLbl,delta,rent,skimmed,extra){
   if(modalOpen())return;
-  const gr=delta>=150000?["S","#ffd76a","Kranig! Heel Essene praat erover."]
-    :delta>=50000?["A","#72e08e","Sterke week. De asbak was het waard."]
-    :delta>=0?["B","#6cc4ff","Netjes. De frigo blijft gevuld."]
-    :delta>=-50000?["C","#ffb347","Magertjes. Meer babbelen, minder roken."]
-    :["D","#ff6b5e","Au. Zelfs de buschauffeur kijkt bezorgd."];
+  const gr=delta>=150000?["S","#ffd76a"]
+    :delta>=50000?["A","#72e08e"]
+    :delta>=0?["B","#6cc4ff"]
+    :delta>=-50000?["C","#ffb347"]
+    :["D","#ff6b5e"];
+  const HEADLINES={
+   S:["Essense handelaar heeft de gouden hand","'Occasiekoning van het Pajottenland' (foto op pagina 3)","Recordweek voor de garage aan Koudenberg","Kranig! Heel Essene praat erover."],
+   A:["Zaken gaan goed te Essene","'Kwaliteit verkoopt zichzelf,' zegt zaakvoerder","Sterke week. De asbak was het waard.","Handelaar uit Essene 'ziet de toekomst zonnig in'"],
+   B:["Rustige week voor de occasiehandel","Niets te melden uit Essene. Dat is ook nieuws.","Netjes. De frigo blijft gevuld.","Lijn 129 rijdt stipt, meldt onze verslaggever. Verder alles gewoon."],
+   C:["Magere week voor lokale handelaar","'De markt zit tegen,' klinkt het aan Koudenberg","Magertjes. Meer babbelen, minder roken.","Lezersvraag: 'Staat die Lada daar nu al drie weken?'"],
+   D:["Vragen bij de toekomst van garage te Essene","Au. Zelfs de buschauffeur kijkt bezorgd.","'Alles is te koop,' zucht zaakvoerder. Ook de bureaustoel.","Duivenbond doet betere zaken dan de autohandel, becijfert lezer"]};
+  const OMINOUS=["Gerucht: onderzoek naar autohandel in de regio","'Waar komen al die wagens toch vandaan?' vraagt lezer uit Ternat","Opvallend veel Oostblok-nummerplaten gespot langs de N8"];
+  const headline=(G.heat>60&&Math.random()<.4)?pick(OMINOUS):pick(HEADLINES[gr[0]]);
   const lines=[
    ["Weekresultaat",(delta>=0?"+":"")+fmt(delta),delta>=0?"money":"neg"],
    ["Verkocht",(G.wkSold||0)+" wagen(s)",""],
@@ -1195,7 +1206,7 @@ function weekReport(wkLbl,delta,rent,skimmed,extra){
   modal('<div class="center"><b>📋 Weekrapport · '+wkLbl+'</b></div><hr>'
    +lines.map((l,i)=>'<div class="spread repline" style="animation-delay:'+(i*.16)+'s"><span class="dim">'+l[0]+'</span><b class="'+l[2]+'">'+l[1]+'</b></div>').join("")
    +'<div class="center repline" style="animation-delay:'+(lines.length*.16+.25)+'s"><span class="grade" style="color:'+gr[1]+';border-color:'+gr[1]+'">'+gr[0]+'</span>'
-   +'<div class="small dim">De Streekkrant: "'+gr[2]+'"</div></div>',
+   +'<div class="small dim">De Streekkrant: "'+headline+'"</div></div>',
   [{t:"Aan de slag",fn:closeModal}]);
 }
 function randomOffice(){
@@ -1203,7 +1214,21 @@ function randomOffice(){
   pick([
    ()=>log("De koffiemachine is weer kapot. Iedereen drinkt dan maar Red Bull."),
    ()=>log("Een duif heeft op de "+(G.cars[0]?carName(G.cars[0]):"lege plek waar een auto zou moeten staan")+" gezeten. Klassiek Essene."),
-   ()=>log("Buschauffeur van halte Koudenberg komt weer eens kijken naar de wagens. Koopt nooit iets."),
+   ()=>{G.busdrv=(G.busdrv||0)+1;
+     const cheap=G.cars.filter(c=>askValue(c)<=200000).sort((a,b)=>askValue(a)-askValue(b))[0];
+     if(G.busdrv>=8&&cheap){
+       const price=askValue(cheap);
+       G.cash+=price;G.earned+=price;G.sold++;G.wkSold=(G.wkSold||0)+1;
+       G.modelsSold=G.modelsSold||{};G.modelsSold[cheap.ci]=1;
+       G.cars=G.cars.filter(x=>x.id!==cheap.id);
+       G.busdrv=-15;G.mile.busBought=1;repAdd(3);addXP(30);
+       stamp("DE BUSCHAUFFEUR KOOPT!","gold");confetti(60);sfx("win");driveOff(cheap);
+       log("🚌 HET IS GEBEURD. Na jaren kijken koopt de buschauffeur van lijn 129 de "+carName(cheap)+" ("+fmt(price)+"), cash, uit een enveloppe met 'PENSIOENSPAARPOT' op. Heel de halte applaudisseert.");
+     }else if(G.mile.busBought&&Math.random()<.5){
+       log("🚌 De buschauffeur rijdt voorbij en toetert naar zijn oude "+(G.busdrv>=0?"halte":"garage")+". Hij blinkt nog altijd, zegt hij. De wagen ook.");
+     }else{
+       log("🚌 Buschauffeur van halte Koudenberg komt "+(G.busdrv>=6?"WEER kijken. Hij stelt nu vragen over verbruik. Er beweegt iets.":G.busdrv>=4?"kijken. Hij heeft deze keer een notitieboekje bij.":"weer eens kijken naar de wagens. Koopt nooit iets."));
+     }},
    ()=>{const b=ri(2,6)*60;G.cash-=b;log("Bak Red Bull en twee sloffen sigaretten gekocht voor het team. (-"+fmt(b)+")")},
    ()=>{if(G.rep>50){repAdd(1);log("Iemand heeft de zaak aangeraden op café. Reputatie stijgt.")}},
    ()=>{if(G.heat>40)log("Een grijze Peugeot 405 staat al twee dagen aan de overkant geparkeerd. Toeval, ongetwijfeld.")},
@@ -1481,6 +1506,9 @@ function renderOffice(){
      +'<button class="btn shady" onclick="buySloffen()">🚬 Twee sloffen (3.000 BEF)</button>'
      +'<button class="btn ghost" onclick="G.alinHere=false;save();render()">Niet vandaag, Alin</button></div>';
   }
+  h+='<div class="card flat" style="cursor:pointer" onclick="zapRadio()" title="Tik om te zappen">'
+   +'<div class="small"><b>📻 Radio Essene</b> <span class="dim">· tik om te zappen</span></div>'
+   +'<div class="small dim" style="margin-top:3px">'+esc(RADIO[(G.week*7+(G.radioIx||0))%RADIO.length])+'</div></div>';
   h+='<div class="card"><h3>☕ Op het bureau</h3><div class="tablebtns">'
    +'<button class="btn primary" onclick="doEndWeek()">⏭ Week afsluiten</button>'
    +'<button class="btn" onclick="smoke()" '+(G.smokes>=smokeCap()?"disabled":"")+'>🚬 Sigaret op het koertje'+(isCh("alan")?' ('+G.smokes+'/'+smokeCap()+')':'')+'</button>'
@@ -1518,6 +1546,34 @@ function useSloffe(){
   toast(pick(["🚬 Sloffe open, heel het koertje rookt mee. De zenuwen zakken zienderogen.","🚬 Zelfs de buschauffeur van lijn 129 komt er eentje meeroken.","🚬 Een uur pauze, twee volle asbakken, een kalme kop."]));
   log("Sloffe van Alin opengetrokken op het koertje. Iedereen kalm. (-4 🔥)");render();
 }
+/* ---- Radio Essene: altijd aan, nooit om gevraagd ---- */
+const RADIO=[
+ "📻 'Bij Frituur Nadia: élke woensdag tweede pak friet HALVE PRIJS!'",
+ "📻 'Meubelen Vermeulen, langs de baan in Ternat. Nu met GRATIS koffie bij elk salon!'",
+ "📻 Nieuws: de BOB controleert dit weekend extra langs de E40. Goed om weten.",
+ "📻 Het weer: grijs, met kans op grijzer. Morgen: idem.",
+ "📻 Hitparade: op één, alweer dat ene van Vaya Con Dios.",
+ "📻 'Zonnecenter Sunny Zellik: tien beurten, 999 frank. Bruin zonder zon!'",
+ "📻 Verkeer: kijkfile in Groot-Bijgaarden. Voor een lege berm.",
+ "📻 'DASH wast witter dan wit.' Al twintig jaar, blijkbaar.",
+ "📻 Nieuws: de frank blijft stabiel. De minister is tevreden. De minister is altijd tevreden.",
+ "📻 'Dancing Carrousel, vrijdag: GRATIS vat vanaf 22u. Tot en met 22u05.'",
+ "📻 'Rijschool Deblander: geslaagd of uw geld terug*. (*voorwaarden in de kleine lettertjes)'",
+ "📻 Zoekertje van de dag: 'Gezocht: caravan, mag rijp zijn.' Bel na 18u.",
+ "📻 Verkeer: een losgeraakte aanhangwagen op de ring. Van iemand anders, gelukkig.",
+ "📻 'Slagerij Pol & Zonen: deze week américain aan feestprijzen!'",
+ "📻 Nieuws: het wordt kouder. Of warmer. De weerman houdt een slag om de arm.",
+ "📻 'Bakkerij Het Krokantje: pistolets zoals bij moeder thuis, maar dan beter. Zeg dat niet tegen moeder.'",
+ "📻 Sport: de duivenlossing van zondag is uitgesteld. De duiven hadden er geen zin in.",
+ "📻 'Assurantiën Van Damme: wij verzekeren ALLES.' Zelfs uw handel? 'Bijna alles.'",
+ "📻 Hitparade: een nieuw nummer van 2 Unlimited. No no. No no no no.",
+ "📻 'Garage Gaston, Ninove: BETROUWBARE occasies.' De radio zet dat woord er zelf niet bij.",
+ "📻 Nieuws: in Brussel praat men over 'het internet'. Zou het iets worden?",
+ "📻 'Tuincentrum De Groene Duim: coniferen aan prijzen die u niet voor mogelijk houdt.'",
+ "📻 Verkeer: alles rijdt vlot. De verkeersvrouw klinkt er zelf verbaasd over.",
+ "📻 'Café Den Engel: elke zondag volksspelen. Vogelpik, kaarten, en ruzie over vogelpik.'",
+];
+function zapRadio(){G.radioIx=(G.radioIx||0)+1;render()}
 /* ---- unlockable extensions ---- */
 const SPAM=[
  "📧 E-mail: 'GEFELICITEERD! U bent bezoeker 100.000!' Vast wel.",
