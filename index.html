@@ -708,7 +708,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
-  G.leger=G.leger||null;
+  G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
@@ -753,6 +753,8 @@ const GOALS=[
  {id:"kermis",t:"Sta op de Kermis van Essene",r:"+80 XP · smoutebollen inbegrepen",c:()=>!!G.mile.kermis,fn:()=>addXP(80)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
+ {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
+ {id:"vip5",t:"Vervul 5 VIP-zoekopdrachten",r:"+350 XP · huisleverancier van de sterren",c:()=>(G.vipDone||0)>=5,fn:()=>addXP(350)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -1264,6 +1266,14 @@ function endWeek(silent){
     const o=genOrder();G.orders.push(o);
     extra.push(["📦 Nieuwe zoekopdracht",o.t,""]);
     log("📞 Een verzamelaar zoekt: "+o.t+" (+"+Math.round((o.prem-1)*100)+"% premie, "+o.eta+" weken).")}
+  // VIP droomwagen-opdracht (één tegelijk, alleen als de zaak wat naam heeft)
+  if(G.vipQuest){G.vipQuest.eta--;
+    if(G.vipQuest.eta<=0){extra.push(["⭐ VIP","teleurgesteld vertrokken: "+G.vipQuest.name,"neg"]);
+      log("⭐ "+G.vipQuest.name+" wachtte tevergeefs op zijn droomwagen en gaat elders zoeken. (-2 rep)");repAdd(-2);G.vipQuest=null;}}
+  if(!G.vipQuest&&G.unlocks.orders&&G.rep>=45&&Math.random()<.14){
+    G.vipQuest=genVipQuest();
+    extra.push(["⭐ VIP aan de deur",G.vipQuest.name,"money"]);
+    log("⭐ "+G.vipQuest.name+" komt persoonlijk langs met een zoekopdracht: "+G.vipQuest.desc+" ("+Math.round((G.vipQuest.prem-1)*100)+"% premie, "+G.vipQuest.eta+" weken).")}
   // who's at the gate next week
   G.gastonHere=!G.bet&&Math.random()<.25;
   G.tip=Math.random()<.20;
@@ -1640,6 +1650,14 @@ function renderOffice(){
     }
     h+='</div>';
   }
+  if(G.vipQuest){const q=G.vipQuest,match=G.cars.find(c=>vipMatch(q,c));
+    h+='<div class="card" style="border-color:#f0c937"><div class="spread"><h3 style="margin:0">⭐ '+q.face+' '+esc(q.name)+'</h3>'
+     +'<span class="pill '+(q.eta<=2?"bad":"warn")+'">nog '+q.eta+' wk</span></div>'
+     +'<div class="small dim" style="font-style:italic">'+esc(q.story)+'</div>'
+     +'<div class="small">Zoekt: <b>'+esc(q.desc)+'</b> <span class="pill good">+'+Math.round((q.prem-1)*100)+'% premie</span></div>'
+     +(match?'<button class="btn primary" onclick="deliverVip('+match.id+')">⭐ Lever '+esc(carName(match))+' ('+fmt(Math.round(trueValue(match)*q.prem/1000)*1000)+')</button>'
+       :'<div class="small dim">Nog niets passends in stock (min. 60% motor & koets). Op zoek dus.</div>')+'</div>';
+  }
   if(G.unlocks.salon&&G.week<=3&&G.salonYear!==G.year){
     h+='<div class="card"><h3>🏟️ Autosalon van Brussel</h3>'
      +'<div class="small dim">Januari! De Heizelpaleizen roepen. Een stand kost <b>'+fmt(120000)+'</b>: rode loper, glimmend tapijt en heel België dat langsloopt.</div>'
@@ -1977,6 +1995,36 @@ function deliverOrder(carId,orderId){
   stamp("OPDRACHT GELEVERD!","gold");confetti(40);sfx("win");popNum("+"+fmt(price),"pgreen");
   repAdd(3);addXP(40);driveOff(c);
   log("Zoekopdracht geleverd: "+carName(c)+" voor "+fmt(price)+" ("+Math.round((o.prem-1)*100)+"% premie).");
+  save();closeModal();
+}
+/* ---- VIP zoekopdrachten: een bekende Vlaming zoekt zijn droomwagen ---- */
+const VIPQUESTS=[
+ {desc:"een échte Ferrari, niks minder",story:"'Ik heb heel mijn leven hard gewerkt. Nu wil ik één keer met de kap open door Knokke rijden.'",f:c=>CARS[c.ci].mk==="Ferrari",prem:1.9},
+ {desc:"een dikke Duitser, liefst een Mercedes of BMW",story:"'Het moet indruk maken op de parking van de golf. Ge begrijpt.'",f:c=>["Mercedes","BMW"].includes(CARS[c.ci].mk)&&CARS[c.ci].rar>=1,prem:1.7},
+ {desc:"een open cabrio voor de zomer aan de kust",story:"'Mijn vrouw wil eindelijk met een sjaaltje in het haar rijden. Gelukkig getrouwd blijven kost een cabrio.'",f:c=>CARS[c.ci].body==="cabrio",prem:1.75},
+ {desc:"een zeldzame klassieker van vóór 1980",story:"'Voor in de living. Nee, echt. Ik heb de garage al verwarmd.'",f:c=>c.year<1980&&CARS[c.ci].rar>=1,prem:1.85},
+ {desc:"een absolute legende, geld speelt geen rol",story:"'Ik heb de lotto niet gewonnen, maar iets in die richting. Verras mij.'",f:c=>CARS[c.ci].rar>=3,prem:2.2},
+ {desc:"een snelle Japanner met een verhaal",story:"'Ik heb te veel naar die films met snelle autos gekeken. En dan?'",f:c=>["Toyota","Honda","Nissan","Mazda","Mitsubishi","Subaru"].includes(CARS[c.ci].mk)&&CARS[c.ci].body==="sport",prem:1.8},
+];
+function genVipQuest(){
+  const k=ri(0,VIPQUESTS.length-1),q=VIPQUESTS[k];
+  return {id:UID++,name:pick(VIPTITLES)+" "+pick(CUSTNAMES),face:"🕴️",kind:k,
+    desc:q.desc,story:q.story,prem:q.prem,eta:ri(4,7)};
+}
+function vipMatch(q,c){return q&&VIPQUESTS[q.kind].f(c)&&c.eng>=60&&c.body>=60}
+function deliverVip(carId){
+  const c=getCar(carId),q=G.vipQuest;
+  if(!c||!q||!vipMatch(q,c))return;
+  const price=Math.round(trueValue(c)*q.prem/1000)*1000;
+  G.cash+=price;G.earned+=price;G.sold++;G.wkSold=(G.wkSold||0)+1;
+  if(CARS[c.ci].rar===3)G.mile.legendSold=1;
+  G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
+  G.mile.vipQuest=1;G.vipDone=(G.vipDone||0)+1;
+  const ix=G.cars.findIndex(x=>x.id===c.id);if(ix>=0)G.cars.splice(ix,1);
+  G.vipQuest=null;
+  stamp("VIP TEVREDEN!","gold");confetti(60);sfx("win");popNum("+"+fmt(price),"pgreen");
+  repAdd(7);addXP(60);driveOff(c);
+  log("⭐ "+q.name+" krijgt zijn droomwagen ("+carName(c)+") voor "+fmt(price)+" ("+Math.round((q.prem-1)*100)+"% premie). Handdruk, sigaar, en een goed woordje overal.");
   save();closeModal();
 }
 function buyLotto(){
