@@ -758,6 +758,7 @@ const GOALS=[
  {id:"raid",t:"Overleef een razzia zonder inbeslagname",r:"+100 XP · koelbloedig",c:()=>!!G.mile.raidClean,fn:()=>addXP(100)},
  {id:"kermis",t:"Sta op de Kermis van Essene",r:"+80 XP · smoutebollen inbegrepen",c:()=>!!G.mile.kermis,fn:()=>addXP(80)},
  {id:"kerst",t:"Vier kerst op het koertje",r:"+90 XP · een boompje in de container",c:()=>!!G.mile.kerst,fn:()=>addXP(90)},
+ {id:"toptier",t:"Word Legende van Essene (★85 reputatie)",r:"+200 XP · de top van de perkladder",c:()=>repTier()>=4,fn:()=>addXP(200)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -805,6 +806,16 @@ function season(){const wk=((G.week-1)%52);return SEASONS[Math.floor(wk/13)%4]}
 function isSeason(c){return season().bodies.includes(CARS[c.ci].body)}
 const SEASON_MUL=1.10;
 function creditLimit(){return isCh("martine")?-300000:0}
+/* ---- reputatie-perkladder: hoe bekender de zaak, hoe meer voordelen ---- */
+const REP_TIERS=[
+ {min:0, n:"Onbekende",       emo:"🙂", perk:"Nog geen voordelen — bouw uw naam op."},
+ {min:25,n:"Bekend gezicht",  emo:"😃", perk:"Heat zakt 1 extra per week (proper imago)."},
+ {min:45,n:"Vertrouwde naam", emo:"🤝", perk:"ZZ-platen 10% goedkoper."},
+ {min:65,n:"Gerespecteerd",   emo:"⭐", perk:"+1 kandidaat-koper per week."},
+ {min:85,n:"Legende van Essene",emo:"👑",perk:"Betere verkoopkansen (+3%)."},
+];
+function repTier(){let t=0;for(let i=0;i<REP_TIERS.length;i++)if((G.rep||0)>=REP_TIERS[i].min)t=i;return t}
+function platePerkMul(){return repTier()>=2?0.9:1}
 /* ---- bank: een lening nu, elke week rente + afbetaling ---- */
 const LOAN_RATE=0.04, LOAN_MIN=5000;
 function bankMax(){return Math.round((100000+ (G.rep||0)*4000 + (G.lvl||1)*30000)/10000)*10000}
@@ -1160,7 +1171,7 @@ function genTradeIn(){
   return {c,claim};
 }
 function genCustomers(){
-  const n=clamp(1+OFFICES[G.office].cust-1+Math.round(G.rep/45)+ri(0,1)+(G.vlan?1:0)+(hasStaff("vera")?1:0),1,7);
+  const n=clamp(1+OFFICES[G.office].cust-1+Math.round(G.rep/45)+ri(0,1)+(G.vlan?1:0)+(hasStaff("vera")?1:0)+(repTier()>=3?1:0),1,8);
   G.custs=[];
   for(let i=0;i<n;i++){
     const ty=pick(CUSTTYPES);
@@ -1200,7 +1211,7 @@ function endWeek(silent){
     if(hasStaff("bert"))skim=Math.round(skim/2);
     if(G.cash>0){G.cash-=skim;skimmed=skim;if(Math.random()<.3)log("Er klopt weer iets niet in de kassa. Alin haalt zijn schouders op. (-"+fmt(skim)+")");}}
   if(G.cash<0)G.cash=Math.round(G.cash*1.01);
-  G.heat=clamp(G.heat-2,0,100);
+  G.heat=clamp(G.heat-2-(repTier()>=1?1:0),0,100);
   const extra=[];
   // bank loan: rente loopt, wekelijkse afbetaling
   if(G.loan>0){
@@ -1668,6 +1679,12 @@ function renderOffice(){
   h+='<div class="card"><div class="spread"><h3 style="margin:0">🎖️ '+titleFor(G.lvl)+' · niveau '+G.lvl+'</h3><span class="small dim">'+G.xp+' / '+xpNeed+' XP</span></div>'
    +'<div class="bar" style="margin-top:6px"><i style="width:'+Math.min(100,Math.round(G.xp/xpNeed*100))+'%;background:linear-gradient(90deg,var(--amber),#ffd76a)"></i></div>'
    +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div></div>';
+  {const tier=repTier();
+   h+='<div class="card"><div class="spread"><h3 style="margin:0">'+REP_TIERS[tier].emo+' '+REP_TIERS[tier].n+'</h3><span class="pill good">★ '+Math.round(G.rep)+' reputatie</span></div>';
+   REP_TIERS.forEach((t,i)=>{if(i===0)return;
+     const got=tier>=i;
+     h+='<div class="logline" style="'+(got?"":"opacity:.5")+'"><b>'+t.emo+' '+t.n+'</b> <span class="small dim">(★'+t.min+')</span> '+(got?'<span class="pill good">✓</span>':'<span class="pill">🔒</span>')+'<div class="small dim">'+t.perk+'</div></div>';});
+   h+='</div>';}
   const undone=GOALS.filter(g=>!G.goalsDone.includes(g.id));
   h+='<div class="card"><div class="spread"><h3 style="margin:0">📋 Doelen</h3><span class="small dim">'+(GOALS.length-undone.length)+'/'+GOALS.length+' behaald</span></div>';
   undone.slice(0,2).forEach(g=>{h+='<div class="logline">🎯 '+g.t+'<div class="small dim">Beloning: '+g.r+'</div></div>'});
@@ -3835,7 +3852,7 @@ function percFor(cu,c,disclosed){
 }
 function sellOdds(cu,price,perc){
   return clamp(1.45-(price/perc)*1.2+G.rep/350+(G.rb?.08:0)+(isCh("thomas")?.10:0)
-    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)-cu.fuss*.15,.03,.96);
+    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)-cu.fuss*.15,.03,.96);
 }
 function moodFace(p){return p>.65?"😍":p>.45?"🙂":p>.3?"🤨":"😬"}
 function negBonus(){return (NEG&&NEG.talk&&NEG.talk.bonus)||0}
@@ -3982,8 +3999,8 @@ function doSale(cu,c,price,disclosed,iss){
 
 /* ============ ZZ PLATES ============ */
 function renderPlates(){
-  const offC=Math.round(40000*(isCh("martine")?.7:1));
-  const shC=Math.round(75000*shadyMult());
+  const offC=Math.round(40000*(isCh("martine")?.7:1)*platePerkMul());
+  const shC=Math.round(75000*shadyMult()*platePerkMul());
   let h='<h2>🔴 ZZ Transitplaten</h2>'
    +'<div class="card small dim">Met een <span class="plate">ZZ-plaat</span> mag je niet-ingeschreven wagens over de grens rijden. Zonder ben je vogelvrij aan elke douanepost. Platen zijn 8 weken geldig.</div>';
   h+='<div class="card"><h3>In de kluis</h3>';
@@ -3999,13 +4016,13 @@ function renderPlates(){
   $("view").innerHTML=h;
 }
 function orderPlate(){
-  const cost=Math.round(40000*(isCh("martine")?.7:1));
+  const cost=Math.round(40000*(isCh("martine")?.7:1)*platePerkMul());
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;G.plateOrder={eta:2};
   log("Officiële ZZ-plaat aangevraagd. Formulier B-27bis in drievoud, uiteraard.");render();
 }
 function shadyPlate(){
-  const cost=Math.round(75000*shadyMult());
+  const cost=Math.round(75000*shadyMult()*platePerkMul());
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   modal("Een man in een trainingsvest overhandigt je een plaat in een Delhaize-zak. \"Niet vragen waar ze vandaan komt, hé.\"",
   [{t:"Aannemen",cls:"shady",fn:()=>{G.cash-=cost;
