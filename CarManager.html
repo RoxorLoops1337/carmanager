@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -799,6 +799,8 @@ const GOALS=[
  {id:"punchcard5",t:"Vul 5 klantenkaarten",r:"+300 XP · huisleverancier van heel Essene",c:()=>(G.cardsFull||0)>=5,fn:()=>addXP(300)},
  {id:"bargain",t:"Koop een project uit de koopjesbak",r:"+70 XP · handige harry",c:()=>!!G.mile.bargain,fn:()=>addXP(70)},
  {id:"bargainflip",t:"Verkoop een opgeknapt koopjesbak-project met winst",r:"+130 XP · van schroot naar schat",c:()=>!!G.mile.bargainFlip,fn:()=>addXP(130)},
+ {id:"referral",t:"Verkoop aan een doorverwezen klant",r:"+80 XP · mond-tot-mondreclame",c:()=>!!G.mile.referral,fn:()=>addXP(80)},
+ {id:"referchain",t:"Bouw een verwijsketen van 3 diep",r:"+220 XP · heel de familie rijdt nu bij u",c:()=>!!G.mile.referChain,fn:()=>addXP(220)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1268,6 +1270,14 @@ function genCustomers(){
     G.custs.push({id:UID++,name:nm,t:"kwam terug — was tevreden over de vorige koop",want:ty.want,
       fuss:Math.max(.05,ty.fuss*.6),face:pick(CFACES),returning:true,
       budget:Math.round(ty.want.maxB*rnd(.7,1.15)/1000)*1000,tried:false});
+  }
+  // doorverwezen klanten (warme leads): tevreden kopers sturen vrienden/familie
+  G.referrals=G.referrals||[];
+  for(const rf of G.referrals.splice(0,2)){
+    const ty=pick(CUSTTYPES.filter(t=>t.want&&t.want.body&&rf.want.body&&rf.want.body.some(b=>t.want.body.includes(b))))||pick(CUSTTYPES);
+    G.custs.push({id:UID++,name:pick(CUSTNAMES),t:pick(["mijn schoonbroer kocht hier zijn wagen","gestuurd door "+rf.referrer+", 'ge wordt daar goed geholpen'","hoorde van "+rf.referrer+" dat het hier deugt"]),
+      want:rf.want,fuss:Math.max(.05,(ty.fuss||.3)*.5),face:rf.face||pick(CFACES),referred:true,referrer:rf.referrer,chain:rf.chain||1,
+      budget:Math.round((ty.want.maxB||300000)*rnd(.8,1.15)/1000)*1000,tried:false});
   }
   for(let i=0;i<n;i++){
     const ty=pick(CUSTTYPES);
@@ -3458,7 +3468,7 @@ function renderSell(){
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+'</h3>'
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -4421,7 +4431,7 @@ function clearanceOn(){return (G.clearance||0)>0}
 const CLEARANCE_ODDS=.11;
 function sellOdds(cu,price,perc){
   return clamp(1.45-(price/perc)*1.2+G.rep/350+(G.rb?.08:0)+(isCh("thomas")?.10:0)
-    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)+(cu.returning?.08:0)+(clearanceOn()?CLEARANCE_ODDS:0)-cu.fuss*.15,.03,.96);
+    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)+(cu.returning?.08:0)+(cu.referred?.06:0)+(clearanceOn()?CLEARANCE_ODDS:0)-cu.fuss*.15,.03,.96);
 }
 function moodFace(p){return p>.65?"😍":p>.45?"🙂":p>.3?"🤨":"😬"}
 function negBonus(){return (NEG&&NEG.talk&&NEG.talk.bonus)||0}
@@ -4565,6 +4575,15 @@ function doSale(cu,c,price,disclosed,iss){
   repAdd(honest?3:1);
   if(honest){enrollLoyal(cu.name);if(Math.random()<.3)G.postcards.push({eta:ri(2,5),name:cu.name});}
   if(cu.returning)G.mile.loyalSold=1;
+  // tevreden klant verwijst soms een vriend/familielid door (chain bij eerlijk zakendoen)
+  const happy=honest||(c.eng>=95&&c.body>=95)||G.rep>=60;
+  if(happy&&(G.referrals||[]).length<4&&Math.random()<clamp(.22+G.rep/500,.15,.5)){
+    G.referrals=G.referrals||[];
+    const chain=cu.referred?(cu.chain||1)+1:1;
+    G.referrals.push({referrer:cu.name,want:{body:[CARS[c.ci].body]},chain,face:pick(CFACES)});
+    log("🗣️ "+cu.name+" is tevreden en belooft een "+(cu.referred?"volgende":"")+"vriend door te sturen. Mond-tot-mondreclame, de beste soort.");
+  }
+  if(cu.referred){G.mile.referral=1;if((cu.chain||1)>=3)G.mile.referChain=1;}
   const profit=price-(c.paid||0);
   // record profit
   if(profit>(G.recProfit||0)){
