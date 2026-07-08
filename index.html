@@ -578,6 +578,7 @@ const QUIRKS=[
  {id:"ijzerdraad",t:"nummerplaat vastgemaakt met ijzerdraad",v:-.05,hide:true},
  {id:"contact",t:"radio staat muurvast op Radio Contact",v:-.01,hide:false},
  {id:"warm",t:"zetel nog warm bij aankoop (motor stond nét af)",v:-.06,hide:true},
+ {id:"rhd",t:"stuur rechts (Japanse import)",v:-.06,hide:false},
 ];
 const MARKETS={
  de:{n:"Duitsland",fl:"🇩🇪",city:"Keulen / Autobahn-strips",mult:1.02,travel:9000,cond:[55,95],km:[.6,1.1],
@@ -714,7 +715,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -770,6 +771,7 @@ const GOALS=[
  {id:"eotm",t:"Kroon een Werknemer van de Maand",r:"+70 XP · goed werkgeverschap",c:()=>!!G.mile.eotm,fn:()=>addXP(70)},
  {id:"night",t:"Koop een wagen op de nachtveiling",r:"+90 XP · wie niet waagt...",c:()=>!!G.mile.nightAuction,fn:()=>addXP(90)},
  {id:"gsmup",t:"Waardeer je GSM op",r:"+60 XP · altijd bereikbaar",c:()=>!!G.mile.gsmUp,fn:()=>addXP(60)},
+ {id:"jdm",t:"Importeer een container JDM-wagens uit Japan",r:"+200 XP · rechts sturen, links winnen",c:()=>!!G.mile.jdm,fn:()=>addXP(200)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1203,7 +1205,11 @@ function bestPlate(){return G.plates.find(p=>p.weeks>0)}
 function platesTick(){G.plates.forEach(p=>p.weeks--);G.plates=G.plates.filter(p=>p.weeks>0);
   if(G.plateOrder){G.plateOrder.eta--;
     if(G.plateOrder.eta<=0){G.plates.push({weeks:8,shady:false,code:plateCode()});
-      log("De officiële ZZ-plaat is aangekomen. Proper en glimmend. 8 weken geldig.");G.plateOrder=null;}}}
+      log("De officiële ZZ-plaat is aangekomen. Proper en glimmend. 8 weken geldig.");G.plateOrder=null;}}
+  if(G.jdm){G.jdm.eta--;
+    if(G.jdm.eta<=0){const names=[];for(let i=0;i<(G.jdm.n||JDM_N);i++){const c=genJdmCar();G.cars.push(c);names.push(carName(c));}
+      G.mile.jdm=1;G.jdm=null;
+      log("🚢 De container uit Japan is gelost aan kaai 142! Op het koertje: "+names.join(", ")+". Allemaal met 't stuur rechts.");}}}
 function plateCode(){return "ZZ-"+ri(100,999)+"-"+String.fromCharCode(65+ri(0,25))}
 
 /* ============ CUSTOMERS ============ */
@@ -2173,6 +2179,28 @@ function doAuc(i){
   });
 }
 /* legerstock depot: om de 3 weken, ontgrendelt na 6 trips */
+/* Japan-import container: via het havencontact aan kaai 142 (zelfde unlock als export) */
+const JDM_MAKES=["Toyota","Honda","Nissan","Mazda","Mitsubishi","Subaru"];
+const JDM_COST=1200000, JDM_N=3, JDM_ETA=3;
+function genJdmCar(){
+  const pool=CARS.map((d,i)=>({d,i})).filter(x=>JDM_MAKES.includes(x.d.mk));
+  let tot=0;const ws=pool.map(x=>{let w=1;if(["sport","coupe"].includes(x.d.body))w*=3;w*=1+x.d.rar;tot+=w;return w});
+  let r=Math.random()*tot,ci=pool[0].i;
+  for(let k=0;k<ws.length;k++){r-=ws[k];if(r<=0){ci=pool[k].i;break}}
+  const d=CARS[ci],year=ri(d.y[0],Math.min(d.y[1],1995));
+  const kmReal=Math.round(((1997-year)*15000+20000)*rnd(.7,1.2)/1000)*1000; // Japanse km's: laag en eerlijk
+  return {id:UID++,ci,year,km:kmReal,kmReal,rolled:false,
+    eng:ri(72,95),body:ri(65,92),col:ri(0,COLORS.length-1),tuned:Math.random()<.3?1:0,
+    quirks:["rhd"],known:["rhd"],papers:0,hot:false,origin:"jp",transit:false,askedBy:null,paid:Math.round(JDM_COST/JDM_N)};
+}
+function orderJdm(){
+  if(!G.unlocks.port||G.jdm)return;
+  if(G.cash-JDM_COST<creditLimit()){toast("Zo'n container kost een berg geld. Nog niet.");return}
+  G.cash-=JDM_COST;G.spent+=JDM_COST;G.jdm={eta:JDM_ETA,n:JDM_N};save();
+  popNum("-"+fmt(JDM_COST),"pred");sfx("kaching");
+  log("🚢 Container JDM-wagens besteld via kaai 142 ("+fmt(JDM_COST)+"). Vaart nu de Stille Oceaan over. Levering over ±"+JDM_ETA+" weken.");
+  toast("🚢 Container onderweg uit Japan. Geduld — en ruimte maken op 't koertje.");render();
+}
 function legerUnlocked(){return G.trips>=6||!!G.unlocks.leger}
 function openLeger(){
   if(!legerUnlocked()){toast("Het depot kent u nog niet.");return}
@@ -2465,6 +2493,13 @@ function renderTravel(){
   }else{
     h+='<div class="card" style="opacity:.6"><div class="spread"><h3 style="margin:0">🪖 Legerstock 🔒</h3><span class="pill">⚠⚠</span></div>'
      +'<div class="small dim">Een dumpdepot vol ex-legervoertuigen. 🔒 Ontgrendelt na <b>6 inkooptrips</b> (ge moet de weg kennen).</div></div>';
+  }
+  if(G.unlocks.port){
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">🚢 Japan-import (kaai 142)</h3><span class="pill info">🇯🇵 JDM</span></div>';
+    if(G.jdm)h+='<div class="small dim">Uw container is onderweg — nog <b>'+G.jdm.eta+'</b> week/weken tot hij gelost wordt aan de kaai.</div>';
+    else h+='<div class="small dim">Uw havencontact regelt een container met <b>'+JDM_N+' Japanse wagens</b> (Toyota, Nissan, Honda...): weinig km, goeie staat, scherpe prijs — maar \'t stuur zit rechts, en dat drukt de verkoop in België een beetje. Levering ±'+JDM_ETA+' weken.</div>'
+      +'<button class="btn primary" onclick="orderJdm()">Bestel een container ('+fmt(JDM_COST)+')</button>';
+    h+='</div>';
   }
   for(const k in MARKETS){const m=MARKETS[k];
     if(m.req&&!m.req.c()){
