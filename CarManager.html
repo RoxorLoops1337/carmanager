@@ -713,6 +713,7 @@ function migrate(){if(!G)return;
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
+  if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -765,6 +766,7 @@ const GOALS=[
  {id:"warrhon",t:"Kom een garantie eervol na",r:"+120 XP · een man/vrouw van zijn woord",c:()=>!!G.mile.warrantyHonored,fn:()=>addXP(120)},
  {id:"loyal",t:"Verkoop een tweede wagen aan een tevreden klant",r:"+90 XP · vaste klanten, vast inkomen",c:()=>!!G.mile.loyalSold,fn:()=>addXP(90)},
  {id:"scrap",t:"Sloop een hopeloos geval voor onderdelen",r:"+50 XP · geen wagen te slecht om iets op te brengen",c:()=>!!G.mile.scrapped,fn:()=>addXP(50)},
+ {id:"eotm",t:"Kroon een Werknemer van de Maand",r:"+70 XP · goed werkgeverschap",c:()=>!!G.mile.eotm,fn:()=>addXP(70)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1333,6 +1335,18 @@ function endWeek(silent){
       extra.push([st.face+" "+st.n,"neemt ontslag!","neg"]);repAdd(-1);
       log("💢 "+st.face+" "+st.n+" heeft er genoeg van en stapt op. 'Nooit een bonus, nooit een dankjewel.'")}
     else if(G.staffMorale[k]<25)extra.push([st.face+" "+st.n,"⚠️ ontevreden ("+G.staffMorale[k]+"%) — geef een bonus","neg"]);}
+  // Werknemer van de Maand: elke maand de beste kracht in de bloemetjes
+  if(G.week%4===1){
+    const hires=Object.keys(G.staff||{});
+    if(hires.length){
+      hires.sort((a,b)=>(staffLvl(b)-staffLvl(a))||(staffMorale(b)-staffMorale(a)));
+      const win=hires[0];G.eotm=win;
+      G.staffMorale[win]=clamp(staffMorale(win)+20,0,100);
+      extra.push(["🏅 Werknemer v/d Maand",STAFFDEF[win].face+" "+STAFFDEF[win].n+" (+moraal)","money"]);
+      log("🏅 "+STAFFDEF[win].face+" "+STAFFDEF[win].n+" is Werknemer van de Maand! Een bon, een handdruk en een plek aan de muur. De moraal zit weer goed.");
+      G.mile.eotm=1;
+    }else G.eotm=null;
+  }
   if(hasStaff("staf"))G.heat=clamp(G.heat-2,0,100);
   if(hasStaff("sonja")){const amt=staffLvl("sonja");for(const c of G.cars)if(c.body<82)c.body=Math.min(82,c.body+amt);}
   for(const c of G.cars)if(c.washT>0)c.washT--; // de glans van de wasbeurt vervaagt
@@ -1778,7 +1792,7 @@ function renderOffice(){
     for(const k in STAFFDEF){const st=STAFFDEF[k],on=!!G.staff[k];
       const lvl=on?staffLvl(k):0,mor=on?staffMorale(k):0;
       h+='<div class="logline"><span style="font-size:19px">'+st.face+'</span> <b>'+st.n+'</b> <span class="small dim">'+st.t+' · '+fmt(st.cost)+'/wk</span>'
-       +(on?' <span class="pill '+(lvl>=3?"good":"")+'" title="ervaring">'+"⭐".repeat(lvl)+'</span> <span class="pill '+(mor<25?"bad":mor<50?"warn":"good")+'" title="moraal">'+(mor<25?"😠":mor<50?"😐":"🙂")+' '+mor+'%</span>':'')
+       +(on?' <span class="pill '+(lvl>=3?"good":"")+'" title="ervaring">'+"⭐".repeat(lvl)+'</span> <span class="pill '+(mor<25?"bad":mor<50?"warn":"good")+'" title="moraal">'+(mor<25?"😠":mor<50?"😐":"🙂")+' '+mor+'%</span>'+(G.eotm===k?' <span class="pill good" title="Werknemer van de Maand">🏅</span>':''):'')
        +'<div class="small dim">'+st.d+(on&&lvl>1?' <b>(niveau '+lvl+')</b>':'')+'</div>'
        +'<button class="btn '+(on?"":"primary")+'" style="padding:5px 12px;font-size:12px" onclick="toggleStaff(\''+k+'\')">'+(on?"Ontslaan":"Aanwerven")+'</button>'
        +(on?'<button class="btn" style="padding:5px 12px;font-size:12px;margin-left:6px" onclick="payBonus(\''+k+'\')">💚 Bonus ('+fmt(Math.round(st.cost*1.5/100)*100)+')</button>':'')+'</div>';
