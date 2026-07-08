@@ -760,6 +760,7 @@ const GOALS=[
  {id:"c20m",t:"Spaar 20.000.000 BEF: het keizerrijk",r:"👑 De kroon op het werk. Een gouden asbak op het bureau.",c:()=>G.cash>=20000000,fn:()=>{stamp("KEIZERRIJK","gold");confetti(180);sfx("win");addXP(400)}},
  {id:"dany",t:"Laat Dany uit Ninove je 5× de loef afsteken (en overleef het)",r:"+120 XP · rivaliteit maakt scherp",c:()=>(G.danyBeat||0)>=5,fn:()=>addXP(120)},
  {id:"trade",t:"Neem je eerste inruilwagen aan",r:"+60 XP · handelaarsbloed",c:()=>!!G.mile.tradeIn,fn:()=>addXP(60)},
+ {id:"tradeflip",t:"Verkoop een ingeruilde wagen met winst door",r:"+110 XP · van andermans oud ijzer geld maken",c:()=>!!G.mile.tradeFlip,fn:()=>addXP(110)},
  {id:"raid",t:"Overleef een razzia zonder inbeslagname",r:"+100 XP · koelbloedig",c:()=>!!G.mile.raidClean,fn:()=>addXP(100)},
  {id:"kermis",t:"Sta op de Kermis van Essene",r:"+80 XP · smoutebollen inbegrepen",c:()=>!!G.mile.kermis,fn:()=>addXP(80)},
  {id:"kerst",t:"Vier kerst op het koertje",r:"+90 XP · een boompje in de container",c:()=>!!G.mile.kerst,fn:()=>addXP(90)},
@@ -3068,7 +3069,7 @@ function renderGarage(){
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
@@ -4388,10 +4389,12 @@ function doSale(cu,c,price,disclosed,iss){
   if(wFee){price+=wFee;G.mile.warrantySold=1;}
   const tradeCut=useTrade?Math.min(cu.tradeClaim,price):0;
   G.cash+=price-tradeCut;G.earned+=price-tradeCut;G.sold++;G.wkSold=(G.wkSold||0)+1;
-  if(useTrade){const tc=cu.tradeIn;tc.paid=tradeCut;tc.known=tc.quirks.slice();
+  if(useTrade){const tc=cu.tradeIn;tc.paid=tradeCut;tc.tradein=1;tc.known=tc.quirks.slice();
     if(tc.rolled)tc.known.push("__rolled");G.cars.push(tc);G.mile.tradeIn=1;
     log("🔄 "+cu.name+" ruilde zijn "+carName(tc)+" in ("+fmt(tradeCut)+" van de prijs). Nu maar hopen dat 't meevalt.");
     toast("🔄 Inruilwagen op het koertje: "+carName(tc));}
+  // een ooit-ingeruilde wagen met winst doorverkopen
+  if(c.tradein&&(price-tradeCut)>(c.paid||0))G.mile.tradeFlip=1;
   stamp("DEAL!","gold");popNum("+"+fmt(price-tradeCut),"pgreen");sfx("kaching");confetti(26);driveOff(c);
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak
