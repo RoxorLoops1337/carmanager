@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -808,6 +808,7 @@ const GOALS=[
  {id:"tyressold",t:"Verkoop een wagen met banden die bij 't seizoen passen",r:"+100 XP · de juiste band op 't juiste moment",c:()=>!!G.mile.tyresSold,fn:()=>addXP(100)},
  {id:"radiocontest",t:"Win de bel-in wedstrijd van Radio Essene",r:"+90 XP · snelle vinger, scherp verstand",c:()=>!!G.mile.radioContest,fn:()=>addXP(90)},
  {id:"tvfeature",t:"Verkoop een model tijdens zijn TV-rage",r:"+130 XP · op het juiste moment beroemd",c:()=>!!G.mile.tvFeature,fn:()=>addXP(130)},
+ {id:"customsfriend",t:"Bouw een verstandhouding op met de douanier",r:"+120 XP · een vriend aan de grens",c:()=>!!G.mile.customsFriend,fn:()=>addXP(120)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -3133,11 +3134,25 @@ function arriveHome(){
    [{t:"Naar de garage",fn:()=>{closeModal();CUR="garage";endWeek();render()}}]);
 }
 let CST=null;
+/* rapport met de douanier "Achiel": groeit bij elke geslaagde grensinteractie */
+const CUSTOMS_FRIEND_THRESH=4;
+function customsFriend(){return (G.customsRapport||0)>=CUSTOMS_FRIEND_THRESH;}
+function bumpRapport(){
+  G.customsRapport=(G.customsRapport||0)+1;
+  if(G.customsRapport===CUSTOMS_FRIEND_THRESH){G.mile.customsFriend=1;
+    log("🛂 De douanier — Achiel heet hij — begint u te herkennen. \"Ah, de meneer van Essene. We kennen mekaar ondertussen, hè.\" Vanaf nu wuift hij u wel eens gewoon door.");}
+}
 function evCustoms(next){
   const m=MARKETS[MK.k];
   const hasPlate=validPlate(),pl=bestPlate();
   const risky=MK.bought.filter(c=>c.papers===2||c.hot);
   let danger=.1+.1*m.risk+(hasPlate?0:.4)+(pl&&pl.shady?.15:0)+risky.length*.18;
+  // Achiel kent u ondertussen: af en toe wuift hij u gewoon door — ook met wat 'ongeregelds' achterin
+  if(customsFriend()&&Math.random()<.4){
+    log("🛂 Achiel aan de grens: \""+pick(["Awel, de meneer van Essene! Rij maar door, ik heb u niet gezien.","Ah, gij weer. Alles in orde zeker? 't Is goed, doorrijden.","Voor een vaste klant kijken we niet te nauw. Salut!"])+"\"");
+    modal(borderScene()+"<b>🛂 Grenspost.</b> De douanier — Achiel — herkent u van ver, lacht, en tikt tegen zijn pet. Geen controle, geen papieren, geen gezever."+(risky.length?" Hij kijkt zelfs demonstratief de andere kant op bij die "+esc(carName(risky[0]))+".":"")+" \"Goeie reis, collega.\"",
+     [{t:"Rustig doorrijden",fn:()=>{closeModal();next()}}]);openBarrier();return;
+  }
   if(hasPlate&&risky.length===0&&(!pl.shady)){
     modal(borderScene()+"<b>🛂 Grenspost.</b> De douanier bekijkt je <span class='plate'>"+pl.code+"</span>, knikt, en wuift je door. Saai. Perfect.",[{t:"Verder rijden",fn:()=>{closeModal();next()}}]);openBarrier();return;
   }
@@ -3163,13 +3178,13 @@ function copModal(){
   const btns=[{t:"💶 Iets regelen ("+fmt(bribe)+") <span class='small'>🎲 ±"+Math.round(brib*100)+"%</span>",cls:"shady",fn:()=>{
       if(G.cash-bribe<creditLimit()){toast("Geen cash genoeg om te 'regelen'.");return}
       G.cash-=bribe;
-      if(Math.random()<brib){heatAdd(4);log("Douanier 'geregeld' aan de grens. (-"+fmt(bribe)+")");closeModal();modal(borderScene()+"Het bankbiljet verdwijnt in een borstzak. \"Goeie reis verder.\" ",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
+      if(Math.random()<brib){heatAdd(4);bumpRapport();log("Douanier 'geregeld' aan de grens. (-"+fmt(bribe)+")");closeModal();modal(borderScene()+"Het bankbiljet verdwijnt in een borstzak. \"Goeie reis verder.\" ",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();heatAdd(12);G.cash-=fine;log("Omkoping mislukt! Boete "+fmt(fine)+" en een nota in een dossier ergens.");closeModal();modal("Verkeerde douanier. Hij schrijft ALLES op. Boete: <b>"+fmt(fine)+"</b>, plus de omkoopsom is hij ook 'kwijt'.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}}];
   if(G.sloffen>0){
     const slof=clamp(.8+st.bonus,.1,.98);
     btns.push({t:"🚬 Sloffe toestoppen (nog "+G.sloffen+") <span class='small'>🎲 ±"+Math.round(slof*100)+"%</span>",cls:"shady",fn:()=>{
       G.sloffen--;
-      if(Math.random()<slof){heatAdd(2);log("Douanier 'bedankt' met een sloffe Poolse sigaretten. Rook lost alles op.");closeModal();modal(borderScene()+"De sloffe glijdt onder de balie alsof hij daar altijd al lag. \"Mooi merk.\" De slagboom gaat open.",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
+      if(Math.random()<slof){heatAdd(2);bumpRapport();log("Douanier 'bedankt' met een sloffe Poolse sigaretten. Rook lost alles op.");closeModal();modal(borderScene()+"De sloffe glijdt onder de balie alsof hij daar altijd al lag. \"Mooi merk.\" De slagboom gaat open.",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();heatAdd(8);G.cash-=fine;log("Sloffe geweigerd aan de grens! Boete "+fmt(fine)+".");closeModal();modal("\"Ik rook niet.\" Hij houdt de sloffe 'als bewijsstuk' én schrijft de boete: <b>"+fmt(fine)+"</b>.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}});
   }
   if(st._mart){
@@ -3177,11 +3192,11 @@ function copModal(){
     btns.push({t:"📞 Bel Martine ("+fmt(mc)+") <span class='small'>🎲 ±92%</span>",fn:()=>{
       if(G.cash-mc<creditLimit()){toast("Te weinig geld. Martine werkt niet op de poef.");return}
       G.cash-=mc;G.martineCalls=(G.martineCalls||0)+1;
-      if(Math.random()<.92){log("Martine uit een grenscontrole gebeld. Alles 'officieel geregeld'. (-"+fmt(mc)+")");closeModal();modal(borderScene()+"Ge geeft de GSM aan de douanier. Martine vraagt naar zijn overste, noemt twee voornamen en een dossiernummer. Hij geeft je de papieren terug alsof ze gloeien. \"In orde, meneer. Goeie reis.\"",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
+      if(Math.random()<.92){bumpRapport();log("Martine uit een grenscontrole gebeld. Alles 'officieel geregeld'. (-"+fmt(mc)+")");closeModal();modal(borderScene()+"Ge geeft de GSM aan de douanier. Martine vraagt naar zijn overste, noemt twee voornamen en een dossiernummer. Hij geeft je de papieren terug alsof ze gloeien. \"In orde, meneer. Goeie reis.\"",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();G.cash-=fine;heatAdd(2);log("Zelfs Martine kreeg er geen beweging in. Boete "+fmt(fine)+".");closeModal();modal("Martine zucht door de telefoon. \"Die ken ik niet. Betaal de boete, hou het proper, en zeg tegen niemand dat ge mij gebeld hebt.\" Boete: <b>"+fmt(fine)+"</b>.",[{t:"Betalen",fn:()=>{closeModal();next()}}])}}});
   }
   btns.push({t:"😇 Gladpraten <span class='small'>🎲 ±"+Math.round(glad*100)+"%</span>",fn:()=>{
-      if(Math.random()<glad){log("Uit een controle gepraat aan de grens. Charme werkt.");closeModal();modal(borderScene()+"Vijf minuten over het weer, voetbal, en de kwaliteit van Duitse autosnelwegen later... wuift hij je door. Ongelooflijk.",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
+      if(Math.random()<glad){bumpRapport();log("Uit een controle gepraat aan de grens. Charme werkt.");closeModal();modal(borderScene()+"Vijf minuten over het weer, voetbal, en de kwaliteit van Duitse autosnelwegen later... wuift hij je door. Ongelooflijk.",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();G.cash-=fine;heatAdd(8);
         let txt="Hij trapt er niet in. Boete: <b>"+fmt(fine)+"</b>.";
         if(risky.length&&Math.random()<.5){const c=risky[0];MK.bought=MK.bought.filter(x=>x.id!==c.id);txt+="<br>Erger: de <b>"+esc(carName(c))+"</b> wordt aangeslagen. Papieren 'ter controle'. Die zie je nooit terug.";log(carName(c)+" aangeslagen aan de grens.")}
