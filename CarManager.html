@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -815,6 +815,7 @@ const GOALS=[
  {id:"rally",t:"Rijd mee met de oldtimer-rally",r:"+90 XP · benzine in de aderen",c:()=>!!G.mile.rally,fn:()=>addXP(90)},
  {id:"flipwin",t:"Win een flip-off van een rivaal",r:"+160 XP · de beste handelaar van de streek",c:()=>!!G.mile.flipWin,fn:()=>addXP(160)},
  {id:"colormatch",t:"Lever een kleurkieskeurige klant zijn exacte kleur",r:"+90 XP · oog voor de klant",c:()=>!!G.mile.colorMatch,fn:()=>addXP(90)},
+ {id:"scrapboom",t:"Sloop een wagen tijdens een schrootboom",r:"+70 XP · oud ijzer, vers geld",c:()=>!!G.mile.scrapBoom,fn:()=>addXP(70)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1508,6 +1509,18 @@ function endWeek(silent){
     extra.push(["⛽ Brandstofcrisis!",tot+" weken · zuinige wagens gegeerd","neg"]);
     log("⛽ "+pick(["Oorlog in de Golf, de benzine schiet de lucht in!","OPEC draait de kraan dicht — de pompprijzen ontploffen!","Paniek aan de tankstations, rijen tot op de baan!"])+" Iedereen wil ineens een zuinig dieseltje of een klein hatchke; de slokops (BMW's, coupés, 4x4's) blijven staan. Duurt zo'n "+tot+" weken.");
     if(!silent){stamp("⛽ CRISIS","red");sfx("bad")}}
+  // schrootboom: zeldzame piek in de schrootprijs — slopen loont plots
+  if(G.scrapBoom&&G.scrapBoom.weeks>0){
+    G.scrapBoom.weeks--;
+    if(G.scrapBoom.weeks<=0){G.scrapBoom=null;
+      extra.push(["🪙 Schrootprijs normaal","de boom is voorbij",""]);
+      log("🪙 De schrootprijzen zakken weer naar normaal. De kozijn met de kraan sluit de poort en steekt een sigaret op.")}
+    else extra.push(["🪙 Schrootboom","nog "+G.scrapBoom.weeks+" wk · slopen loont","money"]);
+  } else if(Math.random()<.03){
+    const tot=ri(2,4);G.scrapBoom={weeks:tot,tot:tot};
+    extra.push(["🪙 Schrootboom!",tot+" weken · slopen betaalt fors meer","money"]);
+    log("🪙 "+pick(["Schrootprijzen door het dak! China koopt al het oud ijzer op.","De prijs van oud metaal ontploft — de kozijn betaalt ineens vorstelijk.","Recordprijzen voor schroot: elke roestbak is plots goud waard."])+" De komende "+tot+" weken brengt slopen "+Math.round((SCRAP_BOOM_MUL-1)*100)+"% meer op. Tijd om de hopeloze gevallen weg te doen.");
+    if(!silent){stamp("🪙 SCHROOTBOOM","gold");sfx("win")}}
   // Kermis van Essene, één keer per jaar in september (rond week 37)
   if(G.week>=36&&G.week<=38&&G.mile.kermisYear!==G.year){
     G.mile.kermisYear=G.year;G.mile.kermis=1;repAdd(3);
@@ -3495,6 +3508,7 @@ function renderGarage(){
   const st=Math.min(5,Math.floor((G.mech||0)/12));
   let h='<div class="spread"><h2 style="margin:0">🔧 Garage & Stock</h2>'
    +'<span class="pill" title="De monteur wordt beter met elke klus">👨‍🔧 '+"★".repeat(st)+"☆".repeat(5-st)+'</span></div>';
+  if(scrapBoomOn())h+='<div class="card flat"><span class="small"><b>🪙 Schrootboom!</b> <span class="dim">Slopen brengt nu +'+Math.round((SCRAP_BOOM_MUL-1)*100)+'% op (nog '+G.scrapBoom.weeks+' wk). Ideaal voor hopeloze roestbakken.</span></span></div>';
   // leerjongen
   if(G.appr){const l=apprLvl();
     h+='<div class="card"><div class="spread"><h3 style="margin:0">🧑‍🔧 Leerjongen</h3><span class="pill '+(l>=3?"good":"warn")+'">'+(l>=3?"uitgeleerd 🎓":"niveau "+l+" "+"⭐".repeat(Math.max(0,l-1)))+'</span></div>'
@@ -3619,7 +3633,9 @@ function toggleLesauto(id){
   save();openCar(id);
 }
 /* sloop: directe onderdelenprijs, altijd minder dan verkopen — enkel zinvol voor hopeloze gevallen */
-function scrapValue(c){return Math.max(2000,Math.round(CARS[c.ci].base*(0.06+0.10*((c.eng+c.body)/200))/1000)*1000)}
+const SCRAP_BOOM_MUL=1.75;
+function scrapBoomOn(){return !!(G.scrapBoom&&G.scrapBoom.weeks>0)}
+function scrapValue(c){let v=Math.max(2000,CARS[c.ci].base*(0.06+0.10*((c.eng+c.body)/200)));if(scrapBoomOn())v*=SCRAP_BOOM_MUL;return Math.round(v/1000)*1000}
 function scrapCar(id){
   const c=getCar(id);if(!c)return;
   const pay=scrapValue(c);
@@ -3627,6 +3643,7 @@ function scrapCar(id){
   [{t:"Slopen ("+fmt(pay)+")",cls:"shady",fn:()=>{
       const ix=G.cars.findIndex(x=>x.id===c.id);if(ix<0){closeModal();return}
       G.cars.splice(ix,1);G.cash+=pay;G.earned+=pay;G.mile.scrapped=1;G.scrapped=(G.scrapped||0)+1;
+      if(scrapBoomOn())G.mile.scrapBoom=1;
       popNum("+"+fmt(pay),"pgreen");sfx("kaching");addXP(4);
       log("🪓 "+carName(c)+" gesloopt voor onderdelen ("+fmt(pay)+"). Rust roest.");
       toast("🪓 Gesloopt. De koffer met velgen ligt al bij de kozijn.");
