@@ -520,6 +520,13 @@ const CARS=[
  {mk:"Peugeot",md:"605 SV",y:[1990,1996],body:"sedan",base:270000,rar:0},
  {mk:"Nissan",md:"Sunny GTI-R",y:[1990,1994],body:"hatch",base:430000,rar:2},
  {mk:"Audi",md:"Coupé S2",y:[1991,1996],body:"coupe",base:520000,rar:2},
+ // ---- legerstock: ex-leger, olijfgroen, spartaans, onverwoestbaar ----
+ {mk:"Land Rover",md:"Defender 90 (ex-leger)",y:[1985,1996],body:"suv",base:240000,rar:1,army:1},
+ {mk:"Land Rover",md:"109 Series III (ex-leger)",y:[1975,1985],body:"suv",base:180000,rar:1,army:1},
+ {mk:"VW",md:"Iltis (ex-leger)",y:[1978,1988],body:"suv",base:160000,rar:1,army:1},
+ {mk:"Jeep",md:"M151 MUTT (ex-leger)",y:[1970,1983],body:"suv",base:150000,rar:1,army:1},
+ {mk:"Mercedes",md:"Unimog 404 (ex-leger)",y:[1970,1985],body:"van",base:200000,rar:2,army:1},
+ {mk:"DAF",md:"YA-126 (ex-leger)",y:[1972,1984],body:"van",base:130000,rar:1,army:1},
 ];
 const COLORS=[
  {n:"Alpinewit",h:"#e8e6df"},{n:"Diamantzwart",h:"#23222a"},{n:"Tornado Rood",h:"#c8272d"},
@@ -531,6 +538,7 @@ const COLORS=[
  {n:"Zandbeige",h:"#c9a876"},{n:"Antraciet Metallic",h:"#3b3d42"},{n:"Postbusrood",h:"#a5241f"},
  {n:"Signaaloranje",h:"#d95f18"},{n:"Nachtblauw",h:"#232a4d"},{n:"Olijfgroen",h:"#5a5f3a"},
  {n:"Roze (speciale bestelling)",h:"#d98bb1"},
+ {n:"Legergroen (olijfdrab)",h:"#4b5320"},
 ];
 const QUIRKS=[
  {id:"taxi",t:"ex-taxi uit Warschau",v:-.12,hide:true},
@@ -692,6 +700,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
+  G.leger=G.leger||null;
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
 /* ---- goal chain: always something to look forward to ---- */
@@ -732,6 +741,7 @@ const GOALS=[
  {id:"trade",t:"Neem je eerste inruilwagen aan",r:"+60 XP · handelaarsbloed",c:()=>!!G.mile.tradeIn,fn:()=>addXP(60)},
  {id:"raid",t:"Overleef een razzia zonder inbeslagname",r:"+100 XP · koelbloedig",c:()=>!!G.mile.raidClean,fn:()=>addXP(100)},
  {id:"kermis",t:"Sta op de Kermis van Essene",r:"+80 XP · smoutebollen inbegrepen",c:()=>!!G.mile.kermis,fn:()=>addXP(80)},
+ {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -772,6 +782,7 @@ function syncUID(){
   if(G.danyDeal&&G.danyDeal.c)pools.push([G.danyDeal.c]);
   const trades=(G.custs||[]).filter(x=>x.tradeIn).map(x=>x.tradeIn);if(trades.length)pools.push(trades);
   if(G.auction)pools.push(G.auction.lots);
+  if(G.leger)pools.push(G.leger.lots);
   let m=0;for(const a of pools)for(const x of a||[])if(x.id>m)m=x.id;
   UID=Math.max(UID,m+1);
   // repair duplicate ids baked into old saves (pre-fix): tapping car A could open/sell car B
@@ -798,6 +809,7 @@ function genCar(mkey){
   const m=MARKETS[mkey];
   // weighted template pick
   let tot=0;const ws=CARS.map(d=>{
+    if(d.army)return 0; // legerstock koopt ge alleen op het depot
     let w=[100,38,m.rare*110,m.legend*90][d.rar];
     if(d.y[1]<1988)w*=(m.risk>=2?1.5:.45);
     if(isCh("alan")&&d.rar>=2)w*=1.4;
@@ -824,6 +836,22 @@ function genCar(mkey){
   if(pr<m.fake){c.papers=2;c.hot=Math.random()<.5}
   else if(pr<m.fake+m.dirty){c.papers=1;c.hot=Math.random()<.12}
   c.ask=Math.round(trueValue(c)*m.mult*rnd(.88,1.15)/1000)*1000;
+  return c;
+}
+const ARMY_IX=CARS.map((d,i)=>d.army?i:-1).filter(i=>i>=0);
+const OLIVE_IX=Math.max(0,COLORS.findIndex(c=>/Legergroen/.test(c.n)));
+/* legerstock depot: alleen ex-leger voertuigen, olijfgroen, hoge km, robuust, papieren in orde */
+function genArmyCar(){
+  const ci=pick(ARMY_IX),d=CARS[ci];
+  const year=ri(d.y[0],Math.min(d.y[1],1995));
+  const kmReal=Math.round(((1997-year)*22000+40000)*rnd(.9,1.5)/1000)*1000;
+  const c={id:UID++,ci,year,km:kmReal,kmReal,rolled:false,
+    eng:ri(45,80),body:ri(35,70),col:OLIVE_IX,tuned:0,
+    quirks:[],known:[],papers:0,hot:false,origin:"leger",transit:false,askedBy:null};
+  // spartaans: geen verwarming, geen radio; maar onverwoestbaar (trekhaak vaak mee)
+  c.quirks.push("rust");if(Math.random()<.5)c.quirks.push("towbar");
+  c.known=c.quirks.slice();
+  c.ask=Math.round(trueValue(c)*rnd(.42,.6)/1000)*1000; // spotgoedkoop
   return c;
 }
 const carName=c=>CARS[c.ci].mk+" "+CARS[c.ci].md;
@@ -973,6 +1001,8 @@ const SHAPERULES=[
  [/Fiesta/,"shatch",3.74],[/Scirocco/,"p944",4.05],[/Prelude/,"gcoupe",4.44,{hl:"pop"}],
  [/Senator/,"esedan",4.85],[/21 Nevada/,"wagon",4.64],[/605/,"esedan",4.72],
  [/Sunny GTI-R/,"shatch",3.98,{w:2}],[/Coupé S2/,"gcoupe",4.4,{w:1}],
+ [/Defender|109 Series/,"suv",4.6,{hl:"round"}],[/Iltis/,"suv",3.89,{hl:"round"}],
+ [/M151/,"suv",3.37,{hl:"round"}],[/Unimog/,"van",4.9,{hl:"round"}],[/YA-126/,"van",4.5,{hl:"round"}],
 ];
 const SPECS=CARS.map(d=>{
   const n=d.mk+" "+d.md;
@@ -1823,6 +1853,34 @@ function doAuc(i){
     save();hdr();
   });
 }
+/* legerstock depot: om de 3 weken, ontgrendelt na 6 trips */
+function legerUnlocked(){return G.trips>=6||!!G.unlocks.leger}
+function openLeger(){
+  if(!legerUnlocked()){toast("Het depot kent u nog niet.");return}
+  if(G.week%3!==0){toast("Het legerdepot is maar om de 3 weken open.");return}
+  const wk=G.year*52+G.week;
+  if(!G.leger||G.leger.wk!==wk)G.leger={wk,lots:[genArmyCar(),genArmyCar(),genArmyCar()],gone:[]};
+  let h='<b>🪖 Legerstock-depot.</b> <span class="small dim">Een loods vol olijfgroen ijzer, een sergeant op pensioen als verkoper. Vaste prijs, cash, geen garantie, geen gezever.</span><hr>';
+  G.leger.lots.forEach((c,i)=>{
+    const gone=G.leger.gone.includes(i);
+    h+='<div class="carline" '+(gone?'style="opacity:.4;cursor:default"':'onclick="legerBuy('+i+')"')+'><div class="carpic" style="width:86px">'+carArt(c,88)+'</div><div style="flex:1"><b>'+esc(carName(c))+'</b> <span class="small dim">('+c.year+')</span>'
+     +'<div class="small dim">'+c.km.toLocaleString().replace(/,/g,".")+' km · olijfdrab · onverwoestbaar</div></div>'
+     +(gone?'<span class="pill">weg</span>':'<div class="money small">'+fmt(c.ask)+'</div>')+'</div>';
+  });
+  save();
+  modal(h,[{t:"Buiten",cls:"ghost",fn:closeModal}]);
+}
+function legerBuy(i){
+  const c=G.leger.lots[i];if(!c||G.leger.gone.includes(i))return;
+  if(G.cash-c.ask<creditLimit()){toast("Zoveel cash heeft ge niet, soldaat.");return}
+  G.leger.gone.push(i);G.cash-=c.ask;G.spent+=c.ask;c.paid=c.ask;
+  G.cars.push(c);G.mile.leger=1;save();
+  popNum("-"+fmt(c.ask),"pred");sfx("kaching");addXP(8);
+  log("🪖 Legerstock: "+carName(c)+" gekocht voor "+fmt(c.ask)+". De sergeant salueert bijna.");
+  stamp("INGERUKT!","gold");
+  modal("<b>🪖 Verkocht!</b> De sergeant tikt tegen zijn pet. \"Rijdt door alles heen, meneer. Behalve een goede verwarming.\"<hr>"+mkCarSheet(c,true),
+   [{t:"Naar de garage",fn:closeModal},{t:"Terug naar 't depot",cls:"ghost",fn:openLeger}]);
+}
 const STAFFDEF={
  roger:{n:"Roger",face:"👨‍🔧",t:"tweede monteur",cost:3000,d:"Klust 15% goedkoper en leert de garage sneller bij."},
  vera:{n:"Vera",face:"💁‍♀️",t:"verkoopster",cost:4000,d:"Lokt elke week een extra klant en praat elke deal 2% ronder."},
@@ -2010,6 +2068,14 @@ function renderTravel(){
      +(on?'<span class="pill good">deze week!</span>':'<span class="pill dim">over '+until+' we(e)k(en)</span>')+'</div>'
      +'<div class="small dim">Curatorverkopen en inbeslagnames. Bieden zonder motorkap open — 🎲 puur gokwerk, soms goud.</div>'
      +(on?'<button class="btn primary" onclick="openAuction()">Naar de veiling</button>':'')+'</div>';
+  }
+  if(legerUnlocked()){
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">🪖 Legerstock (dumpdepot)</h3><span class="pill">⚠⚠</span></div>'
+     +'<div class="small dim">Ex-leger, olijfgroen, geen verwarming, geen radio, wél onverwoestbaar. Spotgoedkoop en geen vragen. Om de 3 weken open.</div>'
+     +((G.week%3===0)?'<button class="btn primary" onclick="openLeger()">Naar het depot</button>':'<div class="small dim" style="margin-top:4px">Nu gesloten — kom terug over '+((3-(G.week%3))%3||3)+' we(e)k(en).</div>')+'</div>';
+  }else{
+    h+='<div class="card" style="opacity:.6"><div class="spread"><h3 style="margin:0">🪖 Legerstock 🔒</h3><span class="pill">⚠⚠</span></div>'
+     +'<div class="small dim">Een dumpdepot vol ex-legervoertuigen. 🔒 Ontgrendelt na <b>6 inkooptrips</b> (ge moet de weg kennen).</div></div>';
   }
   for(const k in MARKETS){const m=MARKETS[k];
     if(m.req&&!m.req.c()){
