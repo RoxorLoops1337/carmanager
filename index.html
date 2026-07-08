@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -803,6 +803,7 @@ const GOALS=[
  {id:"referchain",t:"Bouw een verwijsketen van 3 diep",r:"+220 XP · heel de familie rijdt nu bij u",c:()=>!!G.mile.referChain,fn:()=>addXP(220)},
  {id:"mystery",t:"Waag een verrassingskavel op de veiling",r:"+80 XP · wie niet waagt, niet wint",c:()=>!!G.mile.mysteryLot,fn:()=>addXP(80)},
  {id:"mysterygem",t:"Vis een parel uit een verrassingskavel",r:"+250 XP · het geluk van de handelaar",c:()=>!!G.mile.mysteryGem,fn:()=>addXP(250)},
+ {id:"frost",t:"Kom een strenge nachtvorst door met je stock",r:"+80 XP · winterhard",c:()=>!!G.mile.frost,fn:()=>addXP(80)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1329,6 +1330,31 @@ function addStamp(){
     toast("🎟️ Klantenkaart vol! +"+fmt(bonus)+" bonus.");
   }
 }
+/* winterse nachtvorst: bescherm de stock of gok erop */
+function frostCost(){return Math.min(2000+800*G.cars.length,12000)}
+function protectFrost(){
+  if(!G.frost)return;
+  const cost=frostCost();
+  if(G.cash-cost<creditLimit()){toast("Te weinig geld voor antivries en dekzeilen.");return}
+  G.cash-=cost;G.frost=false;G.mile.frost=1;popNum("-"+fmt(cost),"pred");
+  log("❄️🛡️ Antivries bijgevuld, dekzeilen over de wagens, kacheltje aan in de container. 's Morgens staat alles er kraaknet bij. Geen kilo schade.");
+  toast("🛡️ De stock kwam ongeschonden door de vorst.");save();render();
+}
+function gambleFrost(){
+  if(!G.frost)return;
+  G.frost=false;G.mile.frost=1;
+  let risk=.5;if(hasStaff("dree"))risk-=.30;if(G.appr||(G.mech||0)>=30)risk-=.10;
+  risk=clamp(risk,.08,.6);
+  if(G.cars.length&&Math.random()<risk){
+    const c=pick(G.cars);c.eng=clamp(c.eng-ri(4,10),6,100);c.body=clamp(c.body-ri(2,6),6,100);
+    ouch();log("❄️ Nachtvorst! De koelvloeistof van de "+carName(c)+" is bevroren en de accu is dood. Wat schade aan motor en koetswerk.");
+    modal("<b>🥶 't Heeft gevroren dat het kraakte.</b> De <b>"+esc(carName(c))+"</b> sprong niet aan — bevroren koelvloeistof, gebarsten slang, platte accu. Wat frostschade aan motor en koets.",[{t:"Verdorie.",fn:()=>{closeModal();render()}}]);
+  } else {
+    addXP(6);log("❄️ Streng gevroren, maar de stock kwam er heelhuids doorheen. "+pick(["Geluk gehad.","Die oude bakken zijn wel wat gewend.",(hasStaff("dree")?"Dree had 't kacheltje aangehouden.":"Net op tijd de accu's ontkoppeld.")]));
+    modal("<b>🌅 Ochtend.</b> IJsbloemen op de ruiten, maar alles start. De stock kwam ongeschonden door de koudste nacht van 't jaar. "+(hasStaff("dree")?"Dree knikt tevreden vanachter zijn thermos.":"Puur geluk."),[{t:"Oef.",fn:()=>{closeModal();render()}}]);
+  }
+  save();
+}
 /* Koffie & Karren: weekendmeet — kleine kost, positief-EV rep/flavor */
 const CARMEET_COST=6000;
 function goCarMeet(){
@@ -1590,6 +1616,8 @@ function endWeek(silent){
   if(!G.carMeet&&Math.random()<.12)G.carMeet=true;
   // scratch-and-dent koopjesbak: af en toe een spotgoedkoop project
   if(!G.bargain&&Math.random()<.13)G.bargain=genBargain();
+  // winterse nachtvorst: bedreigt de stock op 't koertje
+  if(!G.frost&&season().n==="Winter"&&G.cars.length>0&&Math.random()<.18)G.frost=true;
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   // reclamecampagne aftellen (na genCustomers, zodat deze week nog meetelt)
   if((G.adWeeks||0)>0){G.adWeeks--;repAdd(1);
@@ -2068,6 +2096,13 @@ function renderOffice(){
      +'<div class="money small">'+fmt(b.price)+'</div></div>'
      +'<button class="btn primary" onclick="buyBargain()">🔧 Kopen ('+fmt(b.price)+') <span class="small">· project</span></button>'
      +'<button class="btn ghost" onclick="passBargain()">Laten staan</button></div>';
+  }
+  // winterse nachtvorst
+  if(G.frost){const fc=frostCost();
+    h+='<div class="card" style="border-color:#6cc4ff"><div class="spread"><h3 style="margin:0">❄️ Strenge vorst op komst</h3><span class="pill info">vannacht</span></div>'
+     +'<div class="small dim">De weerman voorspelt -12°. De wagens op \'t koertje staan er onbeschut bij: bevroren koelvloeistof, platte accu\'s, gebarsten slangen. Antivries bijvullen en alles onder dekzeil ('+fmt(fc)+')'+(hasStaff("dree")?' — Dree stookt \'t kacheltje al op':'')+', of erop gokken?</div>'
+     +'<button class="btn primary" onclick="protectFrost()">🛡️ Beschermen ('+fmt(fc)+')</button>'
+     +'<button class="btn ghost" onclick="gambleFrost()">🥶 Erop gokken</button></div>';
   }
   // overname van de concurrentie (endgame): zichtbaar zodra je één rivaal aankan of er al één overnam
   {const rk=Object.keys(RIVALS);
