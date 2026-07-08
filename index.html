@@ -764,6 +764,7 @@ const GOALS=[
  {id:"barngem",t:"Grav een schuurvondst op met de metaaldetector",r:"+90 XP · gouden handjes",c:()=>!!G.mile.barnGem,fn:()=>addXP(90)},
  {id:"quiz",t:"Win de quiz van Radio Essene",r:"+70 XP · schrander",c:()=>!!G.mile.radioQuiz,fn:()=>addXP(70)},
  {id:"loan",t:"Betaal een banklening volledig af",r:"+110 XP · kredietwaardig",c:()=>!!G.mile.loanPaid,fn:()=>addXP(110)},
+ {id:"finish",t:"Geef een wagen een premium afwerking",r:"+80 XP · oog voor detail",c:()=>!!G.mile.finish,fn:()=>addXP(80)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -852,6 +853,7 @@ function fairValue(c,shown,knowAll){
   let qF=1+.07*(c.tuned||0);
   for(const q of c.quirks){const Q=QUIRKS.find(x=>x.id===q);
     if(Q&&(knowAll||!Q.hide||c.known.includes(q)))qF*=1+Q.v;}
+  const fin=c.finish&&FINISHES[c.finish];if(fin)qF*=1+fin.v;
   return Math.round(d.base*ageF*kmF*condF*qF*(c.prem||1)/100)*100;
 }
 const askValue=c=>fairValue(c,true,false);   // what the market believes
@@ -2422,7 +2424,7 @@ function mkCarSheet(c,mine){
   const qs=c.quirks.filter(q=>{const Q=QUIRKS.find(x=>x.id===q);return mine||!Q.hide||(c.known&&c.known.includes(q))});
   return '<div class="carpic big">'+carArt(c,240)+'</div><div class="row"><div><b>'+esc(carName(c))+'</b> <span class="dim">('+c.year+')</span>'
    +(d.rar>0?' <span class="pill '+(d.rar===3?"bad":"warn")+'">'+RARN[d.rar]+'</span>':'')
-   +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+" · "+d.body+(c.tuned?" · getuned ⚡".repeat(1):"")+'</div></div></div>'
+   +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+" · "+d.body+(c.tuned?" · getuned ⚡".repeat(1):"")+(c.finish&&FINISHES[c.finish]?" · "+FINISHES[c.finish].emo+" "+FINISHES[c.finish].n:"")+'</div></div></div>'
    +'<div style="margin:6px 0">'+condPill(c.eng,"motor")+condPill(c.body,"koets")
    +'<span class="pill info">± '+topSpeed(c)+' km/u</span>'
    +'<span class="pill">'+c.km.toLocaleString().replace(/,/g,".")+' km'+(mine&&c.rolled?' <span class="neg">(echt: '+c.kmReal.toLocaleString().replace(/,/g,".")+')</span>':'')+'</span>'
@@ -2790,11 +2792,27 @@ function tuneCar(id){const c=getCar(id);
   G.cash-=25000;c.tuned++;popNum("⚡ +tuning","pamber");addXP(4);
   log(carName(c)+": getuned. Klinkt nu boos in de goeie zin.");save();openCar(id);hdr()}
 const RESPRAY_COST=20000;
+/* premium afwerkingen: duurder spuitwerk dat waarde + verkoopbaarheid toevoegt */
+const FINISHES={
+ solid:{n:"Standaard lak",emo:"🎨",cost:0,v:0,d:"Gewoon één nette kleur."},
+ metallic:{n:"Metallic",emo:"✨",cost:35000,v:.06,d:"Glinstert mooi in de zon. Klanten smelten."},
+ pearl:{n:"Parelmoer",emo:"🐚",cost:55000,v:.10,d:"Verschiet van kleur naargelang de hoek. Duur maar oogverblindend."},
+ matte:{n:"Mat (matzwart/grijs)",emo:"🖤",cost:45000,v:.07,d:"Stoer en modern. Niet iedereen z'n ding, maar de liefhebbers betalen."},
+ twotone:{n:"Two-tone",emo:"🎭",cost:40000,v:.08,d:"Twee kleuren, klassiek getekend. Chic."},
+ stripes:{n:"Racingstrepen",emo:"🏁",cost:30000,v:.05,d:"Sportief. Voelt meteen tien pk sneller aan."},
+};
+function finishName(c){const f=c&&c.finish&&FINISHES[c.finish];return f?f.n:FINISHES.solid.n}
 function resprayCar(id){
   const c=getCar(id);if(!c)return;
-  let h="<b>🌈 De spuitcabine.</b> Kies een nieuwe kleur voor de <b>"+esc(carName(c))+"</b>. Kost "+fmt(RESPRAY_COST)+", morgen droog.<div style='margin-top:10px'>";
+  let h="<b>🌈 De spuitcabine.</b> Kies een nieuwe kleur voor de <b>"+esc(carName(c))+"</b>. Basis overspuiten kost "+fmt(RESPRAY_COST)+".<div style='margin-top:10px'>";
   COLORS.forEach((co,i)=>{h+='<span class="colpick'+(i===c.col?' cur':'')+'" onclick="doRespray('+id+','+i+')" title="'+co.n+'" style="background:'+co.h+'"></span>'});
-  h+='</div><div class="small dim" style="margin-top:6px">Huidige kleur: <span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+'</div>';
+  h+='</div><div class="small dim" style="margin-top:6px">Huidige kleur: <span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · afwerking: <b>'+esc(finishName(c))+'</b></div>';
+  h+='<hr><div class="small">✨ <b>Premium afwerking</b> (verhoogt de waarde):</div><div class="tablebtns" style="margin-top:6px">';
+  for(const k in FINISHES){const f=FINISHES[k];if(k==="solid")continue;
+    const cur=c.finish===k;
+    h+='<button class="btn'+(cur?" primary":"")+'" '+(cur?"disabled":'onclick="doFinish('+id+",'"+k+"'"+')"')+'>'+f.emo+' '+f.n+'<br><span class="small">'+fmt(f.cost)+' · +'+Math.round(f.v*100)+'% waarde</span></button>';
+  }
+  h+='</div><div class="small dim" style="margin-top:4px">'+esc((c.finish&&FINISHES[c.finish]?FINISHES[c.finish]:FINISHES.solid).d)+'</div>';
   modal(h,[{t:"Toch niet",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
 }
 function doRespray(id,col){
@@ -2807,6 +2825,17 @@ function doRespray(id,col){
     popNum("-"+fmt(RESPRAY_COST),"pred");addXP(4);stamp("VERS GESPOTEN","pink");
     toast("🌈 De "+carName(c)+" glanst nu in "+COLORS[col].n+".");
     SWEEP=c.id;openCar(id);hdr()},fixScene(c,"spray",COLORS[col].h));
+}
+function doFinish(id,k){
+  const c=getCar(id),f=FINISHES[k];if(!c||!f)return;
+  if(c.finish===k){toast("Die afwerking heeft hij al.");return}
+  if(G.cash-f.cost<creditLimit()){toast("Te weinig geld voor dat spuitwerk.");return}
+  G.cash-=f.cost;c.finish=k;G.mile.finish=1;save();
+  log(carName(c)+" kreeg een "+f.n+"-afwerking ("+fmt(f.cost)+", +"+Math.round(f.v*100)+"% waarde).");
+  suspense([f.emo,"🖌️","🎨","✨"],"Lagen spuiten, lakken, polijsten...",()=>{
+    popNum("-"+fmt(f.cost),"pred");addXP(8);stamp("MAATWERK!","pink");
+    toast(f.emo+" De "+carName(c)+" ziet er nu uit om te stelen. (Niet doen.)");
+    SWEEP=c.id;openCar(id);hdr()},fixScene(c,"spray",COLORS[c.col].h));
 }
 function rollKm(id){const c=getCar(id);const shM=shadyMult();const cost=Math.round(8000*shM);
   modal("<b>🔧 De tellerman.</b> Een stille gast met een schroevendraaier en geen achternaam. Huidige stand: <b>"+c.km.toLocaleString().replace(/,/g,".")+" km</b>.<br><br>Nieuwe stand:"
