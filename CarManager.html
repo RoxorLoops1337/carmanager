@@ -656,6 +656,7 @@ function newGame(ch){
      mech:0, combo:0, postcards:[], lotto:false, kras:0,
      gastonHere:false, bet:null, tip:false, recProfit:0, modelsSold:{},
      sloffen:0, alinHere:false, martineCalls:0, collection:[], collSlots:2, mail:[],
+     busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
      comebacks:[], mile:{}, over:false};
@@ -690,6 +691,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;
+  G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
 /* ---- goal chain: always something to look forward to ---- */
@@ -726,6 +728,7 @@ const GOALS=[
  {id:"s200",t:"Verkoop 200 wagens",r:"+300 XP · legende in eigen koertje",c:()=>G.sold>=200,fn:()=>addXP(300)},
  {id:"m100",t:"Verhandel 100 verschillende modellen",r:"+500 XP",c:()=>Object.keys(G.modelsSold||{}).length>=100,fn:()=>addXP(500)},
  {id:"c20m",t:"Spaar 20.000.000 BEF: het keizerrijk",r:"👑 De kroon op het werk. Een gouden asbak op het bureau.",c:()=>G.cash>=20000000,fn:()=>{stamp("KEIZERRIJK","gold");confetti(180);sfx("win");addXP(400)}},
+ {id:"dany",t:"Laat Dany uit Ninove je 5× de loef afsteken (en overleef het)",r:"+120 XP · rivaliteit maakt scherp",c:()=>(G.danyBeat||0)>=5,fn:()=>addXP(120)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -1160,6 +1163,9 @@ function endWeek(silent){
   G.gastonHere=!G.bet&&Math.random()<.25;
   G.tip=Math.random()<.20;
   G.alinHere=!isCh("alan")&&(G.sloffen||0)<4&&Math.random()<.16;
+  // Dany uit Ninove komt af en toe met een 'koopje' dat te goedkoop klinkt
+  G.danyHere=Math.random()<.14;
+  G.danyDeal=G.danyHere?genDanyDeal():null;
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
@@ -1236,6 +1242,8 @@ function randomOffice(){
    ()=>{if(G.cars.length)log("Iemand heeft 'WAS MIJ' geschreven in het stof van de "+carName(pick(G.cars))+". De monteur ontkent alles.")},
    ()=>log("De Streekkrant belt: of ge een advertentie wilt. 'Nee merci, wij staan liever in de artikels.'"),
    ()=>log("Gaston rijdt tergend traag voorbij het koertje. Kijkt. Zegt niks. Rijdt door."),
+   ()=>{const c=G.cars.length?carName(pick(G.cars)):"een wagen";log("Een klant: \"Bij Dany in Ninove staat zoiets als uw "+c+", maar goedkoper.\" Bij Dany staat ALTIJD zoiets, maar goedkoper.")},
+   ()=>log("Dany uit Ninove heeft een spandoek gehangen: 'GARAGE DANY — ALTIJD DE SCHERPSTE.' De verf is nog nat. En scheef."),
    ()=>log("De frigo is leeg op één Red Bull na. Niemand durft de laatste te pakken. Het blikje krijgt een naam."),
    ()=>{if(G.rep>60){repAdd(1);log("Een koppel uit Gent is speciaal naar Essene gereden 'omdat iedereen over u spreekt'.")}},
    ()=>{if((G.collection||[]).length)log("Even in de schuur gaan kijken. Het zeil recht getrokken, één keer diep gezucht van geluk, terug aan het werk.")},
@@ -1506,6 +1514,16 @@ function renderOffice(){
      +'<button class="btn shady" onclick="buySloffen()">🚬 Twee sloffen (3.000 BEF)</button>'
      +'<button class="btn ghost" onclick="G.alinHere=false;save();render()">Niet vandaag, Alin</button></div>';
   }
+  if(G.danyHere&&G.danyDeal){const dd=G.danyDeal;
+    h+='<div class="card"><h3>🥸 Dany uit Ninove staat op het koertje</h3>'
+     +'<div class="small dim">Sigaar, gouden ketting, en een wagen op sleeptouw. "Voor u, collega, speciaal, want ik mag u wel. Ne prijs waar niemand nee tegen zegt. Papieren komen achteraf, ge kent dat."</div>'
+     +'<div class="carline" style="cursor:default"><div class="carpic" style="width:86px">'+carArt(dd.c,88)+'</div>'
+     +'<div style="flex:1"><b>'+esc(carName(dd.c))+'</b> <span class="small dim">('+dd.c.year+')</span>'
+     +'<div class="small dim">staat: ??? · "rijdt as ne zwaluw"</div></div>'
+     +'<div class="money small">'+fmt(dd.price)+'</div></div>'
+     +'<button class="btn shady" onclick="danyBuy()">🤝 Kopen ('+fmt(dd.price)+') <span class="small">· blind vertrouwen</span></button>'
+     +'<button class="btn ghost" onclick="G.danyHere=false;G.danyDeal=null;save();render()">Ik pas, Dany</button></div>';
+  }
   h+='<div class="card flat" style="cursor:pointer" onclick="zapRadio()" title="Tik om te zappen">'
    +'<div class="small"><b>📻 Radio Essene</b> <span class="dim">· tik om te zappen</span></div>'
    +'<div class="small dim" style="margin-top:3px">'+esc(RADIO[(G.week*7+(G.radioIx||0))%RADIO.length])+'</div></div>';
@@ -1603,6 +1621,27 @@ function toggleVlan(){
 }
 function genPhoneDeal(){const c=genCar(pick(["nl","de","pl"]));c.transit=false;
   return {c,price:Math.round(trueValue(c)*rnd(.62,.8)/1000)*1000}}
+/* Dany's 'koopjes': cheap up front, but there's always a haar in de boter */
+function genDanyDeal(){
+  const c=genCar(pick(["pl","ua","pl"]));c.transit=false;
+  // Dany's cars always hide something: force at least one nasty hidden quirk + shaky papers
+  if(!c.quirks.some(q=>{const Q=QUIRKS.find(x=>x.id===q);return Q&&Q.hide})){
+    const nasty=pick(["flood","crash","gearbox","electr","warm","hail"]);
+    if(!c.quirks.includes(nasty))c.quirks.push(nasty);}
+  if(c.papers===0)c.papers=Math.random()<.5?1:2;
+  c.known=[]; // je ziet het niet meteen — het is Dany
+  return {c,price:Math.round(trueValue(c)*rnd(.5,.66)/1000)*1000};
+}
+function danyBuy(){
+  const dd=G.danyDeal;if(!dd)return;
+  if(G.cash-dd.price<creditLimit()){toast("Zoveel cash heb je niet, en Dany geeft geen krediet.");return}
+  const c=dd.c;G.cash-=dd.price;G.spent+=dd.price;c.paid=dd.price;
+  if(c.rolled)c.known.push("__rolled");
+  G.cars.push(c);G.danyDeal=null;G.danyHere=false;save();
+  popNum("-"+fmt(dd.price),"pred");sfx("kaching");addXP(6);heatAdd(2);
+  log("🥸 Van Dany gekocht: "+carName(c)+" ("+fmt(dd.price)+"). \"Rij er voorzichtig mee, hè.\" Dat belooft niet veel goeds.");
+  toast("🥸 Deal met Dany. Ge hoopt maar dat het meevalt...");render();
+}
 function phoneBuy(){
   const pd=G.phoneDeal;if(!pd)return;
   if(G.cash-pd.price<creditLimit()){toast("Te weinig geld.");return}
@@ -1681,7 +1720,11 @@ function doAuc(i){
       modal("<b>🔨 Verkocht aan de meneer uit Essene!</b> En nu mag de motorkap eindelijk open...<hr>"+mkCarSheet(c,true),
        [{t:"Naar de garage",fn:closeModal},{t:"Terug naar de veiling",cls:"ghost",fn:openAuction}]);
     }else{
-      modal("Een gast met een sigaar en een gsm zo groot als een baksteen biedt <b>"+fmt(rival)+"</b>. Het lot is weg.",
+      const dany=Math.random()<.5;
+      if(dany){G.danyBeat=(G.danyBeat||0)+1;
+        modal("<b>🥸 Dany uit Ninove</b> steekt zijn hand op vanachter een dikke sigaar: <b>"+fmt(rival)+"</b>. Hij knipoogt naar u. \""+pick(["Volgende keer beter, collega.","Ge moet rapper zijn, manneke.","Die stond op mijn lijstje, sorry.","Ninove bedankt u voor de opwarming."])+"\" Het lot is weg.",
+         [{t:"Grrr. Volgende",fn:openAuction}]);}
+      else modal("Een gast met een sigaar en een gsm zo groot als een baksteen biedt <b>"+fmt(rival)+"</b>. Het lot is weg.",
        [{t:"Volgende",fn:openAuction}]);
     }
     save();hdr();
@@ -1764,6 +1807,11 @@ function followTip(){
           G.cars.push(c);stamp("SCHUURVONDST!","gold");confetti(40);sfx("kaching");addXP(15);
           log("Schuurvondst in Aalst gekocht: "+carName(c)+" ("+fmt(offer)+").");closeModal()}},
        {t:"Laten staan",cls:"ghost",fn:closeModal}]);
+    }else if(Math.random()<.4){
+      ouch();G.danyBeat=(G.danyBeat||0)+1;
+      modal("De schuur staat open, het zeil ligt al afgetrokken op de grond — en er staan verse bandensporen. \"Ne vriendelijke mens uit Ninove is mij juist vóór geweest,\" zegt de boer. \" Zei dat gij niet meer zoudt komen.\" <b>Dany.</b> Weer.",
+       [{t:"Die Dany toch.",fn:closeModal}]);
+      log("Dany uit Ninove was eerder bij de schuurvondst in Aalst. Die gast is overal.");
     }else{
       ouch();
       modal("Onder het zeil: een roestige kruiwagen en een halve Manta zonder motor. De boer haalt zijn schouders op. De tip was blijkbaar 5.000 BEF waard.",
