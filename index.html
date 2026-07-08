@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -792,6 +792,7 @@ const GOALS=[
  {id:"buyout",t:"Neem een concurrent van de streek over",r:"+200 XP · de grote vis eet de kleine",c:()=>!!G.mile.buyout,fn:()=>addXP(200)},
  {id:"buyoutall",t:"Koop álle rivalen op — heers over het Pajottenland",r:"+500 XP · onbetwiste occasiekoning",c:()=>!!G.mile.buyoutAll,fn:()=>addXP(500)},
  {id:"radiosold",t:"Verkoop de Wagen van de Week tijdens zijn radioweek",r:"+90 XP · de radio verkoopt",c:()=>!!G.mile.radioSold,fn:()=>addXP(90)},
+ {id:"adcampaign",t:"Boek een reclamecampagne voor de zaak",r:"+80 XP · wie adverteert, verkoopt",c:()=>!!G.mile.adCampaign,fn:()=>addXP(80)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1276,6 +1277,26 @@ function genCustomers(){
     G.custs.push({id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:ty.fuss,net:true,face:"🧑‍💻",
       budget:Math.round(ty.want.maxB*rnd(.7,1.2)/1000)*1000,tried:false});
   }
+  // lopende reclamecampagne: 2 extra kandidaten met een dikkere portefeuille
+  if((G.adWeeks||0)>0){
+    for(let i=0;i<2;i++){const ty=pick(CUSTTYPES);
+      G.custs.push({id:UID++,name:pick(CUSTNAMES),t:ty.t+" — kwam door de advertentie",want:ty.want,fuss:Math.max(.05,ty.fuss-.05),face:pick(CFACES),
+        budget:Math.round(ty.want.maxB*rnd(.75,1.2)*1.1/1000)*1000,tried:false});}
+  }
+}
+/* betaalde reclamecampagne: tijdelijke piek aan volk, los van de vaste Vlan-unlock */
+const AD_OPTIONS=[
+ {id:"krant",n:"De Streekkrant",emo:"📰",cost:120000,weeks:3,d:"Een halve pagina in 't streekblad met een scherpe foto van 't koertje. Drie weken extra volk."},
+ {id:"blitz",n:"Radio + Vlan blitz",emo:"📻",cost:280000,weeks:5,d:"Radiospot op Radio Essene én paginagroot in de Vlan. Vijf weken drukte, en uw naam blijft hangen."},
+];
+function buyAd(id){
+  const a=AD_OPTIONS.find(x=>x.id===id);if(!a)return;
+  if(G.cash-a.cost<creditLimit()){toast("Te weinig geld voor die campagne.");return}
+  G.cash-=a.cost;G.adWeeks=(G.adWeeks||0)+a.weeks;G.mile.adCampaign=1;save();sfx("kaching");
+  popNum("-"+fmt(a.cost),"pred");repAdd(1);
+  log(a.emo+" Reclamecampagne geboekt bij "+a.n+" ("+fmt(a.cost)+"): '"+pick(["CarManager Essene — kwaliteit die rijdt!","Bij CarManager staat úw volgende wagen klaar.","Occasies met een verhaal, aan bushalte Koudenberg."])+"' De komende "+a.weeks+" weken komt er meer volk kijken.");
+  toast(a.emo+" Campagne loopt — "+a.weeks+" weken extra volk op komst.");
+  render();
 }
 function carMatches(c,w){
   const d=CARS[c.ci];
@@ -1494,6 +1515,11 @@ function endWeek(silent){
   G.danyHere=!boughtOut("dany")&&Math.random()<.14;
   G.danyDeal=G.danyHere?genDanyDeal():null;
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
+  // reclamecampagne aftellen (na genCustomers, zodat deze week nog meetelt)
+  if((G.adWeeks||0)>0){G.adWeeks--;repAdd(1);
+    if(G.adWeeks>0)extra.push(["📣 Reclamecampagne","loopt nog "+G.adWeeks+" week/weken · extra volk","money"]);
+    else{extra.push(["📣 Campagne afgelopen","de advertentie is uitgewerkt","neg"]);
+      log("📣 De reclamecampagne is afgelopen. Het extra volk ebt weg, maar een paar namen blijven hangen.")}}
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
   if(!silent&&!G.over){
@@ -1964,6 +1990,13 @@ function renderOffice(){
      }
      h+='</div>';
    }}
+  // reclamecampagne
+  {h+='<div class="card"><div class="spread"><h3 style="margin:0">📣 Reclame maken</h3>'
+    +((G.adWeeks||0)>0?'<span class="pill good">loopt nog '+G.adWeeks+' wk</span>':'<span class="pill dim">geen campagne</span>')+'</div>'
+    +'<div class="small dim">Een betaalde advertentie trekt tijdelijk meer (en rijkere) klanten naar \'t koertje. Los van de vaste Vlan-zoekertjes.</div>'
+    +'<div class="tablebtns" style="margin-top:6px">';
+   for(const a of AD_OPTIONS)h+='<button class="btn" onclick="buyAd(\''+a.id+'\')">'+a.emo+' '+a.n+'<br><span class="small">'+fmt(a.cost)+' · '+a.weeks+' weken</span></button>';
+   h+='</div>'+((G.adWeeks||0)>0?'<div class="small dim" style="margin-top:4px">Nog een campagne boeken stapelt de weken op elkaar.</div>':'')+'</div>';}
   h+='<div class="card flat" style="cursor:pointer" onclick="zapRadio()" title="Tik om te zappen">'
    +'<div class="small"><b>📻 Radio Essene</b> <span class="dim">· tik om te zappen</span></div>'
    +'<div class="small dim" style="margin-top:3px">'+esc(RADIO[(G.week*7+(G.radioIx||0))%RADIO.length])+'</div></div>';
