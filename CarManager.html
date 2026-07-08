@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -795,6 +795,8 @@ const GOALS=[
  {id:"adcampaign",t:"Boek een reclamecampagne voor de zaak",r:"+80 XP · wie adverteert, verkoopt",c:()=>!!G.mile.adCampaign,fn:()=>addXP(80)},
  {id:"clearance",t:"Verkoop een wagen tijdens de solden",r:"+90 XP · koopjesmaand gepakt",c:()=>!!G.mile.clearance,fn:()=>addXP(90)},
  {id:"carmeet",t:"Ga naar Koffie & Karren met je stock",r:"+70 XP · onder de liefhebbers",c:()=>!!G.mile.carMeet,fn:()=>addXP(70)},
+ {id:"punchcard",t:"Vul je eerste klantenkaart",r:"+80 XP · vaste klanten, vaste zaak",c:()=>!!G.mile.punchcard,fn:()=>addXP(80)},
+ {id:"punchcard5",t:"Vul 5 klantenkaarten",r:"+300 XP · huisleverancier van heel Essene",c:()=>(G.cardsFull||0)>=5,fn:()=>addXP(300)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1299,6 +1301,19 @@ function buyAd(id){
   log(a.emo+" Reclamecampagne geboekt bij "+a.n+" ("+fmt(a.cost)+"): '"+pick(["CarManager Essene — kwaliteit die rijdt!","Bij CarManager staat úw volgende wagen klaar.","Occasies met een verhaal, aan bushalte Koudenberg."])+"' De komende "+a.weeks+" weken komt er meer volk kijken.");
   toast(a.emo+" Campagne loopt — "+a.weeks+" weken extra volk op komst.");
   render();
+}
+/* klantenkaart: elke verkoop een stempel; volle kaart = beloning */
+const CARD_SIZE=5;
+function addStamp(){
+  G.stamps=(G.stamps||0)+1;
+  if(G.stamps>=CARD_SIZE){
+    G.stamps=0;G.cardsFull=(G.cardsFull||0)+1;G.mile.punchcard=1;
+    const bonus=Math.min(25000+5000*(G.cardsFull-1),60000);
+    G.cash+=bonus;repAdd(2);G.heat=clamp(G.heat-3,0,100);addXP(20);
+    stamp("KAART VOL!","gold");confetti(40);sfx("win");popNum("+"+fmt(bonus),"pgreen");
+    log("🎟️ Klantenkaart nr. "+G.cardsFull+" vol! "+pick(["'De vijfde is altijd op ons,' zegt ge met een brede glimlach.","Een tevreden vaste klant, een trouwe zaak.","Stempelkaart uit de la, vijf kruisjes, en een cadeau van 't huis."])+" Bonus "+fmt(bonus)+", +2 rep, -3 heat.");
+    toast("🎟️ Klantenkaart vol! +"+fmt(bonus)+" bonus.");
+  }
 }
 /* Koffie & Karren: weekendmeet — kleine kost, positief-EV rep/flavor */
 const CARMEET_COST=6000;
@@ -1891,7 +1906,8 @@ function renderOffice(){
    +'<p class="small dim">'+of.desc+'</p>'
    +'<div class="row small"><span class="pill">Huur '+fmt(of.rent)+'/week</span>'
    +'<span class="pill">Reputatie ★ '+Math.round(G.rep)+'</span><span class="pill '+(G.heat>60?"bad":G.heat>30?"warn":"")+'">Heat 🔥 '+Math.round(G.heat)+'</span>'
-   +'<span class="pill">'+G.cars.length+' wagens in stock</span></div>';
+   +'<span class="pill">'+G.cars.length+' wagens in stock</span>'
+   +'<span class="pill" title="Klantenkaart: elke verkoop een stempel, volle kaart = bonus">🎟️ '+"●".repeat(G.stamps||0)+"○".repeat(Math.max(0,CARD_SIZE-(G.stamps||0)))+((G.cardsFull||0)>0?' ·'+G.cardsFull+'× vol':'')+'</span></div>';
   if(G.office===0&&true){
     h+='<hr><div class="small">🏗️ <b>Upgrade:</b> showroom in <b>Zellik</b> · '+fmt(OFFICES[1].cost)+' · meer klanten, betere prijzen.</div>'
      +'<button class="btn '+(G.cash>=OFFICES[1].cost?"primary":"")+'" onclick="upgradeOffice()" '+(G.cash<OFFICES[1].cost?"disabled":"")+'>Verhuis naar Zellik</button>';
@@ -4488,6 +4504,8 @@ function doSale(cu,c,price,disclosed,iss){
   // combo streak
   G.combo=(G.combo||0)+1;
   if(G.combo>=2){stamp("COMBO ×"+G.combo,"pink");addXP(Math.min(G.combo-1,5)*8)}
+  // klantenkaart: elke verkoop een stempel
+  addStamp();
   // pearl: flawless car sold
   if(c.eng>=95&&c.body>=95){stamp("PAREL!","pink");repAdd(2);addXP(10)}
   // VIP customer
