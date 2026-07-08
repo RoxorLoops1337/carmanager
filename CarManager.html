@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -813,6 +813,7 @@ const GOALS=[
  {id:"renttoown",t:"Sluit een huurkoop-contract",r:"+80 XP · verkopen op de pof",c:()=>!!G.mile.rentToOwn,fn:()=>addXP(80)},
  {id:"rentdone",t:"Laat een huurkoop volledig afbetalen",r:"+150 XP · geduld wordt beloond",c:()=>!!G.mile.rentDone,fn:()=>addXP(150)},
  {id:"rally",t:"Rijd mee met de oldtimer-rally",r:"+90 XP · benzine in de aderen",c:()=>!!G.mile.rally,fn:()=>addXP(90)},
+ {id:"flipwin",t:"Win een flip-off van een rivaal",r:"+160 XP · de beste handelaar van de streek",c:()=>!!G.mile.flipWin,fn:()=>addXP(160)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1457,6 +1458,21 @@ function endWeek(silent){
       extra.push(["🤠 Weddenschap","gewonnen! +"+fmt(G.bet.stake*2),"money"]);log("Gaston betaalt zijn weddenschap, met een klein hartje.")}
     else{ouch();extra.push(["🤠 Weddenschap","verloren: -"+fmt(G.bet.stake),"neg"]);log("Gaston wint de weddenschap en vertelt het aan iedereen.")}
     G.bet=null;}
+  // flip-off met een rivaal
+  if(G.flipChallenge){
+    const f=G.flipChallenge;
+    if(f.pending){G.flipChallenge=null;} // niet op tijd aangenomen → vervalt
+    else{f.weeks--;const soldDuring=(G.sold||0)-(f.startSold||0);
+      if(f.weeks<=0){
+        if(soldDuring>=f.target){G.cash+=f.stake*2;repAdd(3);G.mile.flipWin=1;stamp("FLIP-OFF GEWONNEN!","gold");sfx("win");confetti(50);
+          extra.push(["🥊 Flip-off gewonnen","+"+fmt(f.stake*2)+" · "+soldDuring+"/"+f.target,"money"]);
+          log("🥊 Flip-off gewonnen van "+f.challenger+"! "+soldDuring+" verkocht in de tijd. De pot ("+fmt(f.stake*2)+") en de eer zijn van u. Hij zwijgt voor één keer.");}
+        else{ouch();extra.push(["🥊 Flip-off verloren",soldDuring+"/"+f.target+" · inzet weg","neg"]);
+          log("🥊 Flip-off verloren van "+f.challenger+" ("+soldDuring+"/"+f.target+"). De inzet is weg, en hij zal het lang navertellen.");}
+        G.flipChallenge=null;
+      } else extra.push(["🥊 Flip-off",soldDuring+"/"+f.target+" verkocht · nog "+f.weeks+" wk",soldDuring>=f.target?"money":""]);
+    }
+  }
   // de post: fines and other envelopes with windows arrive late but always
   for(const f of (G.mail||[])){f.eta--;
     if(f.eta<=0){G.cash-=f.amount;
@@ -1653,6 +1669,8 @@ function endWeek(silent){
   if(!G.carMeet&&Math.random()<.12)G.carMeet=true;
   // scratch-and-dent koopjesbak: af en toe een spotgoedkoop project
   if(!G.bargain&&Math.random()<.13)G.bargain=genBargain();
+  // flip-off: een rivaal daagt je uit (alleen als de zaak wat naam heeft)
+  if(!G.flipChallenge&&(G.rep>=45||G.sold>=10)&&Math.random()<.10)G.flipChallenge=genFlipDare();
   // winterse nachtvorst: bedreigt de stock op 't koertje
   if(!G.frost&&season().n==="Winter"&&G.cars.length>0&&Math.random()<.18)G.frost=true;
   // Radio Essene bel-in wedstrijd: af en toe
@@ -2200,6 +2218,19 @@ function renderOffice(){
     h+='<div class="card"><div class="spread"><h3 style="margin:0">💳 Huurkoop-contracten</h3><span class="pill">'+G.rentDeals.length+' lopend</span></div>';
     for(const rd of G.rentDeals)h+='<div class="logline small"><b>'+esc(rd.name)+'</b> — '+esc(rd.carName)+' <span class="pill good">'+fmt(rd.perWeek)+'/wk</span> <span class="dim">nog '+rd.weeksLeft+' wk</span></div>';
     h+='<div class="small dim">Wekelijkse afbetalingen komen binnen bij de weekafsluiting.</div></div>';
+  }
+  // flip-off uitdaging / lopende wedstrijd
+  if(G.flipChallenge){const f=G.flipChallenge;
+    if(f.pending){
+      h+='<div class="card" style="border-color:var(--pink)"><div class="spread"><h3 style="margin:0">🥊 Flip-off!</h3><span class="pill warn">uitdaging</span></div>'
+       +'<div class="small dim"><b>'+esc(f.challenger)+'</b> daagt u uit: \"Ik verkoop er meer dan gij. '+fmt(f.stake)+' dat ik win.\" Verkoop <b>'+f.target+' wagens in '+f.weeks+' weken</b> en de dubbele inzet is van u. Zo niet, zijt ge uw inzet kwijt.</div>'
+       +'<button class="btn primary" onclick="acceptFlip()">🥊 Aannemen ('+fmt(f.stake)+' inzet)</button>'
+       +'<button class="btn ghost" onclick="declineFlip()">Nee, bedankt</button></div>';
+    } else {
+      const sold=(G.sold||0)-(f.startSold||0);
+      h+='<div class="card" style="border-color:var(--pink)"><div class="spread"><h3 style="margin:0">🥊 Flip-off tegen '+esc(f.challenger)+'</h3><span class="pill '+(sold>=f.target?"good":"warn")+'">'+sold+'/'+f.target+'</span></div>'
+       +'<div class="small dim">Nog <b>'+f.weeks+' week/weken</b>. Inzet: '+fmt(f.stake)+' (pot '+fmt(f.stake*2)+'). Verkoop erop los!</div></div>';
+    }
   }
   h+='<div class="card flat" style="cursor:pointer" onclick="zapRadio()" title="Tik om te zappen">'
    +'<div class="small"><b>📻 Radio Essene</b> <span class="dim">· tik om te zappen</span></div>'
@@ -2929,6 +2960,21 @@ function enterConcours(id){
    [{t:"Trots!",fn:()=>{closeModal();render()}}]);
   save();
 }
+/* flip-off: een rivaal daagt je uit tot een verkoopwedstrijd binnen een tijdsvenster */
+function genFlipDare(){
+  const challenger=boughtOut("dany")?pick(["Freddy Occasies uit Ternat","Rudy 'Turbo' uit Lokeren","Gino van 't Rond Punt"]):"Dany uit Ninove";
+  return {pending:true,challenger,target:ri(3,4),weeks:4,stake:ri(3,6)*10000};
+}
+function acceptFlip(){
+  const f=G.flipChallenge;if(!f||!f.pending)return;
+  if(G.cash-f.stake<creditLimit()){toast("Ge kunt de inzet niet ophoesten.");return}
+  G.cash-=f.stake;f.pending=false;f.startSold=G.sold||0;save();
+  stamp("FLIP-OFF!","pink");sfx("kaching");
+  log("🥊 Flip-off aangenomen tegen "+f.challenger+"! Inzet "+fmt(f.stake)+". Wie binnen "+f.weeks+" weken "+f.target+" wagens verkoopt, wint de pot.");
+  toast("🥊 Flip-off! Verkoop "+f.target+" wagens in "+f.weeks+" weken.");render();
+}
+function declineFlip(){const f=G.flipChallenge;if(!f||!f.pending)return;G.flipChallenge=null;
+  log("🥊 "+f.challenger+": \"Bang zeker? Ook goed. Dan blijft ge maar de kleine garnaal.\"");save();render();}
 /* oldtimer-rally / tourrit: zomerse rit, uitkomst hangt af van de staat; wagen blijft */
 const RALLY_FEE=6000, RALLY_BONUS=.06, RALLY_WEEKS=4;
 function rallyOn(){return season().n==="Zomer"&&G.mile.rallyYear!==G.year;}
