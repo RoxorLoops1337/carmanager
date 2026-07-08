@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -806,6 +806,10 @@ const GOALS=[
  {id:"frost",t:"Kom een strenge nachtvorst door met je stock",r:"+80 XP · winterhard",c:()=>!!G.mile.frost,fn:()=>addXP(80)},
  {id:"tyres",t:"Monteer seizoensbanden op een wagen",r:"+60 XP · oog voor detail",c:()=>!!G.mile.tyres,fn:()=>addXP(60)},
  {id:"tyressold",t:"Verkoop een wagen met banden die bij 't seizoen passen",r:"+100 XP · de juiste band op 't juiste moment",c:()=>!!G.mile.tyresSold,fn:()=>addXP(100)},
+ {id:"radiocontest",t:"Win de bel-in wedstrijd van Radio Essene",r:"+90 XP · snelle vinger, scherp verstand",c:()=>!!G.mile.radioContest,fn:()=>addXP(90)},
+ {id:"tvfeature",t:"Verkoop een model tijdens zijn TV-rage",r:"+130 XP · op het juiste moment beroemd",c:()=>!!G.mile.tvFeature,fn:()=>addXP(130)},
+ {id:"customsfriend",t:"Bouw een verstandhouding op met de douanier",r:"+120 XP · een vriend aan de grens",c:()=>!!G.mile.customsFriend,fn:()=>addXP(120)},
+ {id:"fuelcard",t:"Spaar een tankstation-kaart vol",r:"+80 XP · elke druppel telt",c:()=>!!G.mile.fuelCard,fn:()=>addXP(80)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -880,6 +884,17 @@ function rotateRadioCar(quiet){
   if(!quiet)log("📻 Radio Essene, 'De Wagen van de Week': "+radioCarLabel()+" — "+pick(["'dé slimme keuze van het moment,' aldus de presentator.","'ge ziet ze deze week overal,' klinkt het tussen twee plaatjes door.","'de luisteraars zijn er zot van,' zegt de radioman met veel te veel enthousiasme.","gesponsord door niemand, beweerd door iedereen."]))}
 function radioCarLabel(){if(!G.radioCar)return "";return G.radioCar.kind==="body"?BODN[G.radioCar.val]:"alles van "+G.radioCar.val;}
 function isRadioCar(c){if(!G.radioCar)return false;const d=CARS[c.ci];return G.radioCar.kind==="body"?d.body===G.radioCar.val:d.mk===G.radioCar.val;}
+/* TV-feature: af en toe maakt een programma/film ÉÉN model plots gegeerd (+22%), een paar weken */
+const TV_MUL=1.22;
+const TV_SHOWS=["'Autovisie' op de VRT","de nieuwe James Bond-film","'Man bijt hond'","een reportage in 'Telefacts'","'Opgeruimd staat netjes' op TV1","een videoclip op TMF","'Wedden dat...'","een aflevering van 'F.C. De Kampioenen'"];
+function startTvFeature(){
+  const ci=ri(0,CARS.length-1);const weeks=ri(2,4);const show=pick(TV_SHOWS);
+  G.tvFeature={ci,weeks,tot:weeks,show};
+  log("📺 "+show+" pakte uit met een "+CARS[ci].mk+" "+CARS[ci].md+" — en plots wil héél Vlaanderen er een! Wie er nu een op 't koertje heeft staan, kan straf vragen ("+weeks+" weken).");
+}
+function tvOn(){return !!(G.tvFeature&&G.tvFeature.weeks>0);}
+function isTvFeatured(c){return tvOn()&&c.ci===G.tvFeature.ci;}
+function tvLabel(){return G.tvFeature?CARS[G.tvFeature.ci].mk+" "+CARS[G.tvFeature.ci].md:"";}
 /* seizoenen: het weekgetal (1..52) bepaalt het seizoen; elk seizoen gegeerde carrosserie */
 const SEASONS=[
  {n:"Winter",emo:"❄️",bodies:["suv","sedan","wagon"],w:"Sneeuw en pekel: iedereen wil iets stevigs met vier wielen die trekken."},
@@ -1620,6 +1635,18 @@ function endWeek(silent){
   if(!G.bargain&&Math.random()<.13)G.bargain=genBargain();
   // winterse nachtvorst: bedreigt de stock op 't koertje
   if(!G.frost&&season().n==="Winter"&&G.cars.length>0&&Math.random()<.18)G.frost=true;
+  // Radio Essene bel-in wedstrijd: af en toe
+  if(!G.radioContest&&Math.random()<.15)G.radioContest=pickContest();
+  // TV-feature: één model plots gegeerd door een programma/film
+  if(G.tvFeature&&G.tvFeature.weeks>0){
+    G.tvFeature.weeks--;
+    if(G.tvFeature.weeks<=0){const nm=tvLabel();G.tvFeature=null;
+      extra.push(["📺 Rage voorbij",nm+" weer gewoon","neg"]);
+      log("📺 De "+nm+"-rage is uitgeraasd. De prijzen zakken terug naar normaal — wie te lang wachtte, viste achter het net.")}
+    else extra.push(["📺 TV-rage",tvLabel()+" nog "+G.tvFeature.weeks+" wk (+22%)","money"]);
+  } else if(Math.random()<.05){startTvFeature();
+    extra.push(["📺 TV-rage!",tvLabel()+" plots gegeerd","money"]);
+    if(!silent){stamp("📺 RAGE","gold");sfx("win")}}
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   // reclamecampagne aftellen (na genCustomers, zodat deze week nog meetelt)
   if((G.adWeeks||0)>0){G.adWeeks--;repAdd(1);
@@ -2106,6 +2133,14 @@ function renderOffice(){
      +'<button class="btn primary" onclick="protectFrost()">🛡️ Beschermen ('+fmt(fc)+')</button>'
      +'<button class="btn ghost" onclick="gambleFrost()">🥶 Erop gokken</button></div>';
   }
+  // Radio Essene bel-in wedstrijd
+  if(G.radioContest){const ct=G.radioContest;
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">📻 Bel-in wedstrijd</h3><span class="pill info">Radio Essene</span></div>'
+     +'<div class="small dim">De presentator: "De lijnen zijn open! Juist antwoord = een mooie prijs uit de pot."</div>'
+     +'<div class="small" style="margin-top:6px"><b>'+esc(ct.q)+'</b></div>'
+     +'<div class="tablebtns" style="margin-top:6px">'+ct.a.map((a,i)=>'<button class="btn" onclick="playContest('+i+')">'+esc(a)+'</button>').join("")+'</div>'
+     +'<button class="btn ghost" onclick="G.radioContest=null;save();render()" style="margin-top:4px">Niet bellen</button></div>';
+  }
   // overname van de concurrentie (endgame): zichtbaar zodra je één rivaal aankan of er al één overnam
   {const rk=Object.keys(RIVALS);
    const show=rk.some(k=>rivalEligible(k))||(G.boughtOut||[]).length>0;
@@ -2218,6 +2253,40 @@ const RADIO_QUIZ=[
  {q:"Motorsport: welke kleur heeft de startvlag NIET?",a:["Groen","Geruit","Paars"],c:2},
  {q:"Klassiek: de Citroën DS werd in de volksmond genoemd naar een...",a:["Snoepje","Godin (Déesse)","Rivier"],c:1},
 ];
+/* Radio Essene bel-in wedstrijd: proactief in 't bureau, grotere prijzenpot, af en toe */
+const CONTEST_QA=[
+ {q:"Grote prijsvraag! In welk jaar viel de Berlijnse Muur?",a:["1989","1991","1985"],c:0},
+ {q:"Autotrivia: hoeveel cilinders heeft een klassieke VW Kever-boxermotor?",a:["Zes","Vier","Twee"],c:1},
+ {q:"Voor de pot: welke Belgische frituursaus is 'goud'?",a:["Andalouse","Mayonaise","Samoerai"],c:0},
+ {q:"90s-hit: 'Rhythm of the Night' was van...?",a:["Corona","2 Unlimited","Snap!"],c:0},
+ {q:"Wagenkennis: 'ABS' staat voor?",a:["Auto Brake System","Anti-Blokkeer-Systeem","Alle Banden Stevig"],c:1},
+ {q:"Belgisch: welke stad heeft een belfort én veel occasies langs de baan?",a:["Aalst","Gent","Allebei"],c:2},
+ {q:"Klassieker: de Mini werd oorspronkelijk gebouwd door...?",a:["Austin/Morris (BMC)","Fiat","Renault"],c:0},
+ {q:"Snelweg: wat is de max. snelheid op de Belgische autosnelweg (in '95)?",a:["120 km/u","90 km/u","140 km/u"],c:0},
+];
+function pickContest(){return {...pick(CONTEST_QA)}}
+function playContest(i){
+  const ct=G.radioContest;if(!ct)return;
+  G.radioContest=null;
+  if(i===ct.c){
+    G.mile.radioContest=1;
+    const roll=Math.random();let msg;
+    if(roll<.4){const prize=ri(15,40)*1000;G.cash+=prize;popNum("+"+fmt(prize),"pgreen");msg="prijzengeld <b class='money'>"+fmt(prize)+"</b>";}
+    else if(roll<.65){repAdd(4);msg="een radiovermelding en <b>+4 reputatie</b>";}
+    else if(roll<.85){G.adWeeks=(G.adWeeks||0)+1;msg="<b>een gratis week reclame</b> op de zender";}
+    else{G.heat=clamp(G.heat-8,0,100);msg="de flikken luisteren ook radio... <b>-8 heat</b> (goeie PR)";}
+    stamp("JUIST!","gold");sfx("win");confetti(34);addXP(18);
+    log("📻 Bel-in wedstrijd gewonnen! '"+ct.a[ct.c]+"' was juist. Gewonnen: "+msg.replace(/<[^>]+>/g,"")+".");
+    modal("<b>🎉 JUIST, en gewonnen!</b> \""+esc(ct.a[ct.c])+"\" klopt. Ge wint "+msg+". De hele streek heeft het gehoord.",
+     [{t:"Dank u, Radio Essene!",fn:()=>{closeModal();render()}}]);
+  }else{
+    sfx("bad");
+    log("📻 Bel-in wedstrijd verloren. Juist was '"+ct.a[ct.c]+"'.");
+    modal("<b>❌ Helaas!</b> \""+esc(ct.a[i])+"\"? Nee. Het juiste antwoord was <b>"+esc(ct.a[ct.c])+"</b>. \"Volgende luisteraar!\" klinkt het. Geen prijs, wel een leuke anekdote voor op café.",
+     [{t:"Tss, dichtbij.",fn:()=>{closeModal();render()}}]);
+  }
+  save();
+}
 function zapRadio(){
   G.radioIx=(G.radioIx||0)+1;
   if((G.radioShowWk!==G.week)&&Math.random()<.22){G.radioShowWk=G.week;radioShow();return}
@@ -2854,6 +2923,8 @@ function renderTravel(){
      :s==="Lente"?["🌦️","Wisselvallige lentebuien — meestal meevallen"]
      :["🔆","Hittegolf & wegenwerken — dikke motoren kunnen oververhitten"];
    h+='<div class="card flat"><span class="small"><b>'+fc[0]+' Weerbericht ('+s+')</b> · <span class="dim">'+fc[1]+'</span></span></div>';}
+  {const fp=G.fuelPoints||0;
+   h+='<div class="card flat"><span class="small"><b>⛽ Tankkaart</b> '+"●".repeat(fp)+"○".repeat(Math.max(0,FUEL_CARD-fp))+' <span class="dim">('+fp+'/'+FUEL_CARD+' punten)</span>'+(G.fuelPerk==="tank"?' <span class="pill good">gratis tankbeurt klaar</span>':'')+'</span></div>';}
   if(!validPlate())h+='<div class="card flat"><span class="pill bad">⚠ Geen geldige ZZ-plaat</span> <span class="small dim">Regel er één via het ZZ-platen tabblad, of leef gevaarlijk.</span></div>';
   if(G.unlocks.auction){
     const on=G.week%4===2,until=((2-(G.week%4))+4)%4;
@@ -2893,14 +2964,33 @@ function renderTravel(){
   $("view").innerHTML=h;
 }
 let MK=null;
+/* tankstation-spaarkaart: punten sparen op inkooptrips, volle kaart = perk */
+const FUEL_CARD=8;
+function tripFuelPoints(m){return 1+(m.risk||0);}
+function addFuelPoints(n){
+  G.fuelPoints=(G.fuelPoints||0)+n;
+  while(G.fuelPoints>=FUEL_CARD){G.fuelPoints-=FUEL_CARD;redeemFuelCard();}
+}
+function redeemFuelCard(){
+  G.mile.fuelCard=1;const roll=Math.random();let msg;
+  if(roll<.34){const reb=ri(8,20)*1000;G.cash+=reb;popNum("+"+fmt(reb),"pgreen");msg="een cashback van "+fmt(reb);}
+  else if(roll<.67){G.fuelPerk="tank";msg="een gratis tankbeurt — de volgende reis is de helft goedkoper";}
+  else{G.rb=true;msg="een gratis blik Red Bull voor onderweg (scherpere volgende onderhandeling)";}
+  stamp("KAART VOL!","gold");sfx("win");confetti(24);
+  log("⛽ Tankstation-spaarkaart vol! De pompbediende overhandigt "+msg+". \"Da's voor de trouwe klant.\"");
+  toast("⛽ Spaarkaart vol: "+msg.replace(/ —.*/,"")+"!");
+}
 function goTrip(k){
   const m=MARKETS[k];
   if(m.req&&!m.req.c())return;
-  const tc=Math.round(m.travel*(hasStaff("jempi")?.65:1));
+  let tc=Math.round(m.travel*(hasStaff("jempi")?.65:1));
+  const freeTank=G.fuelPerk==="tank";if(freeTank)tc=Math.round(tc*0.5/1000)*1000;
   if(G.cash-tc<creditLimit()){toast("Niet genoeg geld voor de reis.");return}
-  modal("Vertrekken naar <b>"+m.fl+" "+m.n+"</b>?<br><br>Reiskost: <b>"+fmt(tc)+"</b>. "+(hasStaff("jempi")?"Jempi zit al achter het stuur, thermos tussen de knieën. ":"")+chr().n+" gooit een slof sigaretten en een bak Red Bull op de passagierszetel.",
+  modal("Vertrekken naar <b>"+m.fl+" "+m.n+"</b>?<br><br>Reiskost: <b>"+fmt(tc)+"</b>"+(freeTank?" <span class='pill good'>⛽ gratis tankbeurt toegepast</span>":"")+". "+(hasStaff("jempi")?"Jempi zit al achter het stuur, thermos tussen de knieën. ":"")+chr().n+" gooit een slof sigaretten en een bak Red Bull op de passagierszetel.",
   [{t:"Rijden!",fn:()=>{closeModal();G.cash-=tc;
+     if(freeTank)G.fuelPerk=null;
      if(k==="pl"||k==="ua")G.mile.eastTrip=1;
+     addFuelPoints(tripFuelPoints(m));
      MK={k, cars:Array.from({length:ri(4,6)},()=>genCar(k)), bought:[]};
      log("Vertrokken naar "+m.n+" ("+m.city+").");CUR="travel";render();
      driveScene("Richting "+m.fl+" "+m.n+" — sloffen sigaretten op de passagierszetel...",closeModal)}},
@@ -3066,11 +3156,25 @@ function arriveHome(){
    [{t:"Naar de garage",fn:()=>{closeModal();CUR="garage";endWeek();render()}}]);
 }
 let CST=null;
+/* rapport met de douanier "Achiel": groeit bij elke geslaagde grensinteractie */
+const CUSTOMS_FRIEND_THRESH=4;
+function customsFriend(){return (G.customsRapport||0)>=CUSTOMS_FRIEND_THRESH;}
+function bumpRapport(){
+  G.customsRapport=(G.customsRapport||0)+1;
+  if(G.customsRapport===CUSTOMS_FRIEND_THRESH){G.mile.customsFriend=1;
+    log("🛂 De douanier — Achiel heet hij — begint u te herkennen. \"Ah, de meneer van Essene. We kennen mekaar ondertussen, hè.\" Vanaf nu wuift hij u wel eens gewoon door.");}
+}
 function evCustoms(next){
   const m=MARKETS[MK.k];
   const hasPlate=validPlate(),pl=bestPlate();
   const risky=MK.bought.filter(c=>c.papers===2||c.hot);
   let danger=.1+.1*m.risk+(hasPlate?0:.4)+(pl&&pl.shady?.15:0)+risky.length*.18;
+  // Achiel kent u ondertussen: af en toe wuift hij u gewoon door — ook met wat 'ongeregelds' achterin
+  if(customsFriend()&&Math.random()<.4){
+    log("🛂 Achiel aan de grens: \""+pick(["Awel, de meneer van Essene! Rij maar door, ik heb u niet gezien.","Ah, gij weer. Alles in orde zeker? 't Is goed, doorrijden.","Voor een vaste klant kijken we niet te nauw. Salut!"])+"\"");
+    modal(borderScene()+"<b>🛂 Grenspost.</b> De douanier — Achiel — herkent u van ver, lacht, en tikt tegen zijn pet. Geen controle, geen papieren, geen gezever."+(risky.length?" Hij kijkt zelfs demonstratief de andere kant op bij die "+esc(carName(risky[0]))+".":"")+" \"Goeie reis, collega.\"",
+     [{t:"Rustig doorrijden",fn:()=>{closeModal();next()}}]);openBarrier();return;
+  }
   if(hasPlate&&risky.length===0&&(!pl.shady)){
     modal(borderScene()+"<b>🛂 Grenspost.</b> De douanier bekijkt je <span class='plate'>"+pl.code+"</span>, knikt, en wuift je door. Saai. Perfect.",[{t:"Verder rijden",fn:()=>{closeModal();next()}}]);openBarrier();return;
   }
@@ -3096,13 +3200,13 @@ function copModal(){
   const btns=[{t:"💶 Iets regelen ("+fmt(bribe)+") <span class='small'>🎲 ±"+Math.round(brib*100)+"%</span>",cls:"shady",fn:()=>{
       if(G.cash-bribe<creditLimit()){toast("Geen cash genoeg om te 'regelen'.");return}
       G.cash-=bribe;
-      if(Math.random()<brib){heatAdd(4);log("Douanier 'geregeld' aan de grens. (-"+fmt(bribe)+")");closeModal();modal(borderScene()+"Het bankbiljet verdwijnt in een borstzak. \"Goeie reis verder.\" ",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
+      if(Math.random()<brib){heatAdd(4);bumpRapport();log("Douanier 'geregeld' aan de grens. (-"+fmt(bribe)+")");closeModal();modal(borderScene()+"Het bankbiljet verdwijnt in een borstzak. \"Goeie reis verder.\" ",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();heatAdd(12);G.cash-=fine;log("Omkoping mislukt! Boete "+fmt(fine)+" en een nota in een dossier ergens.");closeModal();modal("Verkeerde douanier. Hij schrijft ALLES op. Boete: <b>"+fmt(fine)+"</b>, plus de omkoopsom is hij ook 'kwijt'.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}}];
   if(G.sloffen>0){
     const slof=clamp(.8+st.bonus,.1,.98);
     btns.push({t:"🚬 Sloffe toestoppen (nog "+G.sloffen+") <span class='small'>🎲 ±"+Math.round(slof*100)+"%</span>",cls:"shady",fn:()=>{
       G.sloffen--;
-      if(Math.random()<slof){heatAdd(2);log("Douanier 'bedankt' met een sloffe Poolse sigaretten. Rook lost alles op.");closeModal();modal(borderScene()+"De sloffe glijdt onder de balie alsof hij daar altijd al lag. \"Mooi merk.\" De slagboom gaat open.",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
+      if(Math.random()<slof){heatAdd(2);bumpRapport();log("Douanier 'bedankt' met een sloffe Poolse sigaretten. Rook lost alles op.");closeModal();modal(borderScene()+"De sloffe glijdt onder de balie alsof hij daar altijd al lag. \"Mooi merk.\" De slagboom gaat open.",[{t:"Gas geven",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();heatAdd(8);G.cash-=fine;log("Sloffe geweigerd aan de grens! Boete "+fmt(fine)+".");closeModal();modal("\"Ik rook niet.\" Hij houdt de sloffe 'als bewijsstuk' én schrijft de boete: <b>"+fmt(fine)+"</b>.",[{t:"Slikken en rijden",fn:()=>{closeModal();next()}}])}}});
   }
   if(st._mart){
@@ -3110,11 +3214,11 @@ function copModal(){
     btns.push({t:"📞 Bel Martine ("+fmt(mc)+") <span class='small'>🎲 ±92%</span>",fn:()=>{
       if(G.cash-mc<creditLimit()){toast("Te weinig geld. Martine werkt niet op de poef.");return}
       G.cash-=mc;G.martineCalls=(G.martineCalls||0)+1;
-      if(Math.random()<.92){log("Martine uit een grenscontrole gebeld. Alles 'officieel geregeld'. (-"+fmt(mc)+")");closeModal();modal(borderScene()+"Ge geeft de GSM aan de douanier. Martine vraagt naar zijn overste, noemt twee voornamen en een dossiernummer. Hij geeft je de papieren terug alsof ze gloeien. \"In orde, meneer. Goeie reis.\"",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
+      if(Math.random()<.92){bumpRapport();log("Martine uit een grenscontrole gebeld. Alles 'officieel geregeld'. (-"+fmt(mc)+")");closeModal();modal(borderScene()+"Ge geeft de GSM aan de douanier. Martine vraagt naar zijn overste, noemt twee voornamen en een dossiernummer. Hij geeft je de papieren terug alsof ze gloeien. \"In orde, meneer. Goeie reis.\"",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();G.cash-=fine;heatAdd(2);log("Zelfs Martine kreeg er geen beweging in. Boete "+fmt(fine)+".");closeModal();modal("Martine zucht door de telefoon. \"Die ken ik niet. Betaal de boete, hou het proper, en zeg tegen niemand dat ge mij gebeld hebt.\" Boete: <b>"+fmt(fine)+"</b>.",[{t:"Betalen",fn:()=>{closeModal();next()}}])}}});
   }
   btns.push({t:"😇 Gladpraten <span class='small'>🎲 ±"+Math.round(glad*100)+"%</span>",fn:()=>{
-      if(Math.random()<glad){log("Uit een controle gepraat aan de grens. Charme werkt.");closeModal();modal(borderScene()+"Vijf minuten over het weer, voetbal, en de kwaliteit van Duitse autosnelwegen later... wuift hij je door. Ongelooflijk.",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
+      if(Math.random()<glad){bumpRapport();log("Uit een controle gepraat aan de grens. Charme werkt.");closeModal();modal(borderScene()+"Vijf minuten over het weer, voetbal, en de kwaliteit van Duitse autosnelwegen later... wuift hij je door. Ongelooflijk.",[{t:"Rustig wegrijden",fn:()=>{closeModal();next()}}]);openBarrier()}
       else{ouch();G.cash-=fine;heatAdd(8);
         let txt="Hij trapt er niet in. Boete: <b>"+fmt(fine)+"</b>.";
         if(risky.length&&Math.random()<.5){const c=risky[0];MK.bought=MK.bought.filter(x=>x.id!==c.id);txt+="<br>Erger: de <b>"+esc(carName(c))+"</b> wordt aangeslagen. Papieren 'ter controle'. Die zie je nooit terug.";log(carName(c)+" aangeslagen aan de grens.")}
@@ -3557,6 +3661,7 @@ function renderSell(){
    +'<span class="pill info">'+se.emo+' '+se.n+': '+se.bodies.map(b=>BODN[b]).join("/")+' gegeerd (+10%)</span>'
    +(G.cotm?'<span class="pill good">🏆 Auto v/d Maand: '+esc(G.cotm)+' (+22%)</span>':'')
    +(G.radioCar?'<span class="pill info">📻 Wagen v/d Week: '+esc(radioCarLabel())+' (+7%)</span>':'')
+   +(tvOn()?'<span class="pill good">📺 TV-rage: '+esc(tvLabel())+' (+22%, nog '+G.tvFeature.weeks+' wk)</span>':'')
    +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
@@ -4517,6 +4622,7 @@ function percFor(cu,c,disclosed){
   if(isSeason(c))perc*=SEASON_MUL;
   if(isCotm(c))perc*=COTM_MUL;
   if(isRadioCar(c))perc*=RADIO_MUL;
+  if(isTvFeatured(c))perc*=TV_MUL;
   if(c.washT>0)perc*=1+WASH_BONUS;
   if(tyresInSeason(c))perc*=1+TYRE_BONUS;
   perc*=fuelMod(c);
@@ -4550,6 +4656,7 @@ function negModal(){
    +(isSeason(c)?'<div class="small"><span class="pill info">'+season().emo+' seizoen: nu gegeerd (+10%)</span></div>':'')
    +(isCotm(c)?'<div class="small"><span class="pill good">🏆 Auto van de Maand: '+esc(G.cotm)+' (+22%)</span></div>':'')
    +(isRadioCar(c)?'<div class="small"><span class="pill info">📻 Wagen van de Week: '+esc(radioCarLabel())+' (+7%)</span></div>':'')
+   +(isTvFeatured(c)?'<div class="small"><span class="pill good">📺 Gezien op TV: '+esc(tvLabel())+' — rage (+22%)</span></div>':'')
    +(fuelCrisisOn()?'<div class="small"><span class="pill '+(isEco(c)?"good":isGuzzler(c)?"bad":"warn")+'">⛽ Brandstofcrisis: '+(isEco(c)?"zuinig, erg gegeerd (+14%)":isGuzzler(c)?"slokop, blijft staan (−20%)":"neutraal")+'</span></div>':'')
    +'<div class="small dim"><b>'+esc(carName(c))+'</b> · marktwaarde <b class="money">'+fmt(base)+'</b> · humeur: <span class="mood" id="mood">'+moodFace(p0)+'</span></div>'
    +'<div class="small dim">Jouw vraagprijs:</div>'
@@ -4660,6 +4767,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(isRadioCar(c))G.mile.radioSold=1;
   if(clearanceOn())G.mile.clearance=1;
   if(tyresInSeason(c))G.mile.tyresSold=1;
+  if(isTvFeatured(c))G.mile.tvFeature=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
