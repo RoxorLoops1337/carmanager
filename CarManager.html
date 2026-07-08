@@ -668,7 +668,7 @@ function newGame(ch){
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
      comebacks:[], mile:{}, over:false};
-  rotateTrend(true);
+  rotateTrend(true);rotateCotm(true);
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
   save(); nav("office");
@@ -709,6 +709,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;
+  if(!G.cotm)rotateCotm(true);
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
 /* ---- goal chain: always something to look forward to ---- */
@@ -751,6 +752,7 @@ const GOALS=[
  {id:"raid",t:"Overleef een razzia zonder inbeslagname",r:"+100 XP · koelbloedig",c:()=>!!G.mile.raidClean,fn:()=>addXP(100)},
  {id:"kermis",t:"Sta op de Kermis van Essene",r:"+80 XP · smoutebollen inbegrepen",c:()=>!!G.mile.kermis,fn:()=>addXP(80)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
+ {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -770,6 +772,15 @@ const BODN={hatch:"hatchbacks",sedan:"sedans",wagon:"breaks",coupe:"coupés",cab
 function rotateTrend(quiet){G.trendBody=pick(Object.keys(BODN));
   if(!quiet)log("📈 Gelezen in de gazet: "+BODN[G.trendBody]+" zijn plots gegeerd!")}
 function isTrend(c){return CARS[c.ci].body===G.trendBody}
+/* Auto van de Maand: elke maand krijgt één merk de schijnwerpers (+22%) */
+const COTM_MUL=1.22;
+function allMakes(){return [...new Set(CARS.map(d=>d.mk))]}
+function rotateCotm(quiet){
+  const makes=allMakes();
+  let mk;do{mk=pick(makes)}while(makes.length>1&&mk===G.cotm);
+  G.cotm=mk;
+  if(!quiet)log("🏆 Auto van de Maand in De Streekkrant: alles van "+mk+" is deze maand dé trend. Wie er een heeft, kan straf vragen.")}
+function isCotm(c){return !!G.cotm&&CARS[c.ci].mk===G.cotm}
 /* seizoenen: het weekgetal (1..52) bepaalt het seizoen; elk seizoen gegeerde carrosserie */
 const SEASONS=[
  {n:"Winter",emo:"❄️",bodies:["suv","sedan","wagon"],w:"Sneeuw en pekel: iedereen wil iets stevigs met vier wielen die trekken."},
@@ -1186,7 +1197,9 @@ function endWeek(silent){
     if(pc.eta<=0){repAdd(1);log("💌 Kaartje van "+pc.name+": 'Nog altijd content van mijn wagen!' (+1 rep)")}}
   G.postcards=G.postcards.filter(pc=>pc.eta>0);
   // monthly trend
-  if(G.week%4===1){rotateTrend();extra.push(["📈 Nieuwe trend",BODN[G.trendBody],""])}
+  if(G.week%4===1){rotateTrend();extra.push(["📈 Nieuwe trend",BODN[G.trendBody],""]);
+    rotateCotm();extra.push(["🏆 Auto van de Maand",G.cotm,"money"]);
+    if(!silent){stamp("🏆 "+G.cotm,"gold");sfx("win")}}
   // season change
   const se=season();
   if(se.n!==seasonWas){extra.push([se.emo+" "+se.n,se.bodies.map(b=>BODN[b]).join("/")+" nu gegeerd",""]);
@@ -2640,6 +2653,7 @@ function renderSell(){
   let h='<h2>🤝 Verkoop</h2>'
    +'<div class="row" style="margin-bottom:8px"><span class="pill warn">📈 Trend: '+BODN[G.trendBody]+' (+12%)</span>'
    +'<span class="pill info">'+se.emo+' '+se.n+': '+se.bodies.map(b=>BODN[b]).join("/")+' gegeerd (+10%)</span>'
+   +(G.cotm?'<span class="pill good">🏆 Auto v/d Maand: '+esc(G.cotm)+' (+22%)</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
@@ -3588,6 +3602,7 @@ function percFor(cu,c,disclosed){
   let perc=askValue(c)*(carMatches(c,cu.want)?1.06:.82)*OFFICES[G.office].bonus*(isCh("martine")?1.05:1);
   if(isTrend(c))perc*=1.12;
   if(isSeason(c))perc*=SEASON_MUL;
+  if(isCotm(c))perc*=COTM_MUL;
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
   return perc;
 }
@@ -3614,6 +3629,7 @@ function negModal(){
    +talkButtons("sell",NEG.talk,"doTalkSell")+'<hr>'
    +(isTrend(c)?'<div class="small"><span class="pill warn">📈 in trend: '+BODN[G.trendBody]+' (+12%)</span></div>':'')
    +(isSeason(c)?'<div class="small"><span class="pill info">'+season().emo+' seizoen: nu gegeerd (+10%)</span></div>':'')
+   +(isCotm(c)?'<div class="small"><span class="pill good">🏆 Auto van de Maand: '+esc(G.cotm)+' (+22%)</span></div>':'')
    +'<div class="small dim"><b>'+esc(carName(c))+'</b> · marktwaarde <b class="money">'+fmt(base)+'</b> · humeur: <span class="mood" id="mood">'+moodFace(p0)+'</span></div>'
    +'<div class="small dim">Jouw vraagprijs:</div>'
    +'<input type="range" class="slider" id="prsl" min="'+Math.round(base*.5/1000)*1000+'" max="'+Math.round(base*1.6/1000)*1000+'" value="'+NEG.price+'" step="1000" oninput="updPr()">'
@@ -3706,6 +3722,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(cu.vip){stamp("VIP KLANT!","pink");repAdd(5);addXP(20);log("⭐ "+cu.name+" vertelt het op café én op de radio.")}
   // collection
   if(CARS[c.ci].rar===3)G.mile.legendSold=1;
+  if(isCotm(c))G.mile.cotmSold=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
