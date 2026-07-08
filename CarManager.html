@@ -772,6 +772,7 @@ const GOALS=[
  {id:"night",t:"Koop een wagen op de nachtveiling",r:"+90 XP · wie niet waagt...",c:()=>!!G.mile.nightAuction,fn:()=>addXP(90)},
  {id:"gsmup",t:"Waardeer je GSM op",r:"+60 XP · altijd bereikbaar",c:()=>!!G.mile.gsmUp,fn:()=>addXP(60)},
  {id:"jdm",t:"Importeer een container JDM-wagens uit Japan",r:"+200 XP · rechts sturen, links winnen",c:()=>!!G.mile.jdm,fn:()=>addXP(200)},
+ {id:"concours",t:"Zet een klassieker in op de concours d'élégance",r:"+120 XP · elegantie loont",c:()=>!!G.mile.concours,fn:()=>addXP(120)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1844,6 +1845,17 @@ function renderOffice(){
      +'<div class="small dim">Januari! De Heizelpaleizen roepen. Een stand kost <b>'+fmt(120000)+'</b>: rode loper, glimmend tapijt en heel België dat langsloopt.</div>'
      +'<button class="btn primary" onclick="doSalon()">Neem een stand ('+fmt(120000)+')</button></div>';
   }
+  if(concoursOn()){
+    const elig=G.cars.filter(concoursEligible);
+    h+='<div class="card"><h3>🏛️ Oldtimertreffen op de Grote Markt</h3>'
+     +'<div class="small dim">De zomerse concours d\'élégance. Zet een verzorgde klassieker in de kijker (inschrijving '+fmt(CONCOURS_FEE)+'): de jury let op leeftijd, staat, zeldzaamheid en afwerking. Prijzengeld + reputatie te winnen. De wagen blijft van u.</div>';
+    if(!elig.length)h+='<div class="small dim" style="margin-top:4px">Ge hebt geen geschikte klassieker in stock (oud, zeldzaam, en netjes in orde).</div>';
+    else for(const c of elig){
+      h+='<div class="logline"><b>'+esc(carName(c))+'</b> <span class="small dim">('+c.year+')</span> '+condPill(c.eng,"motor")+condPill(c.body,"koets")
+       +'<button class="btn primary" style="margin-left:8px;padding:5px 10px;font-size:12px" onclick="enterConcours('+c.id+')">Inschrijven ('+fmt(CONCOURS_FEE)+')</button></div>';
+    }
+    h+='</div>';
+  }
   if(G.unlocks.staff){
     h+='<div class="card"><h3>👥 Personeel</h3>';
     for(const k in STAFFDEF){const st=STAFFDEF[k],on=!!G.staff[k];
@@ -2452,6 +2464,29 @@ function spinWheel(){
     if(el){el.style.transition="transform 2.8s cubic-bezier(.12,.75,.2,1)";el.style.transform="rotate("+target+"deg)"}}));
   WIV=setInterval(()=>sfx("tick"),110);
   setTimeout(land,3050);
+}
+/* zomerse oldtimer-concours: één keer per jaar, wagen blijft in stock */
+const CONCOURS_FEE=10000;
+function concoursOn(){return season().n==="Zomer"&&G.mile.concoursYear!==G.year}
+function concoursEligible(c){const d=CARS[c.ci];return (c.year<1985||d.rar>=2)&&c.eng>=65&&c.body>=65}
+function concoursScore(c){const d=CARS[c.ci];
+  return Math.round(Math.max(0,1985-c.year)*1.2+(c.eng+c.body)/2+d.rar*25+(c.finish&&c.finish!=="solid"?12:0));}
+function enterConcours(id){
+  const c=getCar(id);if(!c||!concoursOn()||!concoursEligible(c))return;
+  if(G.cash-CONCOURS_FEE<creditLimit()){toast("Te weinig geld voor de inschrijving.");return}
+  G.cash-=CONCOURS_FEE;G.mile.concoursYear=G.year;G.mile.concours=1;
+  const s=concoursScore(c);
+  let place,rep,prize,ttl;
+  if(s>=180){place="🥇 EERSTE PLAATS";rep=8;prize=100000;ttl="gold"}
+  else if(s>=140){place="🥈 tweede plaats";rep=5;prize=50000;ttl="gold"}
+  else if(s>=100){place="🥉 derde plaats";rep=3;prize=25000;ttl="pink"}
+  else{place="eervolle vermelding";rep=1;prize=5000;ttl="pink"}
+  G.cash+=prize;G.earned+=prize;repAdd(rep);addXP(20+rep*4);
+  stamp("CONCOURS!",ttl==="gold"?"gold":"pink");if(prize>=50000)confetti(60);sfx("win");
+  log("🏛️ Concours d'élégance: de "+carName(c)+" behaalt "+place+"! Prijzengeld "+fmt(prize)+", +"+rep+" reputatie.");
+  modal("<b>🏛️ De jury heeft geoordeeld.</b><br>De <b>"+esc(carName(c))+"</b> ("+c.year+") behaalt <b>"+place+"</b>.<br><br>Prijzengeld: <b class='money'>"+fmt(prize)+"</b> · reputatie +"+rep+". De wagen staat weer op het koertje, nu mét een pluim.",
+   [{t:"Trots!",fn:()=>{closeModal();render()}}]);
+  save();
 }
 function doSalon(){
   if(!G.unlocks.salon||G.salonYear===G.year)return;
