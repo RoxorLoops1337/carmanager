@@ -706,7 +706,7 @@ function migrate(){if(!G)return;G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0
   G.comebacks=G.comebacks||[];G.mile=G.mile||{};G.trips=G.trips||0;
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
-  G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;
+  G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -756,6 +756,7 @@ const GOALS=[
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
  {id:"vip5",t:"Vervul 5 VIP-zoekopdrachten",r:"+350 XP · huisleverancier van de sterren",c:()=>(G.vipDone||0)>=5,fn:()=>addXP(350)},
  {id:"barngem",t:"Grav een schuurvondst op met de metaaldetector",r:"+90 XP · gouden handjes",c:()=>!!G.mile.barnGem,fn:()=>addXP(90)},
+ {id:"quiz",t:"Win de quiz van Radio Essene",r:"+70 XP · schrander",c:()=>!!G.mile.radioQuiz,fn:()=>addXP(70)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -1771,7 +1772,61 @@ const RADIO=[
  "📻 Verkeer: alles rijdt vlot. De verkeersvrouw klinkt er zelf verbaasd over.",
  "📻 'Café Den Engel: elke zondag volksspelen. Vogelpik, kaarten, en ruzie over vogelpik.'",
 ];
-function zapRadio(){G.radioIx=(G.radioIx||0)+1;render()}
+/* ---- Radio Essene: live call-in show (soms als ge zapt) ---- */
+const RADIO_QUIZ=[
+ {q:"Radio-quiz! Welke Belg won de Ronde van Vlaanderen in '95?",a:["Johan Museeuw","Eddy Merckx","Tom Boonen"],c:0},
+ {q:"Prijsvraag! Hoeveel wielen heeft een Reliant Robin?",a:["Vier","Drie","Vijf"],c:1},
+ {q:"Voor de centen: in welke stad staat het Atomium?",a:["Brussel","Antwerpen","Luik"],c:0},
+ {q:"Autovraag: welk merk bouwde de originele 'Kever'?",a:["Opel","Ford","Volkswagen"],c:2},
+ {q:"Weetje: wat kostte een pintje op café, ongeveer, in '95?",a:["4 frank","40 frank","400 frank"],c:1},
+ {q:"Motorsport: welke kleur heeft de startvlag NIET?",a:["Groen","Geruit","Paars"],c:2},
+ {q:"Klassiek: de Citroën DS werd in de volksmond genoemd naar een...",a:["Snoepje","Godin (Déesse)","Rivier"],c:1},
+];
+function zapRadio(){
+  G.radioIx=(G.radioIx||0)+1;
+  if((G.radioShowWk!==G.week)&&Math.random()<.22){G.radioShowWk=G.week;radioShow();return}
+  render();
+}
+function radioShow(){
+  const type=pick(["quiz","quiz","dedi","lead"]);
+  if(type==="dedi"){
+    repAdd(1);save();
+    modal("<b>📻 'Groetjes uit Essene!'</b><br>Ge belt de Radio Essene-groetjeslijn en draagt een plaat op aan 'alle trouwe klanten van 't koertje aan Koudenberg'. De presentator: \"Schoon gebaar!\" Heel Essene hoort uw naam. <span class='small dim'>(+1 reputatie)</span>",
+     [{t:"Bedankt en tot ziens",fn:()=>{closeModal();render()}}]);return;
+  }
+  if(type==="lead"){
+    const b=pick(Object.keys(BODN));
+    G.custs=G.custs||[];
+    const ty=pick(CUSTTYPES.filter(t=>t.want&&t.want.body&&t.want.body.includes(b)))||pick(CUSTTYPES);
+    G.custs.push({id:UID++,name:pick(CUSTNAMES),t:"hoorde uw zaak op de radio, zoekt "+BODN[b],want:{body:[b]},fuss:.3,face:pick(CFACES),
+      budget:Math.round(300000*rnd(.7,1.3)/1000)*1000,tried:false});
+    save();
+    modal("<b>📻 'Luisteraar zoekt...'</b><br>Een luisteraar belt in: \"Ik zoek dringend een "+BODN[b].replace(/s$/,'')+", en ik hoorde dat ze er bij CarManager in Essene een paar hebben staan.\" De presentator geeft ongevraagd uw adres door. Een nieuwe klant is op komst!",
+     [{t:"Merci, Radio Essene!",fn:()=>{closeModal();render()}}]);return;
+  }
+  const quiz=pick(RADIO_QUIZ);
+  RQ=quiz;
+  modal("<b>📻 Radio Essene — DE QUIZ!</b><br>\"Bel-in en win!\" "+esc(quiz.q)
+   +'<div class="tablebtns" style="margin-top:10px">'+quiz.a.map((a,i)=>'<button class="btn" onclick="answerQuiz('+i+')">'+esc(a)+'</button>').join("")+'</div>',
+  [{t:"Niet meedoen",cls:"ghost",fn:()=>{RQ=null;closeModal();render()}}]);
+}
+let RQ=null;
+function answerQuiz(i){
+  const quiz=RQ;if(!quiz)return;RQ=null;
+  if(i===quiz.c){
+    const prize=ri(3,8)*1000;G.cash+=prize;G.mile.radioQuiz=1;
+    stamp("JUIST!","gold");sfx("win");confetti(30);popNum("+"+fmt(prize),"pgreen");addXP(15);
+    log("📻 Radio Essene-quiz gewonnen! '"+quiz.a[quiz.c]+"' was juist. Prijzengeld: "+fmt(prize)+".");
+    modal("<b>🎉 JUIST!</b> \""+esc(quiz.a[quiz.c])+"\", helemaal correct! Ge wint <b class='money'>"+fmt(prize)+"</b> prijzengeld en een vermelding op de radio.",
+     [{t:"Dank u, dank u",fn:()=>{closeModal();render()}}]);
+  }else{
+    sfx("bad");
+    log("📻 Radio-quiz verloren. Het juiste antwoord was '"+quiz.a[quiz.c]+"'.");
+    modal("<b>❌ Helaas!</b> \""+esc(quiz.a[i])+"\"? Nee. Het juiste antwoord was <b>"+esc(quiz.a[quiz.c])+"</b>. De presentator lacht vriendelijk. Volgende keer beter.",
+     [{t:"Tss.",fn:()=>{closeModal();render()}}]);
+  }
+  save();
+}
 /* ---- unlockable extensions ---- */
 const SPAM=[
  "📧 E-mail: 'GEFELICITEERD! U bent bezoeker 100.000!' Vast wel.",
