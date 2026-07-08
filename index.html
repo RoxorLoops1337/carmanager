@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -809,6 +809,7 @@ const GOALS=[
  {id:"radiocontest",t:"Win de bel-in wedstrijd van Radio Essene",r:"+90 XP · snelle vinger, scherp verstand",c:()=>!!G.mile.radioContest,fn:()=>addXP(90)},
  {id:"tvfeature",t:"Verkoop een model tijdens zijn TV-rage",r:"+130 XP · op het juiste moment beroemd",c:()=>!!G.mile.tvFeature,fn:()=>addXP(130)},
  {id:"customsfriend",t:"Bouw een verstandhouding op met de douanier",r:"+120 XP · een vriend aan de grens",c:()=>!!G.mile.customsFriend,fn:()=>addXP(120)},
+ {id:"fuelcard",t:"Spaar een tankstation-kaart vol",r:"+80 XP · elke druppel telt",c:()=>!!G.mile.fuelCard,fn:()=>addXP(80)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -2922,6 +2923,8 @@ function renderTravel(){
      :s==="Lente"?["🌦️","Wisselvallige lentebuien — meestal meevallen"]
      :["🔆","Hittegolf & wegenwerken — dikke motoren kunnen oververhitten"];
    h+='<div class="card flat"><span class="small"><b>'+fc[0]+' Weerbericht ('+s+')</b> · <span class="dim">'+fc[1]+'</span></span></div>';}
+  {const fp=G.fuelPoints||0;
+   h+='<div class="card flat"><span class="small"><b>⛽ Tankkaart</b> '+"●".repeat(fp)+"○".repeat(Math.max(0,FUEL_CARD-fp))+' <span class="dim">('+fp+'/'+FUEL_CARD+' punten)</span>'+(G.fuelPerk==="tank"?' <span class="pill good">gratis tankbeurt klaar</span>':'')+'</span></div>';}
   if(!validPlate())h+='<div class="card flat"><span class="pill bad">⚠ Geen geldige ZZ-plaat</span> <span class="small dim">Regel er één via het ZZ-platen tabblad, of leef gevaarlijk.</span></div>';
   if(G.unlocks.auction){
     const on=G.week%4===2,until=((2-(G.week%4))+4)%4;
@@ -2961,14 +2964,33 @@ function renderTravel(){
   $("view").innerHTML=h;
 }
 let MK=null;
+/* tankstation-spaarkaart: punten sparen op inkooptrips, volle kaart = perk */
+const FUEL_CARD=8;
+function tripFuelPoints(m){return 1+(m.risk||0);}
+function addFuelPoints(n){
+  G.fuelPoints=(G.fuelPoints||0)+n;
+  while(G.fuelPoints>=FUEL_CARD){G.fuelPoints-=FUEL_CARD;redeemFuelCard();}
+}
+function redeemFuelCard(){
+  G.mile.fuelCard=1;const roll=Math.random();let msg;
+  if(roll<.34){const reb=ri(8,20)*1000;G.cash+=reb;popNum("+"+fmt(reb),"pgreen");msg="een cashback van "+fmt(reb);}
+  else if(roll<.67){G.fuelPerk="tank";msg="een gratis tankbeurt — de volgende reis is de helft goedkoper";}
+  else{G.rb=true;msg="een gratis blik Red Bull voor onderweg (scherpere volgende onderhandeling)";}
+  stamp("KAART VOL!","gold");sfx("win");confetti(24);
+  log("⛽ Tankstation-spaarkaart vol! De pompbediende overhandigt "+msg+". \"Da's voor de trouwe klant.\"");
+  toast("⛽ Spaarkaart vol: "+msg.replace(/ —.*/,"")+"!");
+}
 function goTrip(k){
   const m=MARKETS[k];
   if(m.req&&!m.req.c())return;
-  const tc=Math.round(m.travel*(hasStaff("jempi")?.65:1));
+  let tc=Math.round(m.travel*(hasStaff("jempi")?.65:1));
+  const freeTank=G.fuelPerk==="tank";if(freeTank)tc=Math.round(tc*0.5/1000)*1000;
   if(G.cash-tc<creditLimit()){toast("Niet genoeg geld voor de reis.");return}
-  modal("Vertrekken naar <b>"+m.fl+" "+m.n+"</b>?<br><br>Reiskost: <b>"+fmt(tc)+"</b>. "+(hasStaff("jempi")?"Jempi zit al achter het stuur, thermos tussen de knieën. ":"")+chr().n+" gooit een slof sigaretten en een bak Red Bull op de passagierszetel.",
+  modal("Vertrekken naar <b>"+m.fl+" "+m.n+"</b>?<br><br>Reiskost: <b>"+fmt(tc)+"</b>"+(freeTank?" <span class='pill good'>⛽ gratis tankbeurt toegepast</span>":"")+". "+(hasStaff("jempi")?"Jempi zit al achter het stuur, thermos tussen de knieën. ":"")+chr().n+" gooit een slof sigaretten en een bak Red Bull op de passagierszetel.",
   [{t:"Rijden!",fn:()=>{closeModal();G.cash-=tc;
+     if(freeTank)G.fuelPerk=null;
      if(k==="pl"||k==="ua")G.mile.eastTrip=1;
+     addFuelPoints(tripFuelPoints(m));
      MK={k, cars:Array.from({length:ri(4,6)},()=>genCar(k)), bought:[]};
      log("Vertrokken naar "+m.n+" ("+m.city+").");CUR="travel";render();
      driveScene("Richting "+m.fl+" "+m.n+" — sloffen sigaretten op de passagierszetel...",closeModal)}},
