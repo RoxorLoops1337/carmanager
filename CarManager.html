@@ -757,6 +757,7 @@ const GOALS=[
  {id:"trade",t:"Neem je eerste inruilwagen aan",r:"+60 XP · handelaarsbloed",c:()=>!!G.mile.tradeIn,fn:()=>addXP(60)},
  {id:"raid",t:"Overleef een razzia zonder inbeslagname",r:"+100 XP · koelbloedig",c:()=>!!G.mile.raidClean,fn:()=>addXP(100)},
  {id:"kermis",t:"Sta op de Kermis van Essene",r:"+80 XP · smoutebollen inbegrepen",c:()=>!!G.mile.kermis,fn:()=>addXP(80)},
+ {id:"kerst",t:"Vier kerst op het koertje",r:"+90 XP · een boompje in de container",c:()=>!!G.mile.kerst,fn:()=>addXP(90)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1256,6 +1257,21 @@ function endWeek(silent){
       budget:Math.round(ty.want.maxB*rnd(.7,1.1)/1000)*1000,tried:false});
     extra.push(["🎡 Kermis van Essene","extra volk op 't koertje · +3 rep","money"]);
     log("🎡 Kermis van Essene! Botsauto's op de Markt, smoutebollen, en veel volk dat 'toch eens komt kijken' naar de wagens. Eentje blijft plakken.")}
+  // Kerst & Nieuwjaar, rond de jaarwisseling (week 51-52 of 1)
+  if((G.week>=51||G.week===1)&&G.mile.kerstYear!==G.year){
+    G.mile.kerstYear=G.year;G.mile.kerst=1;
+    const gift=ri(8,15)*1000;G.cash+=gift;repAdd(2);G.heat=clamp(G.heat-5,0,100);
+    extra.push(["🎄 Kerst & Nieuwjaar","eindejaarspremie +"+fmt(gift)+" · -5 heat","money"]);
+    log("🎄 Zalig kerstfeest vanuit Essene! De boekhouding sluit het jaar af met een eindejaarspremie ("+fmt(gift)+"), de asbak wordt één keer geleegd, en zelfs de inspecteurs zijn met vakantie. (-5 heat, +2 rep)");
+    if(!silent){stamp("🎄 KERST","gold");confetti(60);sfx("win")}}
+  // Paasfoor / voorjaarsmarkt, in de lente (rond week 15)
+  if(G.week>=14&&G.week<=16&&G.mile.paasYear!==G.year){
+    G.mile.paasYear=G.year;G.mile.paas=1;repAdd(2);
+    for(let i=0;i<2;i++){const ty=pick(CUSTTYPES);
+      G.custs.push({id:UID++,name:pick(CUSTNAMES),t:ty.t,want:ty.want,fuss:Math.max(.1,ty.fuss-.1),face:pick(CFACES),
+        budget:Math.round(ty.want.maxB*rnd(.7,1.1)/1000)*1000,tried:false});}
+    extra.push(["🐣 Paasfoor","2 extra klanten · +2 rep","money"]);
+    log("🐣 Paasfoor op de Markt van Essene! De eerste zon lokt volk naar buiten, en een paar dwalen af naar 't koertje. Twee kandidaat-kopers erbij.")}
   // the radio plays on
   if(Math.random()<.3)log(pick(RADIO));
   // Vlan ad
