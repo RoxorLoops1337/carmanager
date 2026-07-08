@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -810,6 +810,8 @@ const GOALS=[
  {id:"tvfeature",t:"Verkoop een model tijdens zijn TV-rage",r:"+130 XP · op het juiste moment beroemd",c:()=>!!G.mile.tvFeature,fn:()=>addXP(130)},
  {id:"customsfriend",t:"Bouw een verstandhouding op met de douanier",r:"+120 XP · een vriend aan de grens",c:()=>!!G.mile.customsFriend,fn:()=>addXP(120)},
  {id:"fuelcard",t:"Spaar een tankstation-kaart vol",r:"+80 XP · elke druppel telt",c:()=>!!G.mile.fuelCard,fn:()=>addXP(80)},
+ {id:"renttoown",t:"Sluit een huurkoop-contract",r:"+80 XP · verkopen op de pof",c:()=>!!G.mile.rentToOwn,fn:()=>addXP(80)},
+ {id:"rentdone",t:"Laat een huurkoop volledig afbetalen",r:"+150 XP · geduld wordt beloond",c:()=>!!G.mile.rentDone,fn:()=>addXP(150)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1537,6 +1539,23 @@ function endWeek(silent){
   if(!G.phoneDeal&&G.unlocks.gsm&&!isCh("thomas")&&Math.random()<.15){
     G.phoneDeal=genPhoneDeal();G.phoneDeal.viaThomas=1;
     extra.push(["😁 Thomas","'iets gezien op het prikbord van de computerclub' — kijk op het bureau",""]);}
+  // huurkoop-afbetalingen innen (+ zeldzame wanbetaling)
+  G.rentDeals=G.rentDeals||[];
+  for(const rd of G.rentDeals){
+    if(rd.weeksLeft>0&&Math.random()<.06){rd.defaulted=true;
+      if(Math.random()<.5){const rc={...rd.car,id:UID++};rc.eng=clamp((rc.eng||70)-ri(8,20),6,100);rc.body=clamp((rc.body||70)-ri(8,20),6,100);rc.known=(rc.quirks||[]).slice();rc.transit=false;G.cars.push(rc);
+        extra.push(["⚠️ Huurkoop afgesprongen",rd.name+" · wagen teruggehaald","neg"]);
+        log("⚠️ "+rd.name+" kan de "+rd.carName+" niet meer afbetalen. Ge haalt de wagen terug op — wel wat sleet erop. De aanbetaling houdt ge.");}
+      else{extra.push(["⚠️ Huurkoop wanbetaling",rd.name+" · wagen weg","neg"]);
+        log("⚠️ "+rd.name+" is met de "+rd.carName+" verdwenen en betaalt niet meer. Ge houdt enkel wat al binnen was. Rotzak.");}
+      continue;}
+    rd.weeksLeft--;G.cash+=rd.perWeek;G.earned+=rd.perWeek;rd.collected+=rd.perWeek;
+    if(rd.weeksLeft<=0){rd.done=true;G.mile.rentDone=1;repAdd(1);
+      extra.push(["✅ Huurkoop afbetaald",rd.name+" · "+rd.carName,"money"]);
+      log("✅ "+rd.name+" heeft de "+rd.carName+" volledig afbetaald ("+fmt(rd.total)+" totaal). Nette klant, +1 rep.");}
+    else extra.push(["💳 Huurkoop "+rd.name,"+"+fmt(rd.perWeek)+" · nog "+rd.weeksLeft+" wk","money"]);
+  }
+  G.rentDeals=G.rentDeals.filter(rd=>!rd.done&&!rd.defaulted);
   // staff wages, training & loyalty
   G.staffWeeks=G.staffWeeks||{};G.staffMorale=G.staffMorale||{};
   for(const k in G.staff){const st=STAFFDEF[k];G.cash-=st.cost;
@@ -2164,6 +2183,12 @@ function renderOffice(){
     +'<div class="tablebtns" style="margin-top:6px">';
    for(const a of AD_OPTIONS)h+='<button class="btn" onclick="buyAd(\''+a.id+'\')">'+a.emo+' '+a.n+'<br><span class="small">'+fmt(a.cost)+' · '+a.weeks+' weken</span></button>';
    h+='</div>'+((G.adWeeks||0)>0?'<div class="small dim" style="margin-top:4px">Nog een campagne boeken stapelt de weken op elkaar.</div>':'')+'</div>';}
+  // lopende huurkoop-contracten
+  if((G.rentDeals||[]).length){
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">💳 Huurkoop-contracten</h3><span class="pill">'+G.rentDeals.length+' lopend</span></div>';
+    for(const rd of G.rentDeals)h+='<div class="logline small"><b>'+esc(rd.name)+'</b> — '+esc(rd.carName)+' <span class="pill good">'+fmt(rd.perWeek)+'/wk</span> <span class="dim">nog '+rd.weeksLeft+' wk</span></div>';
+    h+='<div class="small dim">Wekelijkse afbetalingen komen binnen bij de weekafsluiting.</div></div>';
+  }
   h+='<div class="card flat" style="cursor:pointer" onclick="zapRadio()" title="Tik om te zappen">'
    +'<div class="small"><b>📻 Radio Essene</b> <span class="dim">· tik om te zappen</span></div>'
    +'<div class="small dim" style="margin-top:3px">'+esc(RADIO[(G.week*7+(G.radioIx||0))%RADIO.length])+'</div></div>';
@@ -4680,7 +4705,10 @@ function negModal(){
   {const wFee=warrantyFee(c);
    h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="warrbox"'+(NEG.warranty?" checked":"")+' onchange="updPr()"> 🛡️ Garantie aanbieden (+'+fmt(wFee)+', klant voelt zich veiliger)</label>'
     +'<div class="small dim">De koper betaalt '+fmt(wFee)+' extra en hapt makkelijker toe. Maar komt de wagen terug op de takelwagen, dan MOET ge herstellen — al scheelt dat wel in reputatie.</div>';}
-  modal(h,[{t:"💬 Doe je voorstel",fn:trySell},{t:"Sluiten",cls:"ghost",fn:closeModal}]);
+  {const t=huurkoopTerms(c);
+   h+='<hr><div class="small">💳 <b>Huurkoop</b> — voor wie het niet cash kan: <b>'+fmt(t.down)+'</b> nu, dan '+t.weeks+'× <b>'+fmt(t.perWeek)+'</b>/week (totaal '+fmt(t.total)+', dat is meer dan cash).</div>'
+    +'<div class="small dim">De wagen vertrekt meteen, de afbetalingen komen wekelijks binnen. Klein risico dat de klant afhaakt.</div>';}
+  modal(h,[{t:"💬 Doe je voorstel",fn:trySell},{t:"💳 Huurkoop sluiten",cls:"shady",fn:startHuurkoop},{t:"Sluiten",cls:"ghost",fn:closeModal}]);
 }
 function doTalkSell(k){
   if($("prsl"))NEG.price=+$("prsl").value;
@@ -4807,6 +4835,31 @@ function doSale(cu,c,price,disclosed,iss){
   closeModal();
   modal("<b>🤝 Verkocht!</b><br>"+cu.name+" rijdt weg in de "+esc(carName(c))+" en toetert twee keer. "+chr().n+" "+(honest?"glimlacht tevreden en steekt een sigaret op.":"steekt iets te snel een sigaret op en kijkt de wagen nét iets te lang na.")+"<br><br>💰 <b class='money'>+"+fmt(price)+"</b>"+(profit>=0?" <span class='pill good'>winst "+fmt(profit)+"</span>":" <span class='pill bad'>verlies "+fmt(-profit)+"</span>"),
   [{t:"Kassa kassa",fn:()=>{closeModal();render()}}]);
+}
+/* huurkoop / rent-to-own: aanbetaling nu, wekelijkse afbetalingen met opslag */
+const HK_WEEKS=8;
+function huurkoopTerms(c){
+  const base=askValue(c);
+  const down=Math.round(base*.30/1000)*1000;
+  const total=Math.round(base*1.12/1000)*1000;
+  const perWeek=Math.max(1000,Math.round((total-down)/HK_WEEKS/1000)*1000);
+  return {down,total,perWeek,weeks:HK_WEEKS};
+}
+function startHuurkoop(){
+  const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);if(!cu||!c)return;
+  const t=huurkoopTerms(c);
+  G.cash+=t.down;G.earned+=t.down;G.sold++;G.wkSold=(G.wkSold||0)+1;
+  G.rentDeals=G.rentDeals||[];
+  G.rentDeals.push({name:cu.name,carName:carName(c),car:{...c},down:t.down,perWeek:t.perWeek,total:t.total,weeksLeft:t.weeks,collected:t.down});
+  G.mile.rentToOwn=1;
+  const cix=G.cars.findIndex(x=>x.id===c.id);if(cix>=0)G.cars.splice(cix,1);
+  G.custs=G.custs.filter(x=>x.id!==cu.id);
+  stamp("HUURKOOP!","gold");sfx("kaching");popNum("+"+fmt(t.down),"pgreen");addXP(12);confetti(20);
+  log("💳 Huurkoop met "+cu.name+" voor de "+carName(c)+": "+fmt(t.down)+" contant, dan "+t.weeks+"× "+fmt(t.perWeek)+"/week (totaal "+fmt(t.total)+"). De wagen is vertrokken.");
+  enrollLoyal(cu.name);
+  closeModal();
+  modal("<b>💳 Huurkoop getekend!</b><br>"+cu.name+" rijdt weg met de "+esc(carName(c))+" en een handdruk. Ge krijgt <b class='money'>"+fmt(t.down)+"</b> aanbetaling nu, en de rest druppelt binnen — "+t.weeks+" weken lang.",
+   [{t:"Op de pof, maar oké",fn:()=>{closeModal();render()}}]);
 }
 
 /* ============ ZZ PLATES ============ */
