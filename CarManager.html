@@ -712,6 +712,7 @@ function migrate(){if(!G)return;
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
+  G.loan=G.loan||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -762,6 +763,7 @@ const GOALS=[
  {id:"vip5",t:"Vervul 5 VIP-zoekopdrachten",r:"+350 XP · huisleverancier van de sterren",c:()=>(G.vipDone||0)>=5,fn:()=>addXP(350)},
  {id:"barngem",t:"Grav een schuurvondst op met de metaaldetector",r:"+90 XP · gouden handjes",c:()=>!!G.mile.barnGem,fn:()=>addXP(90)},
  {id:"quiz",t:"Win de quiz van Radio Essene",r:"+70 XP · schrander",c:()=>!!G.mile.radioQuiz,fn:()=>addXP(70)},
+ {id:"loan",t:"Betaal een banklening volledig af",r:"+110 XP · kredietwaardig",c:()=>!!G.mile.loanPaid,fn:()=>addXP(110)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -801,6 +803,26 @@ function season(){const wk=((G.week-1)%52);return SEASONS[Math.floor(wk/13)%4]}
 function isSeason(c){return season().bodies.includes(CARS[c.ci].body)}
 const SEASON_MUL=1.10;
 function creditLimit(){return isCh("martine")?-300000:0}
+/* ---- bank: een lening nu, elke week rente + afbetaling ---- */
+const LOAN_RATE=0.04, LOAN_MIN=5000;
+function bankMax(){return Math.round((100000+ (G.rep||0)*4000 + (G.lvl||1)*30000)/10000)*10000}
+function takeLoan(amt){
+  const room=bankMax()-(G.loan||0);
+  amt=Math.min(amt,room);
+  if(amt<10000){toast("De bank geeft u nu niks (meer). Bouw eerst wat reputatie op.");return}
+  G.loan=(G.loan||0)+amt;G.cash+=amt;save();sfx("kaching");popNum("+"+fmt(amt),"pgreen");
+  log("🏦 Banklening opgenomen: "+fmt(amt)+" (tegen "+Math.round(LOAN_RATE*100)+"% per week). De directeur glimlacht net iets te breed.");
+  toast("🏦 "+fmt(amt)+" op de rekening. Vergeet niet af te betalen.");render();
+}
+function repayLoan(amt){
+  if(!(G.loan>0))return;
+  amt=Math.min(amt,G.loan,Math.max(0,G.cash-creditLimit()));
+  if(amt<=0){toast("Geen cash om af te lossen.");return}
+  G.cash-=amt;G.loan-=amt;if(G.loan<1)G.loan=0;save();sfx("kaching");popNum("-"+fmt(amt),"pred");
+  if(G.loan===0){G.mile.loanPaid=1;stamp("SCHULDVRIJ!","gold");confetti(30);log("🏦 Banklening volledig afbetaald! Schuldenvrij.");}
+  else log("🏦 "+fmt(amt)+" afgelost. Nog "+fmt(G.loan)+" te gaan.");
+  render();
+}
 function log(t){G.log.unshift("W"+G.week+" · "+t); if(G.log.length>40)G.log.pop()}
 function save(){try{if(typeof MK!=="undefined")G.mk=MK;localStorage.setItem("cm_save",JSON.stringify(G))}catch(e){}}
 function loadSave(){try{const s=localStorage.getItem("cm_save");return s?JSON.parse(s):null}catch(e){return null}}
@@ -1177,6 +1199,17 @@ function endWeek(silent){
   if(G.cash<0)G.cash=Math.round(G.cash*1.01);
   G.heat=clamp(G.heat-2,0,100);
   const extra=[];
+  // bank loan: rente loopt, wekelijkse afbetaling
+  if(G.loan>0){
+    const interest=Math.round(G.loan*LOAN_RATE);G.loan+=interest;
+    let plan=Math.min(G.loan,Math.max(LOAN_MIN,Math.round(G.loan*0.12)));
+    let pay=Math.min(plan,Math.max(0,G.cash-creditLimit()));
+    if(pay>0){G.cash-=pay;G.loan-=pay;if(G.loan<1)G.loan=0;
+      extra.push(["🏦 Banklening","-"+fmt(pay)+" (rente "+fmt(interest)+")","neg"]);
+      if(G.loan===0){G.mile.loanPaid=1;log("🏦 Laatste afbetaling gedaan — de banklening is rond.");}}
+    else{heatAdd(1);extra.push(["🏦 Banklening","betaling gemist! schuld "+fmt(G.loan),"neg"]);
+      log("🏦 Geen afbetaling deze week. De schuld dijt uit tot "+fmt(G.loan)+". De bank wordt ongeduldig. (+1 heat)");}
+  }
   // Alin needs his cigarettes: under 3 a week the nerves show
   if(isCh("alan")&&G.smokes<3){const miss=3-G.smokes;
     G.heat=clamp(G.heat+miss*2,0,100);
@@ -1713,6 +1746,17 @@ function renderOffice(){
   h+='<div class="card flat" style="cursor:pointer" onclick="zapRadio()" title="Tik om te zappen">'
    +'<div class="small"><b>📻 Radio Essene</b> <span class="dim">· tik om te zappen</span></div>'
    +'<div class="small dim" style="margin-top:3px">'+esc(RADIO[(G.week*7+(G.radioIx||0))%RADIO.length])+'</div></div>';
+  {const debt=G.loan||0,room=bankMax()-debt;
+   h+='<div class="card"><div class="spread"><h3 style="margin:0">🏦 Bank van Essene</h3>'
+    +(debt>0?'<span class="pill '+(debt>bankMax()*.7?"bad":"warn")+'">schuld '+fmt(debt)+'</span>':'<span class="pill good">schuldenvrij</span>')+'</div>'
+    +'<div class="small dim">Leen nu, betaal wekelijks terug met '+Math.round(LOAN_RATE*100)+'% rente. Kredietwaardig tot <b>'+fmt(bankMax())+'</b>.'
+    +(debt>0?' Elke week gaat er automatisch een stukje af — mis je een betaling, dan groeit de schuld.':'')+'</div>'
+    +'<div class="tablebtns" style="margin-top:6px">'
+    +(room>=10000?'<button class="btn" onclick="takeLoan(100000)">💶 Leen '+fmt(Math.min(100000,room))+'</button>':'')
+    +(room>=10000?'<button class="btn" onclick="takeLoan('+room+')">💶 Leen \'t maximum ('+fmt(room)+')</button>':'')
+    +(debt>0?'<button class="btn" onclick="repayLoan(50000)">💵 Los '+fmt(Math.min(50000,debt))+' af</button>':'')
+    +(debt>0?'<button class="btn primary" onclick="repayLoan('+debt+')">✅ Volledig aflossen ('+fmt(debt)+')</button>':'')
+    +'</div></div>';}
   h+='<div class="card"><h3>☕ Op het bureau</h3><div class="tablebtns">'
    +'<button class="btn primary" onclick="doEndWeek()">⏭ Week afsluiten</button>'
    +'<button class="btn" onclick="smoke()" '+(G.smokes>=smokeCap()?"disabled":"")+'>🚬 Sigaret op het koertje'+(isCh("alan")?' ('+G.smokes+'/'+smokeCap()+')':'')+'</button>'
