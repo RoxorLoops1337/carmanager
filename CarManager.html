@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -786,6 +786,7 @@ const GOALS=[
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
  {id:"fuelcrisis",t:"Beleef een brandstofcrisis op 't koertje",r:"+80 XP · de pomp bepaalt de markt",c:()=>!!G.mile.fuelCrisis,fn:()=>addXP(80)},
+ {id:"apprpro",t:"Leid een leerjongen op tot volwaardig monteur",r:"+140 XP · goed baasschap",c:()=>!!G.mile.apprPro,fn:()=>addXP(140)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1411,6 +1412,19 @@ function endWeek(silent){
       log("🏅 "+STAFFDEF[win].face+" "+STAFFDEF[win].n+" is Werknemer van de Maand! Een bon, een handdruk en een plek aan de muur. De moraal zit weer goed.");
       G.mile.eotm=1;
     }else G.eotm=null;
+  }
+  // leerjongen in de garage: weekloon, leert bij, en promoveert uiteindelijk tot volwaardig monteur
+  if(G.appr){
+    const lb=apprLvl();
+    G.cash-=APPR_WAGE;G.appr.weeks=(G.appr.weeks||0)+1;
+    const la=apprLvl();
+    extra.push(["🧑‍🔧 Leerjongen"+(la>1?" "+"⭐".repeat(la-1):""),"-"+fmt(APPR_WAGE),"neg"]);
+    if(la>lb&&la<3){extra.push(["🧑‍🔧 Leerjongen","wordt beter → niveau "+la,"money"]);
+      log("🧑‍🔧 De leerjongen heeft er "+G.appr.weeks+" weken op zitten en knoeit al veel minder. Niveau "+la+".")}
+    if(la>=3&&!G.mile.apprPro){G.mile.apprPro=1;repAdd(2);
+      extra.push(["🎓 Leerjongen uitgeleerd","volwaardig monteur! +2 rep","money"]);
+      log("🎓 De leerjongen is uitgeleerd — na "+G.appr.weeks+" weken is 't een volwaardige monteur. Goedkope, propere klussen, geen geknoei meer. (+2 rep)");
+      if(!silent){stamp("🎓 UITGELEERD","gold");sfx("level")}}
   }
   if(hasStaff("staf"))G.heat=clamp(G.heat-2,0,100);
   if(hasStaff("sonja")){const amt=staffLvl("sonja");for(const c of G.cars)if(c.body<82)c.body=Math.min(82,c.body+amt);}
@@ -2921,6 +2935,16 @@ function renderGarage(){
   const st=Math.min(5,Math.floor((G.mech||0)/12));
   let h='<div class="spread"><h2 style="margin:0">🔧 Garage & Stock</h2>'
    +'<span class="pill" title="De monteur wordt beter met elke klus">👨‍🔧 '+"★".repeat(st)+"☆".repeat(5-st)+'</span></div>';
+  // leerjongen
+  if(G.appr){const l=apprLvl();
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">🧑‍🔧 Leerjongen</h3><span class="pill '+(l>=3?"good":"warn")+'">'+(l>=3?"uitgeleerd 🎓":"niveau "+l+" "+"⭐".repeat(Math.max(0,l-1)))+'</span></div>'
+     +'<div class="small dim">Klussen '+Math.round((1-apprMul())*100)+'% goedkoper'+(apprBotch()>0?", maar knoeit soms nog ("+Math.round(apprBotch()*100)+"% kans op mislukte klus)":"")+'. Loon '+fmt(APPR_WAGE)+'/week. Al '+(G.appr.weeks||0)+' weken in dienst.</div>'
+     +'<button class="btn ghost" onclick="fireAppr()">Bedanken en laten gaan</button></div>';
+  } else {
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">🧑‍🔧 Leerjongen aannemen?</h3><span class="pill">'+fmt(APPR_WAGE)+'/week</span></div>'
+     +'<div class="small dim">Een groentje uit de vakschool. Maakt reparaties goedkoper (tot −15% als hij uitgeleerd is), maar de eerste weken knoeit hij nog wel eens. Leert bij met elke klus.</div>'
+     +'<button class="btn primary" onclick="hireAppr()">🧑‍🔧 Leerjongen aannemen</button></div>';
+  }
   if(G.cars.length===0)h+='<div class="card center dim" style="margin-top:10px">Leeg koertje. Tijd voor een inkooptrip.</div>';
   for(const c of G.cars){
     h+='<div class="carline" onclick="openCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
@@ -2983,10 +3007,26 @@ function expandBarn(){
   log("Schuur uitgebreid naar "+G.collSlots+" plaatsen. De aannemer vroeg geen factuur. Wij ook niet.");
   render();
 }
+function hireAppr(){
+  if(G.appr){toast("Ge hebt al een leerjongen.");return}
+  G.appr={weeks:0,jobs:0};G.mile.appr=1;save();sfx("kaching");
+  log("🧑‍🔧 Een leerjongen uit de vakschool van Aalst begint in de garage. Enthousiast, twee linkerhanden, maar dat komt wel goed. Loon "+fmt(APPR_WAGE)+"/week.");
+  toast("🧑‍🔧 Leerjongen aangenomen. Hij mag maandag beginnen. Of, ja, vandaag.");
+  render();
+}
+function fireAppr(){
+  if(!G.appr)return;
+  const graduated=apprLvl()>=3;
+  modal("<b>🧑‍🔧 Leerjongen laten gaan?</b><br>"+(graduated?"Hij is nochtans uitgeleerd en klust goedkoop en proper.":"Hij leert nog volop bij ("+ (G.appr.weeks||0) +" weken).")+" Zeker?",
+    [{t:"Ja, bedanken",cls:"ghost",fn:()=>{G.appr=null;save();
+      log("🧑‍🔧 De leerjongen is bedankt voor de bewezen diensten. 't Ateljee is weer wat stiller.");
+      toast("Leerjongen laten gaan.");closeModal();render()}},
+     {t:"Toch houden",cls:"primary",fn:()=>{closeModal()}}]);
+}
 function openCar(id){
   const c=G.cars.find(x=>x.id===id);if(!c)return;
-  const repE=Math.round((100-c.eng)/100*CARS[c.ci].base*.22*(hasStaff("roger")?.85:1)/1000)*1000;
-  const repB=Math.round((100-c.body)/100*CARS[c.ci].base*.13*(hasStaff("roger")?.85:1)/1000)*1000;
+  const repE=Math.round((100-c.eng)/100*CARS[c.ci].base*.22*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
+  const repB=Math.round((100-c.body)/100*CARS[c.ci].base*.13*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
   const shM=shadyMult();
   const rollC=Math.round(8000*shM),papC=Math.round(30000*shM);
   const swept=SWEEP===c.id;SWEEP=null;
@@ -2995,8 +3035,8 @@ function openCar(id){
    +'<div class="tablebtns">'
    +'<button class="btn" onclick="fixEng('+c.id+')" '+(c.eng>=95?"disabled":"")+'>🔩 Motor herstellen<br><span class="small">'+fmt(repE)+'</span></button>'
    +'<button class="btn" onclick="fixBody('+c.id+')" '+(c.body>=95?"disabled":"")+'>🎨 Koets & spuitwerk<br><span class="small">'+fmt(repB)+'</span></button>'
-   +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(25000)+'</span></button>'
-   +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(RESPRAY_COST)+'</span></button>'
+   +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(Math.round(25000*apprMul()/1000)*1000)+'</span></button>'
+   +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(Math.round(RESPRAY_COST*apprMul()/1000)*1000)+'</span></button>'
    +'<button class="btn" onclick="washCar('+c.id+')">✨ Wassen & poetsen<br><span class="small">'+fmt(WASH_COST)+' · '+(c.washT>0?"nog "+c.washT+" wk blink":"+appeal "+WASH_WEEKS+" wk")+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
@@ -3032,11 +3072,17 @@ function scrapCar(id){
       closeModal();render()}},
    {t:"Toch niet",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
 }
+// leerjongen (apprentice): goedkopere klussen, maar leert nog en knoeit soms
+const APPR_WAGE=1500;
+function apprLvl(){return G.appr?clamp(1+Math.floor((G.appr.weeks||0)/8),1,3):0}
+function apprMul(){const l=apprLvl();return l?[1,.95,.90,.85][l]:1} // reparatiekorting per niveau
+function apprBotch(){const l=apprLvl();return l===1?.06:l===2?.02:0} // groentje knoeit vaker
 function repairRoll(){const m=G.mech||0,r=Math.random(); // mechanic skill: more crits, fewer botches
-  const crit=.15+m*.002,botch=.12*(1-m/80);
-  G.mech=Math.min(60,m+(hasStaff("roger")?3:2));
+  const crit=.15+m*.002,botch=.12*(1-m/80)+apprBotch();
+  G.mech=Math.min(60,m+(hasStaff("roger")?3:2)+(G.appr?1:0));
+  if(G.appr)G.appr.jobs=(G.appr.jobs||0)+1;
   return r<crit?2:r<crit+botch?0:1} // 2=crit 0=botch 1=normal
-function fixEng(id){const c=getCar(id);const cost=Math.round((100-c.eng)/100*CARS[c.ci].base*.22*(hasStaff("roger")?.85:1)/1000)*1000;
+function fixEng(id){const c=getCar(id);const cost=Math.round((100-c.eng)/100*CARS[c.ci].base*.22*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;
   const roll=repairRoll();
@@ -3048,7 +3094,7 @@ function fixEng(id){const c=getCar(id);const cost=Math.round((100-c.eng)/100*CAR
     if(roll===2){stamp("★ TOPKLUS ★","gold");toast("De monteur overtreft zichzelf: motor 100%, loopt als een naaimachine.")}
     else if(roll===0)toast("Mindere dag in de garage. Het loopt, maar nét ("+c.eng+"%).");
     openCar(id);hdr()},fixScene(c,"eng"));}
-function fixBody(id){const c=getCar(id);const cost=Math.round((100-c.body)/100*CARS[c.ci].base*.13*(hasStaff("roger")?.85:1)/1000)*1000;
+function fixBody(id){const c=getCar(id);const cost=Math.round((100-c.body)/100*CARS[c.ci].base*.13*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;
   const roll=repairRoll();
@@ -3060,9 +3106,9 @@ function fixBody(id){const c=getCar(id);const cost=Math.round((100-c.body)/100*C
     if(roll===2){stamp("★ SHOWROOMGLANS ★","gold");toast("Diepglans! Je ziet je eigen sigaret erin weerspiegeld.")}
     else if(roll===0)toast("Beetje sinaasappelhuid in de lak ("+c.body+"%). Niemand die het ziet. Hopelijk.");
     SWEEP=c.id;openCar(id);hdr()},fixScene(c,"body"));}
-function tuneCar(id){const c=getCar(id);
-  if(G.cash-25000<creditLimit()){toast("Te weinig geld.");return}
-  G.cash-=25000;c.tuned++;popNum("⚡ +tuning","pamber");addXP(4);
+function tuneCar(id){const c=getCar(id);const cost=Math.round(25000*apprMul()/1000)*1000;
+  if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
+  G.cash-=cost;c.tuned++;popNum("⚡ +tuning","pamber");addXP(4);
   log(carName(c)+": getuned. Klinkt nu boos in de goeie zin.");save();openCar(id);hdr()}
 const RESPRAY_COST=20000;
 const WASH_COST=3000, WASH_WEEKS=3, WASH_BONUS=.05;
@@ -3102,11 +3148,12 @@ function resprayCar(id){
 function doRespray(id,col){
   const c=getCar(id);if(!c)return;
   if(col===c.col){toast("Da's exact dezelfde kleur. De spuiter kijkt raar.");return}
-  if(G.cash-RESPRAY_COST<creditLimit()){toast("Te weinig geld.");return}
-  G.cash-=RESPRAY_COST;c.col=col;save();
-  log(carName(c)+" overgespoten in "+COLORS[col].n+" ("+fmt(RESPRAY_COST)+").");
+  const cost=Math.round(RESPRAY_COST*apprMul()/1000)*1000;
+  if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
+  G.cash-=cost;c.col=col;save();
+  log(carName(c)+" overgespoten in "+COLORS[col].n+" ("+fmt(cost)+").");
   suspense(["🌈","🖌️","🎨","✨"],"Afplakken, spuiten, drogen...",()=>{
-    popNum("-"+fmt(RESPRAY_COST),"pred");addXP(4);stamp("VERS GESPOTEN","pink");
+    popNum("-"+fmt(cost),"pred");addXP(4);stamp("VERS GESPOTEN","pink");
     toast("🌈 De "+carName(c)+" glanst nu in "+COLORS[col].n+".");
     SWEEP=c.id;openCar(id);hdr()},fixScene(c,"spray",COLORS[col].h));
 }
