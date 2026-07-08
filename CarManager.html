@@ -760,6 +760,7 @@ const GOALS=[
  {id:"kerst",t:"Vier kerst op het koertje",r:"+90 XP · een boompje in de container",c:()=>!!G.mile.kerst,fn:()=>addXP(90)},
  {id:"toptier",t:"Word Legende van Essene (★85 reputatie)",r:"+200 XP · de top van de perkladder",c:()=>repTier()>=4,fn:()=>addXP(200)},
  {id:"sabine",t:"Laat Sabine van 't Autohuis je 3× een VIP-opdracht afsnoepen",r:"+100 XP · de rivaliteit houdt u scherp",c:()=>(G.sabineSteals||0)>=3,fn:()=>addXP(100)},
+ {id:"wash",t:"Poets een wagen op in de wasstraat",r:"+50 XP · blinkende koopwaar",c:()=>!!G.mile.wash,fn:()=>addXP(50)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1316,6 +1317,7 @@ function endWeek(silent){
     else if(G.staffMorale[k]<25)extra.push([st.face+" "+st.n,"⚠️ ontevreden ("+G.staffMorale[k]+"%) — geef een bonus","neg"]);}
   if(hasStaff("staf"))G.heat=clamp(G.heat-2,0,100);
   if(hasStaff("sonja")){const amt=staffLvl("sonja");for(const c of G.cars)if(c.body<82)c.body=Math.min(82,c.body+amt);}
+  for(const c of G.cars)if(c.washT>0)c.washT--; // de glans van de wasbeurt vervaagt
   // the barn: collection cars appreciate, but the damp creeps in
   for(const c of (G.collection||[])){
     c.collWeeks=(c.collWeeks||0)+1;
@@ -2721,7 +2723,7 @@ function renderGarage(){
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
@@ -2791,6 +2793,7 @@ function openCar(id){
    +'<button class="btn" onclick="fixBody('+c.id+')" '+(c.body>=95?"disabled":"")+'>🎨 Koets & spuitwerk<br><span class="small">'+fmt(repB)+'</span></button>'
    +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(25000)+'</span></button>'
    +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(RESPRAY_COST)+'</span></button>'
+   +'<button class="btn" onclick="washCar('+c.id+')">✨ Wassen & poetsen<br><span class="small">'+fmt(WASH_COST)+' · '+(c.washT>0?"nog "+c.washT+" wk blink":"+appeal "+WASH_WEEKS+" wk")+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
    +'<button class="btn" onclick="moveToColl('+c.id+')" '+((G.collection||[]).length>=G.collSlots?"disabled":"")+'>🏛️ In de schuur leggen<br><span class="small">wordt meer waard · kan roesten</span></button>'
@@ -2835,6 +2838,17 @@ function tuneCar(id){const c=getCar(id);
   G.cash-=25000;c.tuned++;popNum("⚡ +tuning","pamber");addXP(4);
   log(carName(c)+": getuned. Klinkt nu boos in de goeie zin.");save();openCar(id);hdr()}
 const RESPRAY_COST=20000;
+const WASH_COST=3000, WASH_WEEKS=3, WASH_BONUS=.05;
+function washCar(id){
+  const c=getCar(id);if(!c)return;
+  if(G.cash-WASH_COST<creditLimit()){toast("Te weinig geld voor de wasstraat.");return}
+  G.cash-=WASH_COST;c.washT=WASH_WEEKS;G.mile.wash=1;save();sfx("kaching");
+  log(carName(c)+" door de wasstraat + binnenkuis ("+fmt(WASH_COST)+"). Blinkt als nieuw — even toch.");
+  suspense(["🚿","🧽","🫧","✨"],"Sopborstel, wax, en veel elleboogvet...",()=>{
+    popNum("-"+fmt(WASH_COST),"pred");addXP(3);stamp("SPIEGELGLAD","pink");
+    toast("✨ De "+carName(c)+" glimt. Klanten happen makkelijker toe ("+WASH_WEEKS+" weken).");
+    SWEEP=c.id;openCar(id);hdr()},fixScene(c,"spray",COLORS[c.col].h));
+}
 /* premium afwerkingen: duurder spuitwerk dat waarde + verkoopbaarheid toevoegt */
 const FINISHES={
  solid:{n:"Standaard lak",emo:"🎨",cost:0,v:0,d:"Gewoon één nette kleur."},
@@ -3857,6 +3871,7 @@ function percFor(cu,c,disclosed){
   if(isTrend(c))perc*=1.12;
   if(isSeason(c))perc*=SEASON_MUL;
   if(isCotm(c))perc*=COTM_MUL;
+  if(c.washT>0)perc*=1+WASH_BONUS;
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
   return perc;
 }
