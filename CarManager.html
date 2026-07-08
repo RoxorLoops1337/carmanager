@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -807,6 +807,7 @@ const GOALS=[
  {id:"tyres",t:"Monteer seizoensbanden op een wagen",r:"+60 XP · oog voor detail",c:()=>!!G.mile.tyres,fn:()=>addXP(60)},
  {id:"tyressold",t:"Verkoop een wagen met banden die bij 't seizoen passen",r:"+100 XP · de juiste band op 't juiste moment",c:()=>!!G.mile.tyresSold,fn:()=>addXP(100)},
  {id:"radiocontest",t:"Win de bel-in wedstrijd van Radio Essene",r:"+90 XP · snelle vinger, scherp verstand",c:()=>!!G.mile.radioContest,fn:()=>addXP(90)},
+ {id:"tvfeature",t:"Verkoop een model tijdens zijn TV-rage",r:"+130 XP · op het juiste moment beroemd",c:()=>!!G.mile.tvFeature,fn:()=>addXP(130)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -881,6 +882,17 @@ function rotateRadioCar(quiet){
   if(!quiet)log("📻 Radio Essene, 'De Wagen van de Week': "+radioCarLabel()+" — "+pick(["'dé slimme keuze van het moment,' aldus de presentator.","'ge ziet ze deze week overal,' klinkt het tussen twee plaatjes door.","'de luisteraars zijn er zot van,' zegt de radioman met veel te veel enthousiasme.","gesponsord door niemand, beweerd door iedereen."]))}
 function radioCarLabel(){if(!G.radioCar)return "";return G.radioCar.kind==="body"?BODN[G.radioCar.val]:"alles van "+G.radioCar.val;}
 function isRadioCar(c){if(!G.radioCar)return false;const d=CARS[c.ci];return G.radioCar.kind==="body"?d.body===G.radioCar.val:d.mk===G.radioCar.val;}
+/* TV-feature: af en toe maakt een programma/film ÉÉN model plots gegeerd (+22%), een paar weken */
+const TV_MUL=1.22;
+const TV_SHOWS=["'Autovisie' op de VRT","de nieuwe James Bond-film","'Man bijt hond'","een reportage in 'Telefacts'","'Opgeruimd staat netjes' op TV1","een videoclip op TMF","'Wedden dat...'","een aflevering van 'F.C. De Kampioenen'"];
+function startTvFeature(){
+  const ci=ri(0,CARS.length-1);const weeks=ri(2,4);const show=pick(TV_SHOWS);
+  G.tvFeature={ci,weeks,tot:weeks,show};
+  log("📺 "+show+" pakte uit met een "+CARS[ci].mk+" "+CARS[ci].md+" — en plots wil héél Vlaanderen er een! Wie er nu een op 't koertje heeft staan, kan straf vragen ("+weeks+" weken).");
+}
+function tvOn(){return !!(G.tvFeature&&G.tvFeature.weeks>0);}
+function isTvFeatured(c){return tvOn()&&c.ci===G.tvFeature.ci;}
+function tvLabel(){return G.tvFeature?CARS[G.tvFeature.ci].mk+" "+CARS[G.tvFeature.ci].md:"";}
 /* seizoenen: het weekgetal (1..52) bepaalt het seizoen; elk seizoen gegeerde carrosserie */
 const SEASONS=[
  {n:"Winter",emo:"❄️",bodies:["suv","sedan","wagon"],w:"Sneeuw en pekel: iedereen wil iets stevigs met vier wielen die trekken."},
@@ -1623,6 +1635,16 @@ function endWeek(silent){
   if(!G.frost&&season().n==="Winter"&&G.cars.length>0&&Math.random()<.18)G.frost=true;
   // Radio Essene bel-in wedstrijd: af en toe
   if(!G.radioContest&&Math.random()<.15)G.radioContest=pickContest();
+  // TV-feature: één model plots gegeerd door een programma/film
+  if(G.tvFeature&&G.tvFeature.weeks>0){
+    G.tvFeature.weeks--;
+    if(G.tvFeature.weeks<=0){const nm=tvLabel();G.tvFeature=null;
+      extra.push(["📺 Rage voorbij",nm+" weer gewoon","neg"]);
+      log("📺 De "+nm+"-rage is uitgeraasd. De prijzen zakken terug naar normaal — wie te lang wachtte, viste achter het net.")}
+    else extra.push(["📺 TV-rage",tvLabel()+" nog "+G.tvFeature.weeks+" wk (+22%)","money"]);
+  } else if(Math.random()<.05){startTvFeature();
+    extra.push(["📺 TV-rage!",tvLabel()+" plots gegeerd","money"]);
+    if(!silent){stamp("📺 RAGE","gold");sfx("win")}}
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   // reclamecampagne aftellen (na genCustomers, zodat deze week nog meetelt)
   if((G.adWeeks||0)>0){G.adWeeks--;repAdd(1);
@@ -3602,6 +3624,7 @@ function renderSell(){
    +'<span class="pill info">'+se.emo+' '+se.n+': '+se.bodies.map(b=>BODN[b]).join("/")+' gegeerd (+10%)</span>'
    +(G.cotm?'<span class="pill good">🏆 Auto v/d Maand: '+esc(G.cotm)+' (+22%)</span>':'')
    +(G.radioCar?'<span class="pill info">📻 Wagen v/d Week: '+esc(radioCarLabel())+' (+7%)</span>':'')
+   +(tvOn()?'<span class="pill good">📺 TV-rage: '+esc(tvLabel())+' (+22%, nog '+G.tvFeature.weeks+' wk)</span>':'')
    +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
@@ -4562,6 +4585,7 @@ function percFor(cu,c,disclosed){
   if(isSeason(c))perc*=SEASON_MUL;
   if(isCotm(c))perc*=COTM_MUL;
   if(isRadioCar(c))perc*=RADIO_MUL;
+  if(isTvFeatured(c))perc*=TV_MUL;
   if(c.washT>0)perc*=1+WASH_BONUS;
   if(tyresInSeason(c))perc*=1+TYRE_BONUS;
   perc*=fuelMod(c);
@@ -4595,6 +4619,7 @@ function negModal(){
    +(isSeason(c)?'<div class="small"><span class="pill info">'+season().emo+' seizoen: nu gegeerd (+10%)</span></div>':'')
    +(isCotm(c)?'<div class="small"><span class="pill good">🏆 Auto van de Maand: '+esc(G.cotm)+' (+22%)</span></div>':'')
    +(isRadioCar(c)?'<div class="small"><span class="pill info">📻 Wagen van de Week: '+esc(radioCarLabel())+' (+7%)</span></div>':'')
+   +(isTvFeatured(c)?'<div class="small"><span class="pill good">📺 Gezien op TV: '+esc(tvLabel())+' — rage (+22%)</span></div>':'')
    +(fuelCrisisOn()?'<div class="small"><span class="pill '+(isEco(c)?"good":isGuzzler(c)?"bad":"warn")+'">⛽ Brandstofcrisis: '+(isEco(c)?"zuinig, erg gegeerd (+14%)":isGuzzler(c)?"slokop, blijft staan (−20%)":"neutraal")+'</span></div>':'')
    +'<div class="small dim"><b>'+esc(carName(c))+'</b> · marktwaarde <b class="money">'+fmt(base)+'</b> · humeur: <span class="mood" id="mood">'+moodFace(p0)+'</span></div>'
    +'<div class="small dim">Jouw vraagprijs:</div>'
@@ -4705,6 +4730,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(isRadioCar(c))G.mile.radioSold=1;
   if(clearanceOn())G.mile.clearance=1;
   if(tyresInSeason(c))G.mile.tyresSold=1;
+  if(isTvFeatured(c))G.mile.tvFeature=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
