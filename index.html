@@ -767,6 +767,7 @@ const GOALS=[
  {id:"loyal",t:"Verkoop een tweede wagen aan een tevreden klant",r:"+90 XP · vaste klanten, vast inkomen",c:()=>!!G.mile.loyalSold,fn:()=>addXP(90)},
  {id:"scrap",t:"Sloop een hopeloos geval voor onderdelen",r:"+50 XP · geen wagen te slecht om iets op te brengen",c:()=>!!G.mile.scrapped,fn:()=>addXP(50)},
  {id:"eotm",t:"Kroon een Werknemer van de Maand",r:"+70 XP · goed werkgeverschap",c:()=>!!G.mile.eotm,fn:()=>addXP(70)},
+ {id:"night",t:"Koop een wagen op de nachtveiling",r:"+90 XP · wie niet waagt...",c:()=>!!G.mile.nightAuction,fn:()=>addXP(90)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -2047,14 +2048,22 @@ function launchWeb(cost,viaThomas){
   });
 }
 /* auction in Liège, every 4 weeks */
-const startBid=c=>Math.round(trueValue(c)*.4/1000)*1000;
-function genLot(){const c=genCar(pick(["pl","pl","ua","nl"]));c.transit=false;return c}
+function startBid(c){return Math.round(trueValue(c)*(G.auction&&G.auction.night?.28:.4)/1000)*1000}
+function genLot(night){const c=genCar(pick(night?["ua","ua","pl"]:["pl","pl","ua","nl"]));c.transit=false;
+  if(night){c.known=[]; // 's nachts zie je nog minder
+    if(c.papers===0&&Math.random()<.4)c.papers=Math.random()<.5?1:2;
+    if(!c.hot&&Math.random()<.25)c.hot=true;} // 'geen vragen' — vaker heet
+  return c}
 function openAuction(){
   if(!G.unlocks.auction)return;
   if(G.week%4!==2){toast("De veiling in Luik is er om de 4 weken.");return}
   const wk=G.year*52+G.week;
-  if(!G.auction||G.auction.wk!==wk)G.auction={wk,lots:[genLot(),genLot(),genLot()],gone:[]};
-  let h='<b>🔨 Veiling in Luik.</b> <span class="small dim">TL-licht, koffieautomaat, mannen met mappen. Curatorverkopen en inbeslagnames — motorkappen blijven dicht.</span><hr>';
+  if(!G.auction||G.auction.wk!==wk){const night=Math.random()<.35;
+    G.auction={wk,night,lots:[genLot(night),genLot(night),genLot(night)],gone:[]};}
+  const night=G.auction.night;
+  let h=night
+    ?'<b>🌙 Nachtveiling in Luik.</b> <span class="small dim">Eén lamp, veel schaduw, en mannen die liever niet gefotografeerd worden. Spotgoedkoop — maar wat ge koopt, koopt ge écht blind. En de flikken rijden ook \'s nachts rond.</span><hr>'
+    :'<b>🔨 Veiling in Luik.</b> <span class="small dim">TL-licht, koffieautomaat, mannen met mappen. Curatorverkopen en inbeslagnames — motorkappen blijven dicht.</span><hr>';
   G.auction.lots.forEach((c,i)=>{
     const gone=G.auction.gone.includes(i);
     h+='<div class="carline" '+(gone?'style="opacity:.4;cursor:default"':'onclick="bidLot('+i+')"')+'><div class="carpic" style="width:86px">'+carArt(c,88)+'</div><div style="flex:1"><b>'+esc(carName(c))+'</b> <span class="small dim">('+c.year+')</span>'
@@ -2083,9 +2092,11 @@ function doAuc(i){
     if(win){
       G.cash-=bid;G.spent+=bid;c.paid=bid;c.known=c.quirks.slice();if(c.rolled)c.known.push("__rolled");
       G.cars.push(c);
-      stamp("AFGESLAGEN!","gold");sfx("kaching");addXP(12);
-      log("Veiling Luik: "+carName(c)+" gekocht voor "+fmt(bid)+".");
-      modal("<b>🔨 Verkocht aan de meneer uit Essene!</b> En nu mag de motorkap eindelijk open...<hr>"+mkCarSheet(c,true),
+      const night=G.auction&&G.auction.night;
+      if(night){heatAdd(5);G.mile.nightAuction=1;}
+      stamp("AFGESLAGEN!","gold");sfx("kaching");addXP(night?16:12);
+      log((night?"🌙 Nachtveiling":"Veiling")+" Luik: "+carName(c)+" gekocht voor "+fmt(bid)+"."+(night?" Niemand die iets gezien heeft. (+heat)":""));
+      modal("<b>🔨 Verkocht aan de meneer uit Essene!</b> "+(night?"Ge laadt hem snel op de trailer, vóór het licht wordt. ":"")+"En nu mag de motorkap eindelijk open...<hr>"+mkCarSheet(c,true),
        [{t:"Naar de garage",fn:closeModal},{t:"Terug naar de veiling",cls:"ghost",fn:openAuction}]);
     }else{
       const who=Math.random();
