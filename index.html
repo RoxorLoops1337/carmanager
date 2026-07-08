@@ -804,6 +804,8 @@ const GOALS=[
  {id:"mystery",t:"Waag een verrassingskavel op de veiling",r:"+80 XP · wie niet waagt, niet wint",c:()=>!!G.mile.mysteryLot,fn:()=>addXP(80)},
  {id:"mysterygem",t:"Vis een parel uit een verrassingskavel",r:"+250 XP · het geluk van de handelaar",c:()=>!!G.mile.mysteryGem,fn:()=>addXP(250)},
  {id:"frost",t:"Kom een strenge nachtvorst door met je stock",r:"+80 XP · winterhard",c:()=>!!G.mile.frost,fn:()=>addXP(80)},
+ {id:"tyres",t:"Monteer seizoensbanden op een wagen",r:"+60 XP · oog voor detail",c:()=>!!G.mile.tyres,fn:()=>addXP(60)},
+ {id:"tyressold",t:"Verkoop een wagen met banden die bij 't seizoen passen",r:"+100 XP · de juiste band op 't juiste moment",c:()=>!!G.mile.tyresSold,fn:()=>addXP(100)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -3293,7 +3295,7 @@ function renderGarage(){
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
@@ -3380,6 +3382,7 @@ function openCar(id){
    +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(Math.round(25000*apprMul()/1000)*1000)+'</span></button>'
    +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(Math.round(RESPRAY_COST*apprMul()/1000)*1000)+'</span></button>'
    +'<button class="btn" onclick="washCar('+c.id+')">✨ Wassen & poetsen<br><span class="small">'+fmt(WASH_COST)+' · '+(c.washT>0?"nog "+c.washT+" wk blink":"+appeal "+WASH_WEEKS+" wk")+'</span></button>'
+   +'<button class="btn" onclick="fitTyres('+c.id+')">'+(tyreSeasonType()==="winter"?"❄️ Winterbanden":"☀️ Zomerbanden")+'<br><span class="small">'+fmt(TYRE_COST)+' · '+(tyresInSeason(c)?"✓ in seizoen (+"+Math.round(TYRE_BONUS*100)+"%)":c.tyres?tyreLabel(c.tyres)+" (uit seizoen)":"+"+Math.round(TYRE_BONUS*100)+"% in seizoen")+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
    +'<button class="btn" onclick="moveToColl('+c.id+')" '+((G.collection||[]).length>=G.collSlots?"disabled":"")+'>🏛️ In de schuur leggen<br><span class="small">wordt meer waard · kan roesten</span></button>'
@@ -3453,6 +3456,21 @@ function tuneCar(id){const c=getCar(id);const cost=Math.round(25000*apprMul()/10
   G.cash-=cost;c.tuned++;popNum("⚡ +tuning","pamber");addXP(4);
   log(carName(c)+": getuned. Klinkt nu boos in de goeie zin.");save();openCar(id);hdr()}
 const RESPRAY_COST=20000;
+/* seizoensbanden: kleine upsell die extra scoort als ze bij 't seizoen passen */
+const TYRE_COST=4000, TYRE_BONUS=.05;
+function tyreSeasonType(){const n=season().n;return (n==="Winter"||n==="Herfst")?"winter":"summer";}
+function tyresInSeason(c){return !!c.tyres&&c.tyres===tyreSeasonType();}
+function tyreLabel(t){return t==="winter"?"winterbanden":t==="summer"?"zomerbanden/sportvelgen":"";}
+function fitTyres(id){
+  const c=getCar(id);if(!c)return;
+  const type=tyreSeasonType();
+  if(c.tyres===type){toast("Die staan er al onder.");return}
+  if(G.cash-TYRE_COST<creditLimit()){toast("Te weinig geld voor een set banden.");return}
+  G.cash-=TYRE_COST;c.tyres=type;G.mile.tyres=1;save();sfx("kaching");popNum("-"+fmt(TYRE_COST),"pred");addXP(2);
+  log(carName(c)+": "+tyreLabel(type)+" gemonteerd ("+fmt(TYRE_COST)+"). "+(type==="winter"?"Klaar voor sneeuw en pekel — kopers zien dat graag.":"Blinkende velgen voor 't mooie weer — dat verkoopt."));
+  toast((type==="winter"?"❄️ Winterbanden":"☀️ Zomerbanden")+" gemonteerd.");
+  openCar(id);hdr();
+}
 const WASH_COST=3000, WASH_WEEKS=3, WASH_BONUS=.05;
 function washCar(id){
   const c=getCar(id);if(!c)return;
@@ -4500,6 +4518,7 @@ function percFor(cu,c,disclosed){
   if(isCotm(c))perc*=COTM_MUL;
   if(isRadioCar(c))perc*=RADIO_MUL;
   if(c.washT>0)perc*=1+WASH_BONUS;
+  if(tyresInSeason(c))perc*=1+TYRE_BONUS;
   perc*=fuelMod(c);
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
   return perc;
@@ -4640,6 +4659,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(isCotm(c))G.mile.cotmSold=1;
   if(isRadioCar(c))G.mile.radioSold=1;
   if(clearanceOn())G.mile.clearance=1;
+  if(tyresInSeason(c))G.mile.tyresSold=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
