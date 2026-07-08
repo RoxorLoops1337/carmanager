@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -806,6 +806,7 @@ const GOALS=[
  {id:"frost",t:"Kom een strenge nachtvorst door met je stock",r:"+80 XP · winterhard",c:()=>!!G.mile.frost,fn:()=>addXP(80)},
  {id:"tyres",t:"Monteer seizoensbanden op een wagen",r:"+60 XP · oog voor detail",c:()=>!!G.mile.tyres,fn:()=>addXP(60)},
  {id:"tyressold",t:"Verkoop een wagen met banden die bij 't seizoen passen",r:"+100 XP · de juiste band op 't juiste moment",c:()=>!!G.mile.tyresSold,fn:()=>addXP(100)},
+ {id:"radiocontest",t:"Win de bel-in wedstrijd van Radio Essene",r:"+90 XP · snelle vinger, scherp verstand",c:()=>!!G.mile.radioContest,fn:()=>addXP(90)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1620,6 +1621,8 @@ function endWeek(silent){
   if(!G.bargain&&Math.random()<.13)G.bargain=genBargain();
   // winterse nachtvorst: bedreigt de stock op 't koertje
   if(!G.frost&&season().n==="Winter"&&G.cars.length>0&&Math.random()<.18)G.frost=true;
+  // Radio Essene bel-in wedstrijd: af en toe
+  if(!G.radioContest&&Math.random()<.15)G.radioContest=pickContest();
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   // reclamecampagne aftellen (na genCustomers, zodat deze week nog meetelt)
   if((G.adWeeks||0)>0){G.adWeeks--;repAdd(1);
@@ -2106,6 +2109,14 @@ function renderOffice(){
      +'<button class="btn primary" onclick="protectFrost()">🛡️ Beschermen ('+fmt(fc)+')</button>'
      +'<button class="btn ghost" onclick="gambleFrost()">🥶 Erop gokken</button></div>';
   }
+  // Radio Essene bel-in wedstrijd
+  if(G.radioContest){const ct=G.radioContest;
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">📻 Bel-in wedstrijd</h3><span class="pill info">Radio Essene</span></div>'
+     +'<div class="small dim">De presentator: "De lijnen zijn open! Juist antwoord = een mooie prijs uit de pot."</div>'
+     +'<div class="small" style="margin-top:6px"><b>'+esc(ct.q)+'</b></div>'
+     +'<div class="tablebtns" style="margin-top:6px">'+ct.a.map((a,i)=>'<button class="btn" onclick="playContest('+i+')">'+esc(a)+'</button>').join("")+'</div>'
+     +'<button class="btn ghost" onclick="G.radioContest=null;save();render()" style="margin-top:4px">Niet bellen</button></div>';
+  }
   // overname van de concurrentie (endgame): zichtbaar zodra je één rivaal aankan of er al één overnam
   {const rk=Object.keys(RIVALS);
    const show=rk.some(k=>rivalEligible(k))||(G.boughtOut||[]).length>0;
@@ -2218,6 +2229,40 @@ const RADIO_QUIZ=[
  {q:"Motorsport: welke kleur heeft de startvlag NIET?",a:["Groen","Geruit","Paars"],c:2},
  {q:"Klassiek: de Citroën DS werd in de volksmond genoemd naar een...",a:["Snoepje","Godin (Déesse)","Rivier"],c:1},
 ];
+/* Radio Essene bel-in wedstrijd: proactief in 't bureau, grotere prijzenpot, af en toe */
+const CONTEST_QA=[
+ {q:"Grote prijsvraag! In welk jaar viel de Berlijnse Muur?",a:["1989","1991","1985"],c:0},
+ {q:"Autotrivia: hoeveel cilinders heeft een klassieke VW Kever-boxermotor?",a:["Zes","Vier","Twee"],c:1},
+ {q:"Voor de pot: welke Belgische frituursaus is 'goud'?",a:["Andalouse","Mayonaise","Samoerai"],c:0},
+ {q:"90s-hit: 'Rhythm of the Night' was van...?",a:["Corona","2 Unlimited","Snap!"],c:0},
+ {q:"Wagenkennis: 'ABS' staat voor?",a:["Auto Brake System","Anti-Blokkeer-Systeem","Alle Banden Stevig"],c:1},
+ {q:"Belgisch: welke stad heeft een belfort én veel occasies langs de baan?",a:["Aalst","Gent","Allebei"],c:2},
+ {q:"Klassieker: de Mini werd oorspronkelijk gebouwd door...?",a:["Austin/Morris (BMC)","Fiat","Renault"],c:0},
+ {q:"Snelweg: wat is de max. snelheid op de Belgische autosnelweg (in '95)?",a:["120 km/u","90 km/u","140 km/u"],c:0},
+];
+function pickContest(){return {...pick(CONTEST_QA)}}
+function playContest(i){
+  const ct=G.radioContest;if(!ct)return;
+  G.radioContest=null;
+  if(i===ct.c){
+    G.mile.radioContest=1;
+    const roll=Math.random();let msg;
+    if(roll<.4){const prize=ri(15,40)*1000;G.cash+=prize;popNum("+"+fmt(prize),"pgreen");msg="prijzengeld <b class='money'>"+fmt(prize)+"</b>";}
+    else if(roll<.65){repAdd(4);msg="een radiovermelding en <b>+4 reputatie</b>";}
+    else if(roll<.85){G.adWeeks=(G.adWeeks||0)+1;msg="<b>een gratis week reclame</b> op de zender";}
+    else{G.heat=clamp(G.heat-8,0,100);msg="de flikken luisteren ook radio... <b>-8 heat</b> (goeie PR)";}
+    stamp("JUIST!","gold");sfx("win");confetti(34);addXP(18);
+    log("📻 Bel-in wedstrijd gewonnen! '"+ct.a[ct.c]+"' was juist. Gewonnen: "+msg.replace(/<[^>]+>/g,"")+".");
+    modal("<b>🎉 JUIST, en gewonnen!</b> \""+esc(ct.a[ct.c])+"\" klopt. Ge wint "+msg+". De hele streek heeft het gehoord.",
+     [{t:"Dank u, Radio Essene!",fn:()=>{closeModal();render()}}]);
+  }else{
+    sfx("bad");
+    log("📻 Bel-in wedstrijd verloren. Juist was '"+ct.a[ct.c]+"'.");
+    modal("<b>❌ Helaas!</b> \""+esc(ct.a[i])+"\"? Nee. Het juiste antwoord was <b>"+esc(ct.a[ct.c])+"</b>. \"Volgende luisteraar!\" klinkt het. Geen prijs, wel een leuke anekdote voor op café.",
+     [{t:"Tss, dichtbij.",fn:()=>{closeModal();render()}}]);
+  }
+  save();
+}
 function zapRadio(){
   G.radioIx=(G.radioIx||0)+1;
   if((G.radioShowWk!==G.week)&&Math.random()<.22){G.radioShowWk=G.week;radioShow();return}
