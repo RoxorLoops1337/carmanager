@@ -730,6 +730,7 @@ const GOALS=[
  {id:"c20m",t:"Spaar 20.000.000 BEF: het keizerrijk",r:"👑 De kroon op het werk. Een gouden asbak op het bureau.",c:()=>G.cash>=20000000,fn:()=>{stamp("KEIZERRIJK","gold");confetti(180);sfx("win");addXP(400)}},
  {id:"dany",t:"Laat Dany uit Ninove je 5× de loef afsteken (en overleef het)",r:"+120 XP · rivaliteit maakt scherp",c:()=>(G.danyBeat||0)>=5,fn:()=>addXP(120)},
  {id:"trade",t:"Neem je eerste inruilwagen aan",r:"+60 XP · handelaarsbloed",c:()=>!!G.mile.tradeIn,fn:()=>addXP(60)},
+ {id:"raid",t:"Overleef een razzia zonder inbeslagname",r:"+100 XP · koelbloedig",c:()=>!!G.mile.raidClean,fn:()=>addXP(100)},
  {id:"coll3",t:"Hou 3 wagens tegelijk in de schuur",r:"+150 XP · een echte verzamelaar",c:()=>(G.collection||[]).length>=3,fn:()=>addXP(150)},
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
 ];
@@ -1274,17 +1275,69 @@ function inspection(){
     G.heat=clamp(G.heat-20,0,100);
     modal(msg,[{t:"Oef.",fn:()=>{closeModal();render()}}]);
   }else if(fakes.length>0){
-    const c=fakes[0];const fine=Math.min(Math.max(50000,Math.round(trueValue(c)*.15)),250000);
-    msg+="Ze bekijken de <b>"+esc(carName(c))+"</b> heel lang. De papieren kloppen niet. Wagen aangeslagen, boete van <b>"+fmt(fine)+"</b>.";
-    ouch();G.cars=G.cars.filter(x=>x.id!==c.id);G.cash-=fine;G.heat=clamp(G.heat-25,0,100);repAdd(-8);
-    log("Inspectie: "+carName(c)+" aangeslagen + boete "+fmt(fine)+".");
-    modal(msg,[{t:"Verdomme.",fn:()=>{closeModal();render()}}]);
+    raidModal(fakes);
   }else{
     const fine=40000;ouch();G.cash-=fine;G.heat=clamp(G.heat-15,0,100);
     msg+="De administratie is 'onvolledig'. Boete: <b>"+fmt(fine)+"</b>. Kon erger.";
     modal(msg,[{t:"Betalen en glimlachen",fn:()=>{closeModal();render()}}]);
   }
 }
+const HIDE_MAX=2;
+function raidModal(fakes){
+  RAID={fakes,hide:[]};
+  let h="<b>🚨 RAZZIA!</b><br>De inspecteurs stappen het grindkoertje op. Achter de garagepoort staat plaats voor <b>"+HIDE_MAX+"</b> wagens. Snel — wat schuift ge weg vóór ze rondlopen? <span class='small dim'>(wegmoffelen is riskant: zien ze u sleuren, is het erger)</span><hr>";
+  for(const c of fakes){
+    h+='<label class="carline" style="cursor:pointer"><div class="carpic" style="width:72px">'+carArt(c,74)+'</div>'
+     +'<div style="flex:1"><b>'+esc(carName(c))+'</b> '+(c.hot?'<span class="pill bad">🔥 heet</span>':'')+(c.papers===2?'<span class="pill bad">📄 vals</span>':'')
+     +'<div class="small dim">in \'t zicht = risico op inbeslagname</div></div>'
+     +'<input type="checkbox" class="hidebox" value="'+c.id+'" onchange="raidPick()"></label>';
+  }
+  h+='<div class="small dim" id="raidcnt">Weggemoffeld: 0/'+HIDE_MAX+'</div>';
+  modal(h,[{t:"🚪 Poort dicht, laat ze maar rondkijken",cls:"shady",fn:doRaid}]);
+}
+function raidPick(){
+  const boxes=[...document.querySelectorAll(".hidebox")];
+  let checked=boxes.filter(b=>b.checked);
+  if(checked.length>HIDE_MAX){const last=checked[checked.length-1];last.checked=false;checked=checked.filter(b=>b!==last);}
+  if($("raidcnt"))$("raidcnt").textContent="Weggemoffeld: "+checked.length+"/"+HIDE_MAX;
+}
+function doRaid(){
+  const ids=[...document.querySelectorAll(".hidebox:checked")].slice(0,HIDE_MAX).map(b=>+b.value);
+  closeModal();resolveRaid(ids);
+}
+function resolveRaid(hideIds){
+  const fakes=RAID?RAID.fakes:G.cars.filter(c=>c.papers===2||c.hot);
+  hideIds=(hideIds||[]).slice(0,HIDE_MAX);
+  const catchP=(G.staff&&G.staff.staf)?.09:.18;
+  const seized=[],hidden=[],caught=[];
+  for(const c of fakes){
+    if(hideIds.includes(c.id)){
+      if(Math.random()<catchP){caught.push(c);seized.push(c);}
+      else hidden.push(c);
+    }else seized.push(c);
+  }
+  let fine=0;
+  for(const c of seized){fine+=Math.min(Math.max(50000,Math.round(trueValue(c)*.15)),250000);
+    G.cars=G.cars.filter(x=>x.id!==c.id);}
+  if(caught.length)fine+=caught.length*25000; // betrapt bij het wegmoffelen = extra
+  G.cash-=fine;G.heat=clamp(G.heat-25,0,100);
+  if(seized.length)repAdd(-6-caught.length*3);else repAdd(hidden.length?1:0);
+  let msg="<b>💼 Inspectie afgelopen.</b><br>";
+  if(caught.length){ouch();
+    msg+="Ze zágen u nog net de <b>"+esc(carName(caught[0]))+"</b> wegduwen. \"Interessant.\" Dat viel slecht. ";}
+  if(seized.length){ouch();
+    msg+=seized.length+" wagen(s) aangeslagen, boete <b>"+fmt(fine)+"</b>. ";
+    G.mile.raidHit=1;
+    log("Razzia: "+seized.length+" wagen(s) aangeslagen"+(caught.length?" (waarvan "+caught.length+" betrapt bij 't wegmoffelen)":"")+", boete "+fmt(fine)+".");}
+  if(hidden.length&&!seized.length){
+    msg+="Alles netjes achter de poort. Ze vinden niets, drinken uw koffie, en vertrekken teleurgesteld. "+chr().n+" ademt weer. ";
+    G.mile.raidClean=1;addXP(20);
+    log("Razzia overleefd: "+hidden.length+" wagen(s) op tijd weggemoffeld, niets gevonden.");}
+  else if(hidden.length)msg+="De "+hidden.map(c=>esc(carName(c))).join(" en de ")+" bleef veilig achter de poort. ";
+  RAID=null;
+  modal(msg,[{t:seized.length?"Verdomme.":"Oef.",fn:()=>{closeModal();render()}}]);
+}
+let RAID=null;
 function checkComebacks(){
   let shown=false;
   for(const cb of G.comebacks){
