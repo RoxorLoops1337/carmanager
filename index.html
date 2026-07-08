@@ -712,7 +712,7 @@ function migrate(){if(!G)return;
   G.sloffen=G.sloffen||0;G.alinHere=!!G.alinHere;G.martineCalls=G.martineCalls||0;
   G.collection=G.collection||[];if(G.collSlots==null)G.collSlots=2;G.mail=G.mail||[];
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
-  G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];
+  G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -764,6 +764,7 @@ const GOALS=[
  {id:"warrsold",t:"Verkoop een wagen mét garantie",r:"+60 XP · vertrouwen verkoopt",c:()=>!!G.mile.warrantySold,fn:()=>addXP(60)},
  {id:"warrhon",t:"Kom een garantie eervol na",r:"+120 XP · een man/vrouw van zijn woord",c:()=>!!G.mile.warrantyHonored,fn:()=>addXP(120)},
  {id:"loyal",t:"Verkoop een tweede wagen aan een tevreden klant",r:"+90 XP · vaste klanten, vast inkomen",c:()=>!!G.mile.loyalSold,fn:()=>addXP(90)},
+ {id:"scrap",t:"Sloop een hopeloos geval voor onderdelen",r:"+50 XP · geen wagen te slecht om iets op te brengen",c:()=>!!G.mile.scrapped,fn:()=>addXP(50)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -2822,6 +2823,7 @@ function openCar(id){
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
    +'<button class="btn" onclick="moveToColl('+c.id+')" '+((G.collection||[]).length>=G.collSlots?"disabled":"")+'>🏛️ In de schuur leggen<br><span class="small">wordt meer waard · kan roesten</span></button>'
+   +'<button class="btn" onclick="scrapCar('+c.id+')">🪓 Slopen voor onderdelen<br><span class="small">+'+fmt(scrapValue(c))+' · direct, weg is weg</span></button>'
    +'</div><hr><div class="small dim">🚬 De achterkamer (Alin kent iemand):</div><div class="tablebtns">'
    +'<button class="btn shady" onclick="rollKm('+c.id+')">🔧 Teller "corrigeren"<br><span class="small">'+fmt(rollC)+' · +heat</span></button>'
    +'<button class="btn shady" onclick="fixPapers('+c.id+')" '+(c.papers===0&&!c.hot?"disabled":"")+'>📄 Papieren opfrissen<br><span class="small">'+fmt(papC)+' · +heat</span></button>'
@@ -2830,6 +2832,21 @@ function openCar(id){
   modal(h,[{t:"Sluiten",cls:"ghost",fn:closeModal}]);
 }
 function getCar(id){return G.cars.find(x=>x.id===id)}
+/* sloop: directe onderdelenprijs, altijd minder dan verkopen — enkel zinvol voor hopeloze gevallen */
+function scrapValue(c){return Math.max(2000,Math.round(CARS[c.ci].base*(0.06+0.10*((c.eng+c.body)/200))/1000)*1000)}
+function scrapCar(id){
+  const c=getCar(id);if(!c)return;
+  const pay=scrapValue(c);
+  modal("<b>🪓 Naar de sloop?</b><br>De <b>"+esc(carName(c))+"</b> gaat naar 't containerpark van uw kozijn. Onderdelen brengen <b class='money'>"+fmt(pay)+"</b> op, cash. Maar dan is ze weg — geen verkoop, geen verhaal.",
+  [{t:"Slopen ("+fmt(pay)+")",cls:"shady",fn:()=>{
+      const ix=G.cars.findIndex(x=>x.id===c.id);if(ix<0){closeModal();return}
+      G.cars.splice(ix,1);G.cash+=pay;G.earned+=pay;G.mile.scrapped=1;G.scrapped=(G.scrapped||0)+1;
+      popNum("+"+fmt(pay),"pgreen");sfx("kaching");addXP(4);
+      log("🪓 "+carName(c)+" gesloopt voor onderdelen ("+fmt(pay)+"). Rust roest.");
+      toast("🪓 Gesloopt. De koffer met velgen ligt al bij de kozijn.");
+      closeModal();render()}},
+   {t:"Toch niet",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
+}
 function repairRoll(){const m=G.mech||0,r=Math.random(); // mechanic skill: more crits, fewer botches
   const crit=.15+m*.002,botch=.12*(1-m/80);
   G.mech=Math.min(60,m+(hasStaff("roger")?3:2));
