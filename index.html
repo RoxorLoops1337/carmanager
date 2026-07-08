@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -787,6 +787,8 @@ const GOALS=[
  {id:"collrijp",t:"Laat één wagen 26 weken rijpen in de schuur",r:"+200 XP · geduld is een deugd (en een belegging)",c:()=>(G.collection||[]).some(c=>(c.collWeeks||0)>=26),fn:()=>addXP(200)},
  {id:"fuelcrisis",t:"Beleef een brandstofcrisis op 't koertje",r:"+80 XP · de pomp bepaalt de markt",c:()=>!!G.mile.fuelCrisis,fn:()=>addXP(80)},
  {id:"apprpro",t:"Leid een leerjongen op tot volwaardig monteur",r:"+140 XP · goed baasschap",c:()=>!!G.mile.apprPro,fn:()=>addXP(140)},
+ {id:"buyout",t:"Neem een concurrent van de streek over",r:"+200 XP · de grote vis eet de kleine",c:()=>!!G.mile.buyout,fn:()=>addXP(200)},
+ {id:"buyoutall",t:"Koop álle rivalen op — heers over het Pajottenland",r:"+500 XP · onbetwiste occasiekoning",c:()=>!!G.mile.buyoutAll,fn:()=>addXP(500)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1462,7 +1464,7 @@ function endWeek(silent){
     if(G.vipQuest.eta<=0){extra.push(["⭐ VIP","teleurgesteld vertrokken: "+G.vipQuest.name,"neg"]);
       log("⭐ "+G.vipQuest.name+" wachtte tevergeefs op zijn droomwagen en gaat elders zoeken. (-2 rep)");repAdd(-2);G.vipQuest=null;}
     // Sabine van 't Autohuis kaapt trage opdrachten weg
-    else if(G.vipQuest.eta<=2&&Math.random()<.28){
+    else if(!boughtOut("sabine")&&G.vipQuest.eta<=2&&Math.random()<.28){
       G.sabineSteals=(G.sabineSteals||0)+1;
       extra.push(["💃 Sabine van 't Autohuis","kaapte de opdracht van "+G.vipQuest.name+" weg","neg"]);
       log("💃 Sabine van 't Autohuis was sneller: zij leverde "+G.vipQuest.name+" zijn droomwagen vóór u. \"Sorry schat, zaken zijn zaken.\" (-1 rep)");
@@ -1476,7 +1478,7 @@ function endWeek(silent){
   G.tip=Math.random()<.20;
   G.alinHere=!isCh("alan")&&(G.sloffen||0)<4&&Math.random()<.16;
   // Dany uit Ninove komt af en toe met een 'koopje' dat te goedkoop klinkt
-  G.danyHere=Math.random()<.14;
+  G.danyHere=!boughtOut("dany")&&Math.random()<.14;
   G.danyDeal=G.danyHere?genDanyDeal():null;
   platesTick(); genCustomers(); checkComebacks(); randomOffice(); inspection(); milestones();
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
@@ -1933,6 +1935,22 @@ function renderOffice(){
      +'<button class="btn shady" onclick="danyBuy()">🤝 Kopen ('+fmt(dd.price)+') <span class="small">· blind vertrouwen</span></button>'
      +'<button class="btn ghost" onclick="G.danyHere=false;G.danyDeal=null;save();render()">Ik pas, Dany</button></div>';
   }
+  // overname van de concurrentie (endgame): zichtbaar zodra je één rivaal aankan of er al één overnam
+  {const rk=Object.keys(RIVALS);
+   const show=rk.some(k=>rivalEligible(k))||(G.boughtOut||[]).length>0;
+   if(show){
+     h+='<div class="card"><div class="spread"><h3 style="margin:0">🏙️ Overname van de concurrentie</h3><span class="pill '+((G.boughtOut||[]).length>=rk.length?"good":"")+'">'+(G.boughtOut||[]).length+'/'+rk.length+' opgekocht</span></div>'
+      +'<div class="small dim">Ge zijt groot genoeg om de concurrenten van de streek op te slokken. Duur, maar daarna hebt ge het rijk voor u alleen.</div>';
+     for(const k of rk){const r=RIVALS[k];
+       if(boughtOut(k)){h+='<div class="logline" style="opacity:.7"><b>'+r.emo+' '+r.n+'</b> <span class="pill good">✓ overgenomen</span><div class="small dim">'+esc(r.perk)+'</div></div>';}
+       else{const elig=rivalEligible(k);
+         h+='<div class="logline"><div class="spread"><b>'+r.emo+' '+r.n+'</b> <span class="money small">'+fmt(r.price)+'</span></div>'
+          +'<div class="small dim">'+esc(r.d)+'</div>'
+          +(elig?'<button class="btn primary" onclick="buyRival(\''+k+'\')">🤝 Overnemen ('+fmt(r.price)+')</button>'
+                :'<div class="small dim">🔒 vereist ★'+r.rep+' reputatie & niveau '+r.lvl+'</div>')+'</div>';}
+     }
+     h+='</div>';
+   }}
   h+='<div class="card flat" style="cursor:pointer" onclick="zapRadio()" title="Tik om te zappen">'
    +'<div class="small"><b>📻 Radio Essene</b> <span class="dim">· tik om te zappen</span></div>'
    +'<div class="small dim" style="margin-top:3px">'+esc(RADIO[(G.week*7+(G.radioIx||0))%RADIO.length])+'</div></div>';
@@ -2098,6 +2116,47 @@ function genPhoneDeal(){const c=genCar(pick(["nl","de","pl"]));c.transit=false;
   // met de opgewaardeerde GSM krijg je scherpere prijzen (meer bereik, meer contacten)
   const band=G.gsmUp?[.55,.72]:[.62,.8];
   return {c,price:Math.round(trueValue(c)*rnd(band[0],band[1])/1000)*1000}}
+/* ---- endgame: overname van de concurrentie ---- */
+const RIVALS={
+  dany:{n:"Dany uit Ninove",emo:"🥸",price:2500000,rep:40,lvl:8,
+    d:"De eeuwige onderkruiper met zijn scheve spandoek. Koop zijn boeltje op en hij stopt met u de loef af te steken op veilingen en schuurvondsten — en met dat vervelende 'bij Dany goedkoper'.",
+    cars:2,carMkt:["pl","ua"],perk:"Geen Dany meer op uw koertje, veilingen of schuurvondsten.",
+    apply:()=>{G.danyHere=false;G.danyDeal=null;}},
+  sabine:{n:"Sabine van 't Autohuis",emo:"💃",price:3200000,rep:55,lvl:10,
+    d:"Uw scherpste concurrente voor de sjieke klanten. Neem 't Autohuis over en haar VIP-cliënteel komt naar ú. Zij snoept u geen opdrachten meer af.",
+    cars:2,carMkt:["de","de"],rep_gain:6,cust:1,perk:"Sabine kaapt geen VIP-opdrachten meer weg · +6 rep · meer chique klanten.",
+    apply:()=>{repAdd(6);}},
+  sjarel:{n:"Sjarel de Verzamelaar",emo:"🎩",price:4500000,rep:70,lvl:12,
+    d:"De oude heer met de monocle en de volle schuur. Overtuig hem met een absurd bedrag en zijn hele collectie — inclusief een parel — komt naar u. Hij overbiedt u nooit meer op een veiling.",
+    cars:1,carMkt:["ua"],legend:true,perk:"Sjarel overbiedt u niet meer · een zeldzame parel uit zijn collectie.",
+    apply:()=>{}},
+};
+function boughtOut(id){return (G.boughtOut||[]).includes(id)}
+function rivalEligible(k){const r=RIVALS[k];return !boughtOut(k)&&G.rep>=r.rep&&G.lvl>=r.lvl}
+function buyRival(k){
+  const r=RIVALS[k];if(!r||boughtOut(k))return;
+  if(G.rep<r.rep||G.lvl<r.lvl){toast("Nog niet genoeg naam om "+r.n+" over te nemen.");return}
+  if(G.cash-r.price<creditLimit()){toast("Zoveel cash heb je niet — en dit koop je niet op krediet.");return}
+  modal("<b>"+r.emo+" "+r.n+" overnemen voor "+fmt(r.price)+"?</b><br>"+esc(r.perk),
+   [{t:"Ja, tekenen bij de notaris",cls:"primary",fn:()=>{
+      G.cash-=r.price;G.spent+=r.price;
+      G.boughtOut=G.boughtOut||[];G.boughtOut.push(k);
+      G.mile.buyout=1;if((G.boughtOut||[]).length>=Object.keys(RIVALS).length)G.mile.buyoutAll=1;
+      // absorbeer voorraad
+      for(let i=0;i<(r.cars||0);i++){const c=genCar(pick(r.carMkt||["nl"]));c.transit=false;c.paid=0;c.known=c.known||[];G.cars.push(c);}
+      if(r.legend){ // forceer een zeldzame parel uit zijn collectie
+        let parel=null;
+        for(let t=0;t<60&&!parel;t++){const cc=genCar("ua");if(CARS[cc.ci].rar>=2)parel=cc;}
+        if(!parel)parel=genCar("ua");
+        parel.transit=false;parel.paid=0;parel.eng=Math.max(parel.eng,88);parel.body=Math.max(parel.body,88);
+        parel.papers=0;parel.known=parel.known||[];G.cars.push(parel);}
+      if(r.apply)r.apply();
+      save();sfx("win");confetti(70);stamp("OVERNAME!","gold");popNum("-"+fmt(r.price),"pred");addXP(120);
+      log("🤝 "+r.emo+" "+r.n+" is overgenomen voor "+fmt(r.price)+"! "+r.perk+" Heel het Pajottenland weet het: CarManager slokt de concurrentie op.");
+      toast(r.emo+" "+r.n+" overgenomen. Ge zijt nu de baas van de streek.");
+      closeModal();render();
+   }},{t:"Toch niet",cls:"ghost",fn:closeModal}]);
+}
 /* Dany's 'koopjes': cheap up front, but there's always a haar in de boter */
 function genDanyDeal(){
   const c=genCar(pick(["pl","ua","pl"]));c.transit=false;
@@ -2215,10 +2274,10 @@ function doAuc(i){
        [{t:"Naar de garage",fn:closeModal},{t:"Terug naar de veiling",cls:"ghost",fn:openAuction}]);
     }else{
       const who=Math.random();
-      if(who<.4){G.danyBeat=(G.danyBeat||0)+1;
+      if(who<.4&&!boughtOut("dany")){G.danyBeat=(G.danyBeat||0)+1;
         modal("<b>🥸 Dany uit Ninove</b> steekt zijn hand op vanachter een dikke sigaar: <b>"+fmt(rival)+"</b>. Hij knipoogt naar u. \""+pick(["Volgende keer beter, collega.","Ge moet rapper zijn, manneke.","Die stond op mijn lijstje, sorry.","Ninove bedankt u voor de opwarming."])+"\" Het lot is weg.",
          [{t:"Grrr. Volgende",fn:openAuction}]);}
-      else if(who<.7){
+      else if(who<.7&&!boughtOut("sjarel")){
         modal("<b>🎩 Sjarel de Verzamelaar</b>, een oude heer met een monocle en te veel geld, tikt rustig <b>"+fmt(rival)+"</b> af. \""+pick(["Ik verzamel, ik verkoop niet. Dag meneer.","Voor mijn collectie. U begrijpt dat.","Geld is geen probleem, jongeman."])+"\" Weg is het lot.",
          [{t:"Tja. Volgende",fn:openAuction}]);}
       else modal("Een gast met een sigaar en een gsm zo groot als een baksteen biedt <b>"+fmt(rival)+"</b>. Het lot is weg.",
@@ -2387,7 +2446,7 @@ function followTip(){
   if(G.cash-5000<creditLimit()){toast("Te weinig geld voor de tip.");return}
   G.tip=false;G.cash-=5000;save();
   suspense(["🚜","🛖","🐄","🌾"],"Met de camionette naar Aalst, zeil eraf...",()=>{
-    if(Math.random()<.18){
+    if(!boughtOut("dany")&&Math.random()<.18){
       ouch();G.danyBeat=(G.danyBeat||0)+1;
       log("Dany uit Ninove was eerder bij de schuurvondst in Aalst. Die gast is overal.");
       modal("De schuur staat open, het zeil ligt al afgetrokken op de grond — en er staan verse bandensporen. \"Ne vriendelijke mens uit Ninove is mij juist vóór geweest,\" zegt de boer. <b>Dany.</b> Weer.",
