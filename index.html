@@ -761,6 +761,8 @@ const GOALS=[
  {id:"toptier",t:"Word Legende van Essene (★85 reputatie)",r:"+200 XP · de top van de perkladder",c:()=>repTier()>=4,fn:()=>addXP(200)},
  {id:"sabine",t:"Laat Sabine van 't Autohuis je 3× een VIP-opdracht afsnoepen",r:"+100 XP · de rivaliteit houdt u scherp",c:()=>(G.sabineSteals||0)>=3,fn:()=>addXP(100)},
  {id:"wash",t:"Poets een wagen op in de wasstraat",r:"+50 XP · blinkende koopwaar",c:()=>!!G.mile.wash,fn:()=>addXP(50)},
+ {id:"warrsold",t:"Verkoop een wagen mét garantie",r:"+60 XP · vertrouwen verkoopt",c:()=>!!G.mile.warrantySold,fn:()=>addXP(60)},
+ {id:"warrhon",t:"Kom een garantie eervol na",r:"+120 XP · een man/vrouw van zijn woord",c:()=>!!G.mile.warrantyHonored,fn:()=>addXP(120)},
  {id:"leger",t:"Koop een voertuig uit de legerstock",r:"+90 XP · olijfgroen staat u goed",c:()=>!!G.mile.leger,fn:()=>addXP(90)},
  {id:"cotm",t:"Verkoop een Auto van de Maand tijdens zijn maand",r:"+120 XP · perfecte timing",c:()=>!!G.mile.cotmSold,fn:()=>addXP(120)},
  {id:"vip1",t:"Lever een VIP zijn droomwagen",r:"+130 XP · ge kent nu volk",c:()=>!!G.mile.vipQuest,fn:()=>addXP(130)},
@@ -1521,6 +1523,14 @@ function checkComebacks(){
     if(cb.eta<=0){
       if(shown){cb.eta=1;continue}
       shown=true;
+      if(cb.warranty){
+        const payout=Math.round(cb.price*rnd(.3,.5)/1000)*1000;
+        G.cash-=payout;repAdd(1);G.mile.warrantyHonored=1;
+        log("🛡️ Garantiegeval: "+cb.name+" kwam terug met de "+cb.car+", maar de garantie dekte het. Netjes hersteld voor "+fmt(payout)+". Klant vertrekt tevreden (+1 rep).");
+        modal("<b>🛡️ Garantiegeval.</b><br>"+esc(cb.name)+" staat terug op het koertje met de "+esc(cb.car)+" — \""+esc(cb.issue)+"\". Gelukkig verkocht ge er garantie bij. Ge herstelt het netjes voor <b>"+fmt(payout)+"</b>. Geen ruzie, geen dorpsroddel: de klant rijdt tevreden weg en beveelt u zelfs aan.",
+        [{t:"Zo hoort het (+1 rep)",fn:()=>{closeModal();render()}}]);
+        continue;
+      }
       const forgive=isCh("thomas")&&Math.random()<.5;
       if(forgive){log(cb.name+" kwam boos terug over de "+cb.car+", maar Thomas praatte het recht met een koffie en een Red Bull.");repAdd(-1);}
       else{
@@ -3866,6 +3876,8 @@ function fixScene(c,mode,hex){
     :'<div class="fixtool spray">🎨</div><div class="mist"><i></i><i></i><i></i></div>')
    +'</div>';
 }
+const WARRANTY_ODDS=.06;
+function warrantyFee(c){return Math.round(askValue(c)*.04/1000)*1000}
 function percFor(cu,c,disclosed){
   let perc=askValue(c)*(carMatches(c,cu.want)?1.06:.82)*OFFICES[G.office].bonus*(isCh("martine")?1.05:1);
   if(isTrend(c))perc*=1.12;
@@ -3918,12 +3930,15 @@ function negModal(){
      +'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="tradebox"'+(NEG.trade?" checked":"")+' onchange="updPr()"> ✅ Inruil aanvaarden (hij trekt '+fmt(cu.tradeClaim)+' van de cash af, jij krijgt zijn wagen)</label>'
      +'<div class="small dim">Hij is er meer aan gehecht dan hij waard is. Wat er écht onder de motorkap zit, zie je pas op het koertje.</div>';
   }
+  {const wFee=warrantyFee(c);
+   h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="warrbox"'+(NEG.warranty?" checked":"")+' onchange="updPr()"> 🛡️ Garantie aanbieden (+'+fmt(wFee)+', klant voelt zich veiliger)</label>'
+    +'<div class="small dim">De koper betaalt '+fmt(wFee)+' extra en hapt makkelijker toe. Maar komt de wagen terug op de takelwagen, dan MOET ge herstellen — al scheelt dat wel in reputatie.</div>';}
   modal(h,[{t:"💬 Doe je voorstel",fn:trySell},{t:"Sluiten",cls:"ghost",fn:closeModal}]);
 }
 function doTalkSell(k){
   if($("prsl"))NEG.price=+$("prsl").value;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;
   applyTalk("sell",NEG.talk,k);
   negModal();hdr();
 }
@@ -3934,8 +3949,8 @@ function updPr(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   if(!cu||!c||!$("odds2"))return;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;
-  const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus()+(NEG.trade?.08:0),.03,.97);
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;
+  const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus()+(NEG.trade?.08:0)+(NEG.warranty?WARRANTY_ODDS:0),.03,.97);
   $("odds2").innerHTML=oddsHtml(p);
   const md=$("mood");if(md)md.textContent=moodFace(p);
 }
@@ -3943,12 +3958,13 @@ function trySell(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   const price=+$("prsl").value;
   const disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;
   const useTrade=!!(cu.tradeIn&&NEG.trade);cu._useTrade=useTrade;
+  const warranted=!!NEG.warranty;cu._warranty=warranted;
   const iss=hiddenIssues(c);
   const perc=percFor(cu,c,disclosed);
   const bust=price>(cu.budget+(useTrade?cu.tradeClaim:0))*1.12;
-  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0),.03,.97);
+  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
   G.rb=false;
   const win=!bust&&Math.random()<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
@@ -3974,6 +3990,9 @@ function trySell(){
 }
 function doSale(cu,c,price,disclosed,iss){
   const useTrade=!!(cu._useTrade&&cu.tradeIn);
+  const warranted=!!cu._warranty;
+  const wFee=warranted?warrantyFee(c):0;
+  if(wFee){price+=wFee;G.mile.warrantySold=1;}
   const tradeCut=useTrade?Math.min(cu.tradeClaim,price):0;
   G.cash+=price-tradeCut;G.earned+=price-tradeCut;G.sold++;G.wkSold=(G.wkSold||0)+1;
   if(useTrade){const tc=cu.tradeIn;tc.paid=tradeCut;tc.known=tc.quirks.slice();
@@ -4013,9 +4032,10 @@ function doSale(cu,c,price,disclosed,iss){
     heatAdd(3);
     if(Math.random()<.5){
       const bad=pick(hiddenLeft);
-      G.comebacks.push({eta:ri(2,6),name:cu.name,car:carName(c),price,issue:bad.t});
+      G.comebacks.push({eta:ri(2,6),name:cu.name,car:carName(c),price,issue:bad.t,warranty:warranted});
     }
   }
+  if(warranted)log("🛡️ Garantie meeverkocht aan "+cu.name+" (+"+fmt(wFee)+"). Als er iets misloopt, is het uw rekening.");
   milestones();
   closeModal();
   modal("<b>🤝 Verkocht!</b><br>"+cu.name+" rijdt weg in de "+esc(carName(c))+" en toetert twee keer. "+chr().n+" "+(honest?"glimlacht tevreden en steekt een sigaret op.":"steekt iets te snel een sigaret op en kijkt de wagen nét iets te lang na.")+"<br><br>💰 <b class='money'>+"+fmt(price)+"</b>"+(profit>=0?" <span class='pill good'>winst "+fmt(profit)+"</span>":" <span class='pill bad'>verlies "+fmt(-profit)+"</span>"),
