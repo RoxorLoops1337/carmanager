@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -819,6 +819,7 @@ const GOALS=[
  {id:"inspector",t:"Verkoop eerlijk aan een klant met een kenner erbij",r:"+110 XP · niets te verbergen",c:()=>!!G.mile.inspector,fn:()=>addXP(110)},
  {id:"joblot",t:"Koop een hele kavel in één keer",r:"+120 XP · groothandelaar in oud ijzer",c:()=>!!G.mile.jobLot,fn:()=>addXP(120)},
  {id:"magazine",t:"Krijg een wagen op de cover van een magazine",r:"+140 XP · beroemd tot in Gent",c:()=>!!G.mile.magazine,fn:()=>addXP(140)},
+ {id:"market",t:"Sta met een kraam op de weekendmarkt",r:"+80 XP · marktkramer in hart en nieren",c:()=>!!G.mile.market,fn:()=>addXP(80)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1346,6 +1347,22 @@ function buyAd(id){
   toast(a.emo+" Campagne loopt — "+a.weeks+" weken extra volk op komst.");
   render();
 }
+/* weekend-marktstand: eenmalige zaterdagse push — extra volk + vlottere verkoop, deze week */
+const MARKET_FEE=15000, MARKET_ODDS=.10, MARKET_CUSTS=3;
+const MARKETS_FL=["de grote automarkt van Temse","de zondagsmarkt in Ninove","de rommelmarkt op de Gentse Vrijdagmarkt","de occasiebeurs in Aalst"];
+function rentStand(){
+  if(G.marketWeek){toast("Ge staat deze week al op de markt.");return}
+  if(!G.cars.length){toast("Ge hebt geen wagens om mee te nemen.");return}
+  if(G.cash-MARKET_FEE<creditLimit()){toast("Te weinig geld voor de standplaats.");return}
+  const mk=pick(MARKETS_FL);
+  G.cash-=MARKET_FEE;G.marketWeek=true;G.mile.market=1;popNum("-"+fmt(MARKET_FEE),"pred");sfx("kaching");
+  for(let i=0;i<MARKET_CUSTS;i++){const ty=pick(CUSTTYPES);
+    G.custs.push({id:UID++,name:pick(CUSTNAMES),t:ty.t+" — zag uw wagens op de markt",want:ty.want,fuss:Math.max(.05,ty.fuss-.05),face:pick(CFACES),
+      budget:Math.round(ty.want.maxB*rnd(.7,1.15)/1000)*1000,tried:false});}
+  stamp("MARKTDAG!","pink");
+  log("🏬 Standplaats gehuurd op "+mk+" ("+fmt(MARKET_FEE)+"). Een paar wagens op de aanhangwagen, een klapstoel en een thermos: "+MARKET_CUSTS+" geïnteresseerden komen deze week af, en verkopen gaat vlotter.");
+  toast("🏬 Marktstand! Extra volk deze week.");render();
+}
 /* klantenkaart: elke verkoop een stempel; volle kaart = beloning */
 const CARD_SIZE=5;
 function addStamp(){
@@ -1715,6 +1732,8 @@ function endWeek(silent){
     if(G.adWeeks>0)extra.push(["📣 Reclamecampagne","loopt nog "+G.adWeeks+" week/weken · extra volk","money"]);
     else{extra.push(["📣 Campagne afgelopen","de advertentie is uitgewerkt","neg"]);
       log("📣 De reclamecampagne is afgelopen. Het extra volk ebt weg, maar een paar namen blijven hangen.")}}
+  // marktstand geldt maar één weekend
+  if(G.marketWeek){G.marketWeek=false;extra.push(["🏬 Marktweekend voorbij","de kraam wordt weer ingeklapt",""]);}
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
   if(!silent&&!G.over){
@@ -2257,6 +2276,11 @@ function renderOffice(){
     +'<div class="tablebtns" style="margin-top:6px">';
    for(const a of AD_OPTIONS)h+='<button class="btn" onclick="buyAd(\''+a.id+'\')">'+a.emo+' '+a.n+'<br><span class="small">'+fmt(a.cost)+' · '+a.weeks+' weken</span></button>';
    h+='</div>'+((G.adWeeks||0)>0?'<div class="small dim" style="margin-top:4px">Nog een campagne boeken stapelt de weken op elkaar.</div>':'')+'</div>';}
+  // weekend-marktstand
+  {h+='<div class="card"><div class="spread"><h3 style="margin:0">🏬 Weekendmarkt</h3>'
+    +(G.marketWeek?'<span class="pill good">kraam staat er</span>':'<span class="pill dim">geen kraam</span>')+'</div>'
+    +'<div class="small dim">Huur een standplaats op een weekendautomarkt ('+fmt(MARKET_FEE)+'): een paar wagens mee, '+MARKET_CUSTS+' extra kijklustigen deze week en vlottere verkoop (+'+Math.round(MARKET_ODDS*100)+'%). Eenmalig, geldt één weekend.</div>'
+    +(G.marketWeek?'<div class="small dim" style="margin-top:4px">De kraam staat al opgesteld dit weekend.</div>':'<button class="btn primary" onclick="rentStand()" '+(G.cars.length?"":"disabled")+'>🏬 Standplaats huren ('+fmt(MARKET_FEE)+')</button>')+'</div>';}
   // lopende huurkoop-contracten
   if((G.rentDeals||[]).length){
     h+='<div class="card"><div class="spread"><h3 style="margin:0">💳 Huurkoop-contracten</h3><span class="pill">'+G.rentDeals.length+' lopend</span></div>';
@@ -4848,7 +4872,7 @@ function clearanceOn(){return (G.clearance||0)>0}
 const CLEARANCE_ODDS=.11;
 function sellOdds(cu,price,perc){
   return clamp(1.45-(price/perc)*1.2+G.rep/350+(G.rb?.08:0)+(isCh("thomas")?.10:0)
-    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)+(cu.returning?.08:0)+(cu.referred?.06:0)+(clearanceOn()?CLEARANCE_ODDS:0)-cu.fuss*.15,.03,.96);
+    +Math.min(.06,((G.lvl||1)-1)*.008)+(hasStaff("vera")?.02:0)+(repTier()>=4?.03:0)+(cu.returning?.08:0)+(cu.referred?.06:0)+(clearanceOn()?CLEARANCE_ODDS:0)+(G.marketWeek?MARKET_ODDS:0)-cu.fuss*.15,.03,.96);
 }
 function moodFace(p){return p>.65?"😍":p>.45?"🙂":p>.3?"🤨":"😬"}
 function negBonus(){return (NEG&&NEG.talk&&NEG.talk.bonus)||0}
