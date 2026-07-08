@@ -793,6 +793,46 @@ function checkGoals(){
         log("📋 Doel behaald: "+g.t+" → "+g.r);
         if(g.fn)g.fn();}}}
 }
+/* ---- prijzenkast: badges afgeleid van G.mile-vlaggen ---- */
+const TROPHIES=[
+ {key:"eastTrip",emo:"🗺️",name:"Oostblok-pionier",hint:"Koop een keer in Polen of Oekraïne."},
+ {key:"legendSold",emo:"🏆",name:"Legendeverkoper",hint:"Verkoop een LEGENDE-wagen."},
+ {key:"tradeIn",emo:"🔄",name:"Inruilhandelaar",hint:"Neem een inruilwagen aan."},
+ {key:"raidClean",emo:"🚪",name:"Koelbloedig",hint:"Overleef een razzia zonder inbeslagname."},
+ {key:"kermis",emo:"🎡",name:"Kermisklant",hint:"Sta op de Kermis van Essene."},
+ {key:"kerst",emo:"🎄",name:"Zalig Kerstfeest",hint:"Beleef kerst op het koertje."},
+ {key:"paas",emo:"🐣",name:"Paasfoor",hint:"Beleef de Paasfoor in de lente."},
+ {key:"leger",emo:"🪖",name:"Legerstock",hint:"Koop een ex-legervoertuig op het depot."},
+ {key:"cotmSold",emo:"🥇",name:"Auto van de Maand",hint:"Verkoop de Auto van de Maand tijdens zijn maand."},
+ {key:"vipQuest",emo:"⭐",name:"VIP-leverancier",hint:"Lever een VIP zijn droomwagen."},
+ {key:"barnGem",emo:"🔍",name:"Schuurvondst",hint:"Grav een wagen op met de metaaldetector."},
+ {key:"radioQuiz",emo:"📻",name:"Radioquizkampioen",hint:"Win de quiz van Radio Essene."},
+ {key:"loanPaid",emo:"🏦",name:"Schuldenvrij",hint:"Betaal een banklening volledig af."},
+ {key:"finish",emo:"🎨",name:"Maatwerk",hint:"Geef een wagen een premium afwerking."},
+ {key:"wash",emo:"✨",name:"Blinkende koopwaar",hint:"Poets een wagen op in de wasstraat."},
+ {key:"warrantySold",emo:"🛡️",name:"Garantieverkoper",hint:"Verkoop een wagen met garantie."},
+ {key:"warrantyHonored",emo:"🤝",name:"Man van zijn woord",hint:"Kom een garantie eervol na."},
+ {key:"loyalSold",emo:"🔁",name:"Vaste klanten",hint:"Verkoop aan een terugkerende klant."},
+ {key:"scrapped",emo:"🪓",name:"Sloper",hint:"Sloop een wagen voor onderdelen."},
+ {key:"eotm",emo:"🏅",name:"Goede werkgever",hint:"Kroon een Werknemer van de Maand."},
+ {key:"nightAuction",emo:"🌙",name:"Nachtbieder",hint:"Koop op de nachtveiling."},
+ {key:"gsmUp",emo:"📶",name:"Altijd bereikbaar",hint:"Waardeer je GSM op."},
+ {key:"busBought",emo:"🚌",name:"De buschauffeur kocht!",hint:"Verkoop eindelijk aan de buschauffeur van lijn 129."},
+ {key:"salon",emo:"🏟️",name:"Autosalon van Brussel",hint:"Sta op het Autosalon."},
+];
+function trophyCount(){const m=G.mile||{};return TROPHIES.filter(t=>m[t.key]).length}
+function showTrophies(){
+  const m=G.mile||{},got=trophyCount();
+  let h='<div class="center"><b>🏆 De Prijzenkast</b><br><span class="small dim">'+got+' / '+TROPHIES.length+' behaald</span></div><hr>'
+   +'<div class="tablebtns" style="gap:6px">';
+  for(const t of TROPHIES){const has=!!m[t.key];
+    h+='<div class="card flat" style="min-width:130px;flex:1;text-align:center;'+(has?"":"opacity:.45")+'">'
+     +'<div style="font-size:26px">'+(has?t.emo:"🔒")+'</div><div class="small"><b>'+esc(t.name)+'</b></div>'
+     +'<div class="small dim">'+(has?"✓ behaald":esc(t.hint))+'</div></div>';
+  }
+  h+='</div>';
+  modal(h,[{t:"Sluiten",cls:"ghost",fn:closeModal}]);
+}
 const BODN={hatch:"hatchbacks",sedan:"sedans",wagon:"breaks",coupe:"coupés",cabrio:"cabrio's",sport:"sportwagens",van:"busjes",suv:"terreinwagens"};
 function rotateTrend(quiet){G.trendBody=pick(Object.keys(BODN));
   if(!quiet)log("📈 Gelezen in de gazet: "+BODN[G.trendBody]+" zijn plots gegeerd!")}
@@ -1854,6 +1894,7 @@ function renderOffice(){
     +'</div></div>';}
   h+='<div class="card"><h3>☕ Op het bureau</h3><div class="tablebtns">'
    +'<button class="btn primary" onclick="doEndWeek()">⏭ Week afsluiten</button>'
+   +'<button class="btn" onclick="showTrophies()">🏆 Prijzenkast ('+trophyCount()+'/'+TROPHIES.length+')</button>'
    +'<button class="btn" onclick="smoke()" '+(G.smokes>=smokeCap()?"disabled":"")+'>🚬 Sigaret op het koertje'+(isCh("alan")?' ('+G.smokes+'/'+smokeCap()+')':'')+'</button>'
    +(G.sloffen>0?'<button class="btn shady" onclick="useSloffe()">🚬 Sloffe opentrekken (nog '+G.sloffen+')<br><span class="small">-4 🔥 · van Alin</span></button>':'')
    +'<button class="btn" onclick="redbull()" '+(G.rb?"disabled":"")+'>🪽 Red Bull (60 BEF)</button>'
