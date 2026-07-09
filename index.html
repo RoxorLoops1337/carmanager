@@ -828,6 +828,7 @@ const GOALS=[
  {id:"rushjob",t:"Betaal voor een spoedklus 's nachts",r:"+70 XP · geen tijd te verliezen",c:()=>!!G.mile.rushJob,fn:()=>addXP(70)},
  {id:"charity",t:"Doneer aan een goed doel",r:"+120 XP · een hart van goud (of toch bijna)",c:()=>!!G.mile.charity,fn:()=>addXP(120)},
  {id:"keuring",t:"Loods een wagen door de autokeuring",r:"+80 XP · alles in orde, meneer de agent",c:()=>!!G.mile.keuring,fn:()=>addXP(80)},
+ {id:"financing",t:"Sluit een verkoop met bankfinanciering",r:"+90 XP · de bank draagt het risico",c:()=>!!G.mile.financing,fn:()=>addXP(90)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -5058,6 +5059,8 @@ function negModal(){
   {const wFee=warrantyFee(c);
    h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="warrbox"'+(NEG.warranty?" checked":"")+' onchange="updPr()"> 🛡️ Garantie aanbieden (+'+fmt(wFee)+', klant voelt zich veiliger)</label>'
     +'<div class="small dim">De koper betaalt '+fmt(wFee)+' extra en hapt makkelijker toe. Maar komt de wagen terug op de takelwagen, dan MOET ge herstellen — al scheelt dat wel in reputatie.</div>';}
+  h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="finbox"'+(NEG.finance?" checked":"")+' onchange="updPr()"> 🏦 Bankfinanciering regelen (Krefima) — klant leent, ge krijgt <b>direct de volle prijs</b> + '+Math.round(FIN_COMMISSION*100)+'% dossiercommissie</label>'
+   +'<div class="small dim">De bank draagt het risico, geen wekelijks contract op úw boeken (anders dan huurkoop). Handig als de klant net iets te krap zit.</div>';
   {const t=huurkoopTerms(c);
    h+='<hr><div class="small">💳 <b>Huurkoop</b> — voor wie het niet cash kan: <b>'+fmt(t.down)+'</b> nu, dan '+t.weeks+'× <b>'+fmt(t.perWeek)+'</b>/week (totaal '+fmt(t.total)+', dat is meer dan cash).</div>'
     +'<div class="small dim">De wagen vertrekt meteen, de afbetalingen komen wekelijks binnen. Klein risico dat de klant afhaakt.</div>';}
@@ -5066,7 +5069,7 @@ function negModal(){
 function doTalkSell(k){
   if($("prsl"))NEG.price=+$("prsl").value;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;
   applyTalk("sell",NEG.talk,k);
   negModal();hdr();
 }
@@ -5077,7 +5080,7 @@ function updPr(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   if(!cu||!c||!$("odds2"))return;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;
   const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus()+(NEG.trade?.08:0)+(NEG.warranty?WARRANTY_ODDS:0),.03,.97);
   $("odds2").innerHTML=oddsHtml(p);
   const md=$("mood");if(md)md.textContent=moodFace(p);
@@ -5086,14 +5089,15 @@ function trySell(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   const price=+$("prsl").value;
   const disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;
   const useTrade=!!(cu.tradeIn&&NEG.trade);cu._useTrade=useTrade;
   const useBarter=!!(cu.barter&&NEG.barter);cu._useBarter=useBarter;
+  const useFinance=!!NEG.finance;cu._useFinance=useFinance;
   const warranted=!!NEG.warranty;cu._warranty=warranted;
   const iss=hiddenIssues(c);
   const perc=percFor(cu,c,disclosed);
-  const bust=price>(cu.budget+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0))*1.12;
-  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
+  const bust=price>(cu.budget*(useFinance?2:1)+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0))*1.12;
+  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(useFinance?.05:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
   G.rb=false;
   const win=!bust&&Math.random()<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
@@ -5126,8 +5130,13 @@ function doSale(cu,c,price,disclosed,iss){
   const useBarter=!!(cu._useBarter&&cu.barter);
   const barterCut=useBarter?Math.min(cu.barter.value,price-tradeCut):0;
   const barterResell=useBarter?Math.round(barterCut*0.9):0; // je verzilvert de goederen voor ~90%
-  const net=price-tradeCut-barterCut+barterResell;
+  const useFinance=!!cu._useFinance;
+  const finKick=useFinance?Math.round(price*FIN_COMMISSION/1000)*1000:0; // dossiercommissie van de bank
+  const net=price-tradeCut-barterCut+barterResell+finKick;
   G.cash+=net;G.earned+=net;G.sold++;G.wkSold=(G.wkSold||0)+1;
+  if(useFinance){G.mile.financing=1;
+    log("🏦 "+cu.name+" kocht op afbetaling via Krefima — de bank betaalt de volle "+fmt(price)+" cash, plus "+fmt(finKick)+" dossiercommissie voor u. Geen risico, geen wachten.");
+    toast("🏦 Bankfinanciering: volle prijs cash + commissie.");}
   if(useBarter){G.mile.barter=1;
     log("🤝 "+cu.name+" betaalde deels met "+cu.barter.item+" ("+fmt(barterCut)+" van de prijs). Doorverkocht voor "+fmt(barterResell)+".");
     toast("🤝 Ruildeal: "+cu.barter.item);}
@@ -5203,6 +5212,7 @@ function doSale(cu,c,price,disclosed,iss){
 }
 /* huurkoop / rent-to-own: aanbetaling nu, wekelijkse afbetalingen met opslag */
 const HK_WEEKS=8;
+const FIN_COMMISSION=0.015; // bankfinanciering: dossiercommissie/kickback op de verkoopprijs
 function huurkoopTerms(c){
   const base=askValue(c);
   const down=Math.round(base*.30/1000)*1000;
