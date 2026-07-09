@@ -716,7 +716,8 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;
+  if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
   if(!G.cotm)rotateCotm(true);
@@ -823,6 +824,7 @@ const GOALS=[
  {id:"barter",t:"Aanvaard een ruildeal (deels in natura)",r:"+90 XP · geld is niet alles",c:()=>!!G.mile.barter,fn:()=>addXP(90)},
  {id:"flush",t:"Verkoop iets flashy aan een lottowinnaar",r:"+120 XP · het geld brandde in zijn zak",c:()=>!!G.mile.flush,fn:()=>addXP(120)},
  {id:"testfirst",t:"Verkoop na een proefrit aan een voorzichtige klant",r:"+90 XP · eerst rijden, dan tekenen",c:()=>!!G.mile.testFirst,fn:()=>addXP(90)},
+ {id:"poach",t:"Hou een weggekaapte werknemer aan boord",r:"+110 XP · goed werkgeverschap",c:()=>!!G.mile.poach,fn:()=>addXP(110)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1721,6 +1723,12 @@ function endWeek(silent){
   if(!G.carMeet&&Math.random()<.12)G.carMeet=true;
   // scratch-and-dent koopjesbak: af en toe een spotgoedkoop project
   if(!G.bargain&&Math.random()<.13)G.bargain=genBargain();
+  // rivaal probeert personeel weg te kapen (alleen met personeel in dienst)
+  if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null; // staffer al weg
+  if(!G.poach){const hires=Object.keys(G.staff||{});
+    if(hires.length&&Math.random()<.08){const key=pick(hires),rival=pick(POACHERS);G.poach={key,rival};
+      extra.push(["🎣 Afwerving",STAFFDEF[key].n+" wordt weggelokt","neg"]);
+      log("🎣 "+rival+" probeert "+STAFFDEF[key].face+" "+STAFFDEF[key].n+" weg te kapen met een dikker loon. Beslis op 't bureau of ge \'m houdt.");}}
   // barn-clearance job-lot: zeldzamer, een hele kavel ineens
   if(!G.jobLot&&Math.random()<.07)G.jobLot=genJobLot();
   // klassieker-magazine biedt een cover-feature aan (als je een geschikte wagen hebt)
@@ -2174,6 +2182,12 @@ function renderOffice(){
        +'<button class="btn primary" style="margin-left:8px;padding:5px 10px;font-size:12px" onclick="enterRally('+c.id+')">Meerijden ('+fmt(RALLY_FEE)+')</button></div>';
     }
     h+='</div>';
+  }
+  if(G.poach&&G.staff&&G.staff[G.poach.key]){const p=G.poach,st=STAFFDEF[p.key],rc=retentionCost(p.key);
+    h+='<div class="card" style="border-color:var(--red)"><div class="spread"><h3 style="margin:0">🎣 Afwerving!</h3><span class="pill bad">'+esc(p.rival)+'</span></div>'
+     +'<div class="small dim"><b>'+st.face+' '+st.n+'</b> ('+st.t+') is benaderd door '+esc(p.rival)+' met een beter loon. Houdt ge \'m met een retentiepremie, of laat ge \'m gaan?</div>'
+     +'<button class="btn primary" onclick="keepStaff()">🤝 Houden ('+fmt(rc)+' + moraal)</button>'
+     +'<button class="btn ghost" onclick="letGoStaff()">Laten gaan (-1 rep)</button></div>';
   }
   if(G.unlocks.staff){
     h+='<div class="card"><h3>👥 Personeel</h3>';
@@ -2853,6 +2867,28 @@ function payBonus(k){
   sfx("kaching");popNum("-"+fmt(cost),"pred");
   log("💚 "+STAFFDEF[k].face+" "+STAFFDEF[k].n+" krijgt een bonus ("+fmt(cost)+"). De moraal zit weer goed.");
   toast(STAFFDEF[k].n+" is weer een gelukkig mens.");save();render();
+}
+/* rivaal probeert personeel weg te kapen */
+const POACHERS=["Dany uit Ninove","Sabine van 't Autohuis","een groot garagebedrijf uit Aalst","een BMW-verdeler uit Asse"];
+function retentionCost(k){return Math.round(STAFFDEF[k].cost*6/100)*100;}
+function keepStaff(){
+  const p=G.poach;if(!p||!G.staff||!G.staff[p.key])return;
+  const cost=retentionCost(p.key);
+  if(G.cash-cost<creditLimit()){toast("Geen geld om "+STAFFDEF[p.key].n+" te behouden.");return}
+  G.cash-=cost;G.staffMorale=G.staffMorale||{};
+  G.staffMorale[p.key]=clamp((G.staffMorale[p.key]==null?75:G.staffMorale[p.key])+25,0,100);
+  G.mile.poach=1;G.poach=null;sfx("kaching");popNum("-"+fmt(cost),"pred");repAdd(1);
+  log("🤝 "+STAFFDEF[p.key].face+" "+STAFFDEF[p.key].n+" bleef: ge legde er een retentiepremie ("+fmt(cost)+") tegenaan en "+p.rival+" vist achter het net. Loyaliteit heeft een prijs.");
+  toast("🤝 "+STAFFDEF[p.key].n+" blijft bij u.");save();render();
+}
+function letGoStaff(){
+  const p=G.poach;if(!p)return;
+  const k=p.key;
+  if(G.staff&&G.staff[k]){delete G.staff[k];delete G.staffWeeks[k];delete G.staffMorale[k];}
+  if(G.eotm===k)G.eotm=null;
+  repAdd(-1);G.poach=null;sfx("bad");
+  log("👋 "+STAFFDEF[k].face+" "+STAFFDEF[k].n+" vertrekt naar "+p.rival+" voor een dikker loon. \"'t Is niet persoonlijk, baas.\" (-1 rep)");
+  toast("👋 "+STAFFDEF[k].n+" is vertrokken.");save();render();
 }
 function genOrder(){
   const kinds=[
