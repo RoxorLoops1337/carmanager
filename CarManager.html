@@ -834,6 +834,7 @@ const GOALS=[
  {id:"envelope",t:"Reken een keer onder tafel af",r:"+80 XP · geen BTW, geen bewijs",c:()=>!!G.mile.envelope,fn:()=>addXP(80)},
  {id:"cabriospike",t:"Verkoop een cabrio tijdens de zomerpiek",r:"+90 XP · dakje open, kassa toe",c:()=>!!G.mile.cabrioSpike,fn:()=>addXP(90)},
  {id:"caryear",t:"Verkoop de Auto van het Jaar",r:"+130 XP · verkozen én verkocht",c:()=>!!G.mile.carYear,fn:()=>addXP(130)},
+ {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1297,6 +1298,13 @@ const BARTER_ITEMS=[
  {n:"een kist oude LP's en een jukebox",lo:10,hi:35},{n:"een vat straffe jenever en 200 sloffen",lo:12,hi:30},
  {n:"een tractor die 'bijna' loopt",lo:20,hi:60},{n:"een verzameling koperen kranen (herkomst onduidelijk)",lo:18,hi:50}];
 function genBarter(){const it=pick(BARTER_ITEMS);return {item:it.n,value:ri(it.lo,it.hi)*1000};}
+/* moto-inruil: klant ruilt een brommer/moto in; die verkoopt ge meteen door aan een bikercontact */
+const MOTO_ITEMS=[
+ {n:"een Puch Maxi brommer",lo:8,hi:20},{n:"een opgevoerde Vespa",lo:25,hi:60},
+ {n:"een Honda CB750",lo:40,hi:90},{n:"een Yamaha XS650",lo:35,hi:75},
+ {n:"een Kreidler Florett",lo:12,hi:28},{n:"een BMW R80 boxer",lo:50,hi:100},
+ {n:"een Zündapp met zijspan",lo:30,hi:70}];
+function genMoto(){const it=pick(MOTO_ITEMS);return {name:it.n,value:ri(it.lo,it.hi)*1000};}
 function genTradeIn(){
   // een oude getrouwe: hoog km, matige staat, verborgen gebreken, eigenaar overschat 'm
   const mk=pick(["nl","nl","de"]);
@@ -1346,6 +1354,7 @@ function genCustomers(){
     if(!cu.vip&&Math.random()<.10){cu.inspector=true;cu.t+=" — brengt een kenner mee die alles nakijkt";}
     if(!cu.vip&&!cu.inspector&&Math.random()<.09){cu.envelope=true;cu.t+=" — wil cash onder tafel afrekenen, geen papieren";}
     if(!cu.vip&&!cu.tradeIn&&Math.random()<.10){const b=genBarter();cu.barter=b;cu.t+=" — krap bij kas, wil deels in natura betalen";}
+    if(!cu.vip&&!cu.tradeIn&&!cu.barter&&Math.random()<.09){cu.moto=genMoto();cu.t+=" — wil "+cu.moto.name+" inruilen tegen de prijs";}
     if(!cu.vip&&!cu.flush&&Math.random()<.12){cu.testFirst=true;cu.t+=" — koopt niks zonder eerst een proefrit";}
     if(!cu.vip&&!cu.tradeIn&&!cu.barter&&Math.random()<.06){cu.flush=true;cu.face="🤑";cu.fuss=.05;
       cu.budget=Math.round(cu.budget*2.6/1000)*1000;cu.want={body:["sport","coupe","cabrio"]};
@@ -4055,7 +4064,7 @@ function renderSell(){
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+'</h3>'
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+(cu.moto?' <span class="pill">🏍️ moto-inruil</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -5092,6 +5101,11 @@ function negModal(){
      +'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="bartbox"'+(NEG.barter?" checked":"")+' onchange="updPr()"> ✅ Ruil aanvaarden ('+fmt(cu.barter.value)+' minder cash; je verzilvert de spullen voor ~90%)</label>'
      +'<div class="small dim">Handig om een deal rond te krijgen, maar je eet een klein verlies op het doorverkopen van de goederen.</div>';
   }
+  if(cu.moto){
+    h+='<hr><div class="small">🏍️ <b>'+esc(cu.name)+' wil '+esc(cu.moto.name)+' inruilen</b> <span class="money">(± '+fmt(cu.moto.value)+')</span></div>'
+     +'<label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="motobox"'+(NEG.moto?" checked":"")+' onchange="updPr()"> ✅ Moto aannemen ('+fmt(cu.moto.value)+' minder cash; ge flipt \'m meteen door aan een bikercontact voor hetzelfde)</label>'
+     +'<div class="small dim">Ge verkoopt geen moto\'s — dus die gaat direct door. Handig om een krappe koper over de streep te trekken.</div>';
+  }
   {const wFee=warrantyFee(c);
    h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="warrbox"'+(NEG.warranty?" checked":"")+' onchange="updPr()"> 🛡️ Garantie aanbieden (+'+fmt(wFee)+', klant voelt zich veiliger)</label>'
     +'<div class="small dim">De koper betaalt '+fmt(wFee)+' extra en hapt makkelijker toe. Maar komt de wagen terug op de takelwagen, dan MOET ge herstellen — al scheelt dat wel in reputatie.</div>';}
@@ -5109,7 +5123,7 @@ function negModal(){
 function doTalkSell(k){
   if($("prsl"))NEG.price=+$("prsl").value;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;if($("motobox"))NEG.moto=$("motobox").checked;
   applyTalk("sell",NEG.talk,k);
   negModal();hdr();
 }
@@ -5120,7 +5134,7 @@ function updPr(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   if(!cu||!c||!$("odds2"))return;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;if($("motobox"))NEG.moto=$("motobox").checked;
   const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus()+(NEG.trade?.08:0)+(NEG.warranty?WARRANTY_ODDS:0),.03,.97);
   $("odds2").innerHTML=oddsHtml(p);
   const md=$("mood");if(md)md.textContent=moodFace(p);
@@ -5129,16 +5143,17 @@ function trySell(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   const price=+$("prsl").value;
   const disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;if($("motobox"))NEG.moto=$("motobox").checked;
   const useTrade=!!(cu.tradeIn&&NEG.trade);cu._useTrade=useTrade;
   const useBarter=!!(cu.barter&&NEG.barter);cu._useBarter=useBarter;
   const useFinance=!!NEG.finance;cu._useFinance=useFinance;
   const useEnvelope=!!(cu.envelope&&NEG.envelope);cu._useEnvelope=useEnvelope;
+  const useMoto=!!(cu.moto&&NEG.moto);cu._useMoto=useMoto;
   const warranted=!!NEG.warranty;cu._warranty=warranted;
   const iss=hiddenIssues(c);
   const perc=percFor(cu,c,disclosed);
-  const bust=price*(useEnvelope?(1-ENV_DISCOUNT):1)>(cu.budget*(useFinance?2:1)+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0))*1.12;
-  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(useFinance?.05:0)+(useEnvelope?ENV_ODDS:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
+  const bust=price*(useEnvelope?(1-ENV_DISCOUNT):1)>(cu.budget*(useFinance?2:1)+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0)+(useMoto?cu.moto.value:0))*1.12;
+  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(useMoto?.06:0)+(useFinance?.05:0)+(useEnvelope?ENV_ODDS:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
   G.rb=false;
   const win=!bust&&Math.random()<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
@@ -5175,9 +5190,12 @@ function doSale(cu,c,price,disclosed,iss){
   const useBarter=!!(cu._useBarter&&cu.barter);
   const barterCut=useBarter?Math.min(cu.barter.value,price-tradeCut):0;
   const barterResell=useBarter?Math.round(barterCut*0.9):0; // je verzilvert de goederen voor ~90%
+  const useMoto=!!(cu._useMoto&&cu.moto);
+  const motoCut=useMoto?Math.min(cu.moto.value,price-tradeCut-barterCut):0; // moto dekt een deel van de prijs
+  const motoFlip=motoCut; // meteen doorgeflipt aan een bikercontact voor de volle waarde
   const useFinance=!!cu._useFinance;
   const finKick=useFinance?Math.round(price*FIN_COMMISSION/1000)*1000:0; // dossiercommissie van de bank
-  const net=price-tradeCut-barterCut+barterResell+finKick;
+  const net=price-tradeCut-barterCut-motoCut+motoFlip+barterResell+finKick;
   G.cash+=net;G.earned+=net;G.sold++;G.wkSold=(G.wkSold||0)+1;
   if(useFinance){G.mile.financing=1;
     log("🏦 "+cu.name+" kocht op afbetaling via Krefima — de bank betaalt de volle "+fmt(price)+" cash, plus "+fmt(finKick)+" dossiercommissie voor u. Geen risico, geen wachten.");
@@ -5185,6 +5203,9 @@ function doSale(cu,c,price,disclosed,iss){
   if(useBarter){G.mile.barter=1;
     log("🤝 "+cu.name+" betaalde deels met "+cu.barter.item+" ("+fmt(barterCut)+" van de prijs). Doorverkocht voor "+fmt(barterResell)+".");
     toast("🤝 Ruildeal: "+cu.barter.item);}
+  if(useMoto){G.mile.moto=1;
+    log("🏍️ "+cu.name+" gaf "+cu.moto.name+" in ruil ("+fmt(motoCut)+" van de prijs). Ge belde uw bikercontact — meteen doorgeflipt voor de volle "+fmt(motoFlip)+", geen wagen erbij op 't koertje.");
+    toast("🏍️ Moto ingeruild en meteen doorgeflipt.");}
   if(useTrade){const tc=cu.tradeIn;tc.paid=tradeCut;tc.tradein=1;tc.known=tc.quirks.slice();
     if(tc.rolled)tc.known.push("__rolled");G.cars.push(tc);G.mile.tradeIn=1;
     log("🔄 "+cu.name+" ruilde zijn "+carName(tc)+" in ("+fmt(tradeCut)+" van de prijs). Nu maar hopen dat 't meevalt.");
