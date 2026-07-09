@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
@@ -828,6 +828,10 @@ const GOALS=[
  {id:"rushjob",t:"Betaal voor een spoedklus 's nachts",r:"+70 XP · geen tijd te verliezen",c:()=>!!G.mile.rushJob,fn:()=>addXP(70)},
  {id:"charity",t:"Doneer aan een goed doel",r:"+120 XP · een hart van goud (of toch bijna)",c:()=>!!G.mile.charity,fn:()=>addXP(120)},
  {id:"keuring",t:"Loods een wagen door de autokeuring",r:"+80 XP · alles in orde, meneer de agent",c:()=>!!G.mile.keuring,fn:()=>addXP(80)},
+ {id:"financing",t:"Sluit een verkoop met bankfinanciering",r:"+90 XP · de bank draagt het risico",c:()=>!!G.mile.financing,fn:()=>addXP(90)},
+ {id:"bulkplates",t:"Koop een desem ZZ-platen in bulk",r:"+80 XP · voorraad is macht",c:()=>!!G.mile.bulkPlates,fn:()=>addXP(80)},
+ {id:"envelope",t:"Reken een keer onder tafel af",r:"+80 XP · geen BTW, geen bewijs",c:()=>!!G.mile.envelope,fn:()=>addXP(80)},
+ {id:"cabriospike",t:"Verkoop een cabrio tijdens de zomerpiek",r:"+90 XP · dakje open, kassa toe",c:()=>!!G.mile.cabrioSpike,fn:()=>addXP(90)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1334,6 +1338,7 @@ function genCustomers(){
     if(!cu.tradeIn&&Math.random()<.12){cu.wantColor=ri(0,COLORS.length-1);cu.fuss=Math.min(.9,cu.fuss+.05);
       cu.t+=" — maar wil het per se in "+COLORS[cu.wantColor].n;cu.budget=Math.round(cu.budget*1.08/1000)*1000;}
     if(!cu.vip&&Math.random()<.10){cu.inspector=true;cu.t+=" — brengt een kenner mee die alles nakijkt";}
+    if(!cu.vip&&!cu.inspector&&Math.random()<.09){cu.envelope=true;cu.t+=" — wil cash onder tafel afrekenen, geen papieren";}
     if(!cu.vip&&!cu.tradeIn&&Math.random()<.10){const b=genBarter();cu.barter=b;cu.t+=" — krap bij kas, wil deels in natura betalen";}
     if(!cu.vip&&!cu.flush&&Math.random()<.12){cu.testFirst=true;cu.t+=" — koopt niks zonder eerst een proefrit";}
     if(!cu.vip&&!cu.tradeIn&&!cu.barter&&Math.random()<.06){cu.flush=true;cu.face="🤑";cu.fuss=.05;
@@ -1562,6 +1567,18 @@ function endWeek(silent){
     extra.push(["🪙 Schrootboom!",tot+" weken · slopen betaalt fors meer","money"]);
     log("🪙 "+pick(["Schrootprijzen door het dak! China koopt al het oud ijzer op.","De prijs van oud metaal ontploft — de kozijn betaalt ineens vorstelijk.","Recordprijzen voor schroot: elke roestbak is plots goud waard."])+" De komende "+tot+" weken brengt slopen "+Math.round((SCRAP_BOOM_MUL-1)*100)+"% meer op. Tijd om de hopeloze gevallen weg te doen.");
     if(!silent){stamp("🪙 SCHROOTBOOM","gold");sfx("win")}}
+  // zomerse cabrio-piek: bij mooi weer wil iedereen open rijden
+  if(G.cabrioSpike&&G.cabrioSpike.weeks>0){
+    G.cabrioSpike.weeks--;
+    if(G.cabrioSpike.weeks<=0){G.cabrioSpike=null;
+      extra.push(["🌤️ Cabrio-gekte voorbij","de zomer luwt",""]);
+      log("🌤️ De cabrio-gekte is geluwd — de eerste blaadjes vallen, de daken gaan weer dicht en de prijzen normaliseren.")}
+    else extra.push(["🌞 Cabrio-piek","open rijden gegeerd · nog "+G.cabrioSpike.weeks+" wk","money"]);
+  } else if(season().n==="Zomer"&&Math.random()<.14){
+    const tot=ri(2,3);G.cabrioSpike={weeks:tot,tot:tot};
+    extra.push(["🌞 Cabrio-piek!",tot+" weken · cabrio's extra gegeerd","money"]);
+    log("🌞 "+pick(["De zon lokt, iedereen wil ineens open rijden!","Hittegolf op komst — de cabrio's vliegen de deur uit.","Mooi weer, dakje open: een cabrio is plots goud waard."])+" De komende "+tot+" weken betaalt men straf voor een cabrio.");
+    if(!silent){stamp("🌞 CABRIO!","gold");sfx("win")}}
   // Kermis van Essene, één keer per jaar in september (rond week 37)
   if(G.week>=36&&G.week<=38&&G.mile.kermisYear!==G.year){
     G.mile.kermisYear=G.year;G.mile.kermis=1;repAdd(3);
@@ -1738,6 +1755,8 @@ function endWeek(silent){
   if(!G.magOffer&&G.cars.some(magEligible)&&Math.random()<.07)G.magOffer={mag:pick(MAGS)};
   // goede doel klopt aan voor een donatie
   if(!G.charity&&Math.random()<.06)G.charity={cause:pick(CHARITY_CAUSES)};
+  // de platenman biedt af en toe een bulkdeal ZZ-platen aan
+  if(!G.plateDeal&&Math.random()<.07)G.plateDeal=genPlateDeal();
   // flip-off: een rivaal daagt je uit (alleen als de zaak wat naam heeft)
   if(!G.flipChallenge&&(G.rep>=45||G.sold>=10)&&Math.random()<.10)G.flipChallenge=genFlipDare();
   // winterse nachtvorst: bedreigt de stock op 't koertje
@@ -4017,13 +4036,14 @@ function renderSell(){
    +(G.cotm?'<span class="pill good">🏆 Auto v/d Maand: '+esc(G.cotm)+' (+22%)</span>':'')
    +(G.radioCar?'<span class="pill info">📻 Wagen v/d Week: '+esc(radioCarLabel())+' (+7%)</span>':'')
    +(tvOn()?'<span class="pill good">📺 TV-rage: '+esc(tvLabel())+' (+22%, nog '+G.tvFeature.weeks+' wk)</span>':'')
+   +(cabrioSpikeOn()?'<span class="pill good">🌞 Cabrio-piek: open rijden +18% (nog '+G.cabrioSpike.weeks+' wk)</span>':'')
    +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+'</h3>'
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -4971,6 +4991,9 @@ function fuelCrisisOn(){return !!(G.fuelCrisis&&G.fuelCrisis.weeks>0)}
 function isEco(c){const d=CARS[c.ci];return d.body==="hatch"||d.base<=170000}
 function isGuzzler(c){const d=CARS[c.ci];return ["sport","coupe","suv"].includes(d.body)||d.base>=500000}
 function fuelMod(c){if(!fuelCrisisOn())return 1;return isEco(c)?1.14:isGuzzler(c)?.80:1}
+const CABRIO_MUL=1.18;
+function cabrioSpikeOn(){return !!(G.cabrioSpike&&G.cabrioSpike.weeks>0)}
+function isCabrioHot(c){return cabrioSpikeOn()&&CARS[c.ci].body==="cabrio";}
 const COLOR_MATCH_MUL=1.10;
 function colorMatch(cu,c){return cu&&cu.wantColor!=null&&c.col===cu.wantColor;}
 function percFor(cu,c,disclosed){
@@ -4981,6 +5004,7 @@ function percFor(cu,c,disclosed){
   if(isCotm(c))perc*=COTM_MUL;
   if(isRadioCar(c))perc*=RADIO_MUL;
   if(isTvFeatured(c))perc*=TV_MUL;
+  if(isCabrioHot(c))perc*=CABRIO_MUL;
   if(c.washT>0)perc*=1+WASH_BONUS;
   if(c.rallyT>0)perc*=1+RALLY_BONUS;
   if(c.featured)perc*=1+MAG_BONUS;
@@ -5058,6 +5082,12 @@ function negModal(){
   {const wFee=warrantyFee(c);
    h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="warrbox"'+(NEG.warranty?" checked":"")+' onchange="updPr()"> 🛡️ Garantie aanbieden (+'+fmt(wFee)+', klant voelt zich veiliger)</label>'
     +'<div class="small dim">De koper betaalt '+fmt(wFee)+' extra en hapt makkelijker toe. Maar komt de wagen terug op de takelwagen, dan MOET ge herstellen — al scheelt dat wel in reputatie.</div>';}
+  h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="finbox"'+(NEG.finance?" checked":"")+' onchange="updPr()"> 🏦 Bankfinanciering regelen (Krefima) — klant leent, ge krijgt <b>direct de volle prijs</b> + '+Math.round(FIN_COMMISSION*100)+'% dossiercommissie</label>'
+   +'<div class="small dim">De bank draagt het risico, geen wekelijks contract op úw boeken (anders dan huurkoop). Handig als de klant net iets te krap zit.</div>';
+  if(cu.envelope){
+    h+='<hr><label class="small" style="display:block;margin:4px 0"><input type="checkbox" id="envbox"'+(NEG.envelope?" checked":"")+' onchange="updPr()"> 🧧 Onder tafel afrekenen — <b>-'+Math.round(ENV_DISCOUNT*100)+'%</b> prijs, cash in een bruine enveloppe, geen BTW</label>'
+     +'<div class="small dim">Snel akkoord en klinkende munt, maar niets op papier: dat trekt bekijks. +heat. (Los van propere bankfinanciering.)</div>';
+  }
   {const t=huurkoopTerms(c);
    h+='<hr><div class="small">💳 <b>Huurkoop</b> — voor wie het niet cash kan: <b>'+fmt(t.down)+'</b> nu, dan '+t.weeks+'× <b>'+fmt(t.perWeek)+'</b>/week (totaal '+fmt(t.total)+', dat is meer dan cash).</div>'
     +'<div class="small dim">De wagen vertrekt meteen, de afbetalingen komen wekelijks binnen. Klein risico dat de klant afhaakt.</div>';}
@@ -5066,7 +5096,7 @@ function negModal(){
 function doTalkSell(k){
   if($("prsl"))NEG.price=+$("prsl").value;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;
   applyTalk("sell",NEG.talk,k);
   negModal();hdr();
 }
@@ -5077,7 +5107,7 @@ function updPr(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   if(!cu||!c||!$("odds2"))return;
   NEG.disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;
   const p=clamp(sellOdds(cu,price,percFor(cu,c,NEG.disclosed))+negBonus()+(NEG.trade?.08:0)+(NEG.warranty?WARRANTY_ODDS:0),.03,.97);
   $("odds2").innerHTML=oddsHtml(p);
   const md=$("mood");if(md)md.textContent=moodFace(p);
@@ -5086,14 +5116,16 @@ function trySell(){
   const cu=G.custs.find(x=>x.id===NEG.cid),c=getCar(NEG.carId);
   const price=+$("prsl").value;
   const disclosed=[...document.querySelectorAll(".dis:checked")].map(x=>x.value);
-  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;
+  if($("tradebox"))NEG.trade=$("tradebox").checked;if($("warrbox"))NEG.warranty=$("warrbox").checked;if($("bartbox"))NEG.barter=$("bartbox").checked;if($("finbox"))NEG.finance=$("finbox").checked;if($("envbox"))NEG.envelope=$("envbox").checked;
   const useTrade=!!(cu.tradeIn&&NEG.trade);cu._useTrade=useTrade;
   const useBarter=!!(cu.barter&&NEG.barter);cu._useBarter=useBarter;
+  const useFinance=!!NEG.finance;cu._useFinance=useFinance;
+  const useEnvelope=!!(cu.envelope&&NEG.envelope);cu._useEnvelope=useEnvelope;
   const warranted=!!NEG.warranty;cu._warranty=warranted;
   const iss=hiddenIssues(c);
   const perc=percFor(cu,c,disclosed);
-  const bust=price>(cu.budget+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0))*1.12;
-  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
+  const bust=price*(useEnvelope?(1-ENV_DISCOUNT):1)>(cu.budget*(useFinance?2:1)+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0))*1.12;
+  const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(useFinance?.05:0)+(useEnvelope?ENV_ODDS:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
   G.rb=false;
   const win=!bust&&Math.random()<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
@@ -5122,12 +5154,21 @@ function doSale(cu,c,price,disclosed,iss){
   const warranted=!!cu._warranty;
   const wFee=warranted?warrantyFee(c):0;
   if(wFee){price+=wFee;G.mile.warrantySold=1;}
+  const useEnvelope=!!(cu._useEnvelope&&cu.envelope);
+  if(useEnvelope){price=Math.round(price*(1-ENV_DISCOUNT)/1000)*1000;heatAdd(ENV_HEAT);G.mile.envelope=1;
+    log("🧧 "+cu.name+" rekende onder tafel af — een bruine enveloppe vol briefjes, "+Math.round(ENV_DISCOUNT*100)+"% korting, geen BTW, geen papieren. Snel geld, maar de fiscus heeft ook oren. (+heat)");
+    toast("🧧 Cash in de enveloppe. Niks gezien, niks gehoord.");}
   const tradeCut=useTrade?Math.min(cu.tradeClaim,price):0;
   const useBarter=!!(cu._useBarter&&cu.barter);
   const barterCut=useBarter?Math.min(cu.barter.value,price-tradeCut):0;
   const barterResell=useBarter?Math.round(barterCut*0.9):0; // je verzilvert de goederen voor ~90%
-  const net=price-tradeCut-barterCut+barterResell;
+  const useFinance=!!cu._useFinance;
+  const finKick=useFinance?Math.round(price*FIN_COMMISSION/1000)*1000:0; // dossiercommissie van de bank
+  const net=price-tradeCut-barterCut+barterResell+finKick;
   G.cash+=net;G.earned+=net;G.sold++;G.wkSold=(G.wkSold||0)+1;
+  if(useFinance){G.mile.financing=1;
+    log("🏦 "+cu.name+" kocht op afbetaling via Krefima — de bank betaalt de volle "+fmt(price)+" cash, plus "+fmt(finKick)+" dossiercommissie voor u. Geen risico, geen wachten.");
+    toast("🏦 Bankfinanciering: volle prijs cash + commissie.");}
   if(useBarter){G.mile.barter=1;
     log("🤝 "+cu.name+" betaalde deels met "+cu.barter.item+" ("+fmt(barterCut)+" van de prijs). Doorverkocht voor "+fmt(barterResell)+".");
     toast("🤝 Ruildeal: "+cu.barter.item);}
@@ -5160,6 +5201,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(cu.testFirst&&(c.tested||c.driven))G.mile.testFirst=1;
   if(tyresInSeason(c))G.mile.tyresSold=1;
   if(isTvFeatured(c))G.mile.tvFeature=1;
+  if(isCabrioHot(c))G.mile.cabrioSpike=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
@@ -5203,6 +5245,8 @@ function doSale(cu,c,price,disclosed,iss){
 }
 /* huurkoop / rent-to-own: aanbetaling nu, wekelijkse afbetalingen met opslag */
 const HK_WEEKS=8;
+const FIN_COMMISSION=0.015; // bankfinanciering: dossiercommissie/kickback op de verkoopprijs
+const ENV_DISCOUNT=0.08, ENV_HEAT=5, ENV_ODDS=0.10; // zwart-geld enveloppe: korting + keen + heat
 function huurkoopTerms(c){
   const base=askValue(c);
   const down=Math.round(base*.30/1000)*1000;
@@ -5243,6 +5287,12 @@ function renderPlates(){
    +(G.rep<35?'<div class="small neg">Je reputatie is te laag. De ambtenaar "vindt het dossier niet terug".</div>':'')+'</div>';
   h+='<div class="card"><h3>🚬 De andere weg</h3><div class="small dim">Een vriend van een vriend heeft er "eentje over". Vandaag nog in je hand voor '+fmt(shC)+'. Kleine kans dat de plaat... elders gemist wordt.</div>'
    +'<button class="btn shady" onclick="shadyPlate()">Regel het ('+fmt(shC)+')</button></div>';
+  if(G.plateDeal){const d=G.plateDeal;
+    h+='<div class="card" style="border-color:#8a6d34"><div class="spread"><h3 style="margin:0">📦 De platenman</h3><span class="pill warn">bulkdeal</span></div>'
+     +'<div class="small dim">"Ik heb hier \'nen desem plaatjes liggen, allemaal proper. '+d.n+' stuks voor '+fmt(d.per)+' \'t stuk — da\'s veel scherper dan los. Interesse?" '+fmt(d.n*d.per)+' voor '+d.n+' ZZ-platen (los kost er ééntje al '+fmt(d.single)+').</div>'
+     +'<button class="btn primary" onclick="buyBulkPlates()">📦 Heel de desem kopen ('+fmt(d.n*d.per)+')</button>'
+     +'<button class="btn ghost" onclick="passPlateDeal()">Nu even niet</button></div>';
+  }
   $("view").innerHTML=h;
 }
 function orderPlate(){
@@ -5251,6 +5301,21 @@ function orderPlate(){
   G.cash-=cost;G.plateOrder={eta:2};
   log("Officiële ZZ-plaat aangevraagd. Formulier B-27bis in drievoud, uiteraard.");render();
 }
+/* bulk-plaatdeal: de platenman biedt af en toe 'nen desem plaatjes' aan met korting */
+function plateSinglePrice(){return Math.round(75000*shadyMult()*platePerkMul());}
+function genPlateDeal(){const single=plateSinglePrice();const n=ri(3,4);const per=Math.round(single*rnd(.55,.65)/1000)*1000;return {n,per,single};}
+function buyBulkPlates(){
+  const d=G.plateDeal;if(!d)return;
+  const total=d.n*d.per;
+  if(G.cash-total<creditLimit()){toast("Zoveel cash heb je niet voor heel de desem.");return}
+  G.cash-=total;
+  for(let i=0;i<d.n;i++)G.plates.push({weeks:8,shady:Math.random()<.12,code:plateCode()});
+  G.plateDeal=null;G.mile.bulkPlates=1;heatAdd(3);save();
+  popNum("-"+fmt(total),"pred");sfx("kaching");stamp("DESEM PLAATJES","gold");
+  log("🔴 'Nen desem plaatjes' gekocht van de platenman: "+d.n+" ZZ-platen voor "+fmt(total)+" samen ("+fmt(d.per)+"/stuk, veel goedkoper dan los). Voorraad voor de trips.");
+  toast("🔴 "+d.n+" ZZ-platen in de kluis.");render();
+}
+function passPlateDeal(){G.plateDeal=null;save();render();}
 function shadyPlate(){
   const cost=Math.round(75000*shadyMult()*platePerkMul());
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
