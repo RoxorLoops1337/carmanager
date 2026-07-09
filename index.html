@@ -825,6 +825,7 @@ const GOALS=[
  {id:"flush",t:"Verkoop iets flashy aan een lottowinnaar",r:"+120 XP · het geld brandde in zijn zak",c:()=>!!G.mile.flush,fn:()=>addXP(120)},
  {id:"testfirst",t:"Verkoop na een proefrit aan een voorzichtige klant",r:"+90 XP · eerst rijden, dan tekenen",c:()=>!!G.mile.testFirst,fn:()=>addXP(90)},
  {id:"poach",t:"Hou een weggekaapte werknemer aan boord",r:"+110 XP · goed werkgeverschap",c:()=>!!G.mile.poach,fn:()=>addXP(110)},
+ {id:"rushjob",t:"Betaal voor een spoedklus 's nachts",r:"+70 XP · geen tijd te verliezen",c:()=>!!G.mile.rushJob,fn:()=>addXP(70)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -3760,6 +3761,8 @@ function openCar(id){
    +'<div class="tablebtns">'
    +'<button class="btn" onclick="fixEng('+c.id+')" '+(c.eng>=95?"disabled":"")+'>🔩 Motor herstellen<br><span class="small">'+fmt(repE)+'</span></button>'
    +'<button class="btn" onclick="fixBody('+c.id+')" '+(c.body>=95?"disabled":"")+'>🎨 Koets & spuitwerk<br><span class="small">'+fmt(repB)+'</span></button>'
+   +'<button class="btn" onclick="fixEng('+c.id+',1)" '+(c.eng>=100?"disabled":"")+'>🌙 Spoedklus motor<br><span class="small">'+fmt(Math.round(repE*RUSH_MUL/1000)*1000)+' · gegarandeerd 100%</span></button>'
+   +'<button class="btn" onclick="fixBody('+c.id+',1)" '+(c.body>=100?"disabled":"")+'>🌙 Spoedklus koets<br><span class="small">'+fmt(Math.round(repB*RUSH_MUL/1000)*1000)+' · gegarandeerd 100%</span></button>'
    +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(Math.round(25000*apprMul()/1000)*1000)+'</span></button>'
    +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(Math.round(RESPRAY_COST*apprMul()/1000)*1000)+'</span></button>'
    +'<button class="btn" onclick="washCar('+c.id+')">✨ Wassen & poetsen<br><span class="small">'+fmt(WASH_COST)+' · '+(c.washT>0?"nog "+c.washT+" wk blink":"+appeal "+WASH_WEEKS+" wk")+'</span></button>'
@@ -3811,28 +3814,33 @@ function repairRoll(){const m=G.mech||0,r=Math.random(); // mechanic skill: more
   G.mech=Math.min(60,m+(hasStaff("roger")?3:2)+(G.appr?1:0));
   if(G.appr)G.appr.jobs=(G.appr.jobs||0)+1;
   return r<crit?2:r<crit+botch?0:1} // 2=crit 0=botch 1=normal
-function fixEng(id){const c=getCar(id);const cost=Math.round((100-c.eng)/100*CARS[c.ci].base*.22*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
+const RUSH_MUL=1.7; // spoedklus-toeslag: dubbel zoveel, maar gegarandeerd topwerk
+function fixEng(id,rush){const c=getCar(id);let cost=Math.round((100-c.eng)/100*CARS[c.ci].base*.22*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
+  if(rush)cost=Math.round(cost*RUSH_MUL/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;
-  const roll=repairRoll();
+  const roll=rush?2:repairRoll();if(rush)G.mile.rushJob=1;
   c.eng=roll===2?100:roll===0?ri(80,89):ri(92,99);
   c.quirks=c.quirks.filter(q=>!["gearbox","electr"].includes(q));c.known=c.known.filter(q=>!["gearbox","electr"].includes(q));
-  log(carName(c)+": motor hersteld ("+fmt(cost)+")."+(roll===2?" Als nieuw!":roll===0?" Mwah.":""));save();
-  suspense(["🔧","🔩","⚙️","🛠️"],"De monteur duikt onder de motorkap...",()=>{
-    popNum("-"+fmt(cost),"pred");addXP(4);
-    if(roll===2){stamp("★ TOPKLUS ★","gold");toast("De monteur overtreft zichzelf: motor 100%, loopt als een naaimachine.")}
+  log(carName(c)+": motor hersteld ("+fmt(cost)+")."+(rush?" 🌙 Nachtploeg erop gezet — motor 100%, gepiekt en al.":roll===2?" Als nieuw!":roll===0?" Mwah.":""));save();
+  suspense(["🔧","🔩","⚙️","🛠️"],rush?"De nachtploeg werkt door tot de haan kraait...":"De monteur duikt onder de motorkap...",()=>{
+    popNum("-"+fmt(cost),"pred");addXP(rush?8:4);
+    if(rush){stamp("★ SPOEDKLUS ★","gold");toast("🌙 Overnacht klaar: motor 100%, showroomklaar tegen de ochtend.")}
+    else if(roll===2){stamp("★ TOPKLUS ★","gold");toast("De monteur overtreft zichzelf: motor 100%, loopt als een naaimachine.")}
     else if(roll===0)toast("Mindere dag in de garage. Het loopt, maar nét ("+c.eng+"%).");
     openCar(id);hdr()},fixScene(c,"eng"));}
-function fixBody(id){const c=getCar(id);const cost=Math.round((100-c.body)/100*CARS[c.ci].base*.13*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
+function fixBody(id,rush){const c=getCar(id);let cost=Math.round((100-c.body)/100*CARS[c.ci].base*.13*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
+  if(rush)cost=Math.round(cost*RUSH_MUL/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;
-  const roll=repairRoll();
+  const roll=rush?2:repairRoll();if(rush)G.mile.rushJob=1;
   c.body=roll===2?100:roll===0?ri(78,87):ri(90,99);
   c.quirks=c.quirks.filter(q=>!["rust","smoke"].includes(q));c.known=c.known.filter(q=>!["rust","smoke"].includes(q));
-  log(carName(c)+": koetswerk opgeknapt ("+fmt(cost)+")."+(roll===2?" Showroomglans!":roll===0?" Sinaasappelhuid.":""));save();
-  suspense(["🎨","🖌️","✨","🧽"],"Spuitcabine dicht, radio aan...",()=>{
-    popNum("-"+fmt(cost),"pred");addXP(4);
-    if(roll===2){stamp("★ SHOWROOMGLANS ★","gold");toast("Diepglans! Je ziet je eigen sigaret erin weerspiegeld.")}
+  log(carName(c)+": koetswerk opgeknapt ("+fmt(cost)+")."+(rush?" 🌙 Nachtploeg: showroomglans tegen de ochtend.":roll===2?" Showroomglans!":roll===0?" Sinaasappelhuid.":""));save();
+  suspense(["🎨","🖌️","✨","🧽"],rush?"De spuitcabine draait heel de nacht door...":"Spuitcabine dicht, radio aan...",()=>{
+    popNum("-"+fmt(cost),"pred");addXP(rush?8:4);
+    if(rush){stamp("★ SPOEDKLUS ★","gold");toast("🌙 Tegen zonsopgang blinkt de koets als een spiegel — 100%.")}
+    else if(roll===2){stamp("★ SHOWROOMGLANS ★","gold");toast("Diepglans! Je ziet je eigen sigaret erin weerspiegeld.")}
     else if(roll===0)toast("Beetje sinaasappelhuid in de lak ("+c.body+"%). Niemand die het ziet. Hopelijk.");
     SWEEP=c.id;openCar(id);hdr()},fixScene(c,"body"));}
 function tuneCar(id){const c=getCar(id);const cost=Math.round(25000*apprMul()/1000)*1000;
