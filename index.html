@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
@@ -829,6 +829,7 @@ const GOALS=[
  {id:"charity",t:"Doneer aan een goed doel",r:"+120 XP · een hart van goud (of toch bijna)",c:()=>!!G.mile.charity,fn:()=>addXP(120)},
  {id:"keuring",t:"Loods een wagen door de autokeuring",r:"+80 XP · alles in orde, meneer de agent",c:()=>!!G.mile.keuring,fn:()=>addXP(80)},
  {id:"financing",t:"Sluit een verkoop met bankfinanciering",r:"+90 XP · de bank draagt het risico",c:()=>!!G.mile.financing,fn:()=>addXP(90)},
+ {id:"bulkplates",t:"Koop een desem ZZ-platen in bulk",r:"+80 XP · voorraad is macht",c:()=>!!G.mile.bulkPlates,fn:()=>addXP(80)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1739,6 +1740,8 @@ function endWeek(silent){
   if(!G.magOffer&&G.cars.some(magEligible)&&Math.random()<.07)G.magOffer={mag:pick(MAGS)};
   // goede doel klopt aan voor een donatie
   if(!G.charity&&Math.random()<.06)G.charity={cause:pick(CHARITY_CAUSES)};
+  // de platenman biedt af en toe een bulkdeal ZZ-platen aan
+  if(!G.plateDeal&&Math.random()<.07)G.plateDeal=genPlateDeal();
   // flip-off: een rivaal daagt je uit (alleen als de zaak wat naam heeft)
   if(!G.flipChallenge&&(G.rep>=45||G.sold>=10)&&Math.random()<.10)G.flipChallenge=genFlipDare();
   // winterse nachtvorst: bedreigt de stock op 't koertje
@@ -5253,6 +5256,12 @@ function renderPlates(){
    +(G.rep<35?'<div class="small neg">Je reputatie is te laag. De ambtenaar "vindt het dossier niet terug".</div>':'')+'</div>';
   h+='<div class="card"><h3>🚬 De andere weg</h3><div class="small dim">Een vriend van een vriend heeft er "eentje over". Vandaag nog in je hand voor '+fmt(shC)+'. Kleine kans dat de plaat... elders gemist wordt.</div>'
    +'<button class="btn shady" onclick="shadyPlate()">Regel het ('+fmt(shC)+')</button></div>';
+  if(G.plateDeal){const d=G.plateDeal;
+    h+='<div class="card" style="border-color:#8a6d34"><div class="spread"><h3 style="margin:0">📦 De platenman</h3><span class="pill warn">bulkdeal</span></div>'
+     +'<div class="small dim">"Ik heb hier \'nen desem plaatjes liggen, allemaal proper. '+d.n+' stuks voor '+fmt(d.per)+' \'t stuk — da\'s veel scherper dan los. Interesse?" '+fmt(d.n*d.per)+' voor '+d.n+' ZZ-platen (los kost er ééntje al '+fmt(d.single)+').</div>'
+     +'<button class="btn primary" onclick="buyBulkPlates()">📦 Heel de desem kopen ('+fmt(d.n*d.per)+')</button>'
+     +'<button class="btn ghost" onclick="passPlateDeal()">Nu even niet</button></div>';
+  }
   $("view").innerHTML=h;
 }
 function orderPlate(){
@@ -5261,6 +5270,21 @@ function orderPlate(){
   G.cash-=cost;G.plateOrder={eta:2};
   log("Officiële ZZ-plaat aangevraagd. Formulier B-27bis in drievoud, uiteraard.");render();
 }
+/* bulk-plaatdeal: de platenman biedt af en toe 'nen desem plaatjes' aan met korting */
+function plateSinglePrice(){return Math.round(75000*shadyMult()*platePerkMul());}
+function genPlateDeal(){const single=plateSinglePrice();const n=ri(3,4);const per=Math.round(single*rnd(.55,.65)/1000)*1000;return {n,per,single};}
+function buyBulkPlates(){
+  const d=G.plateDeal;if(!d)return;
+  const total=d.n*d.per;
+  if(G.cash-total<creditLimit()){toast("Zoveel cash heb je niet voor heel de desem.");return}
+  G.cash-=total;
+  for(let i=0;i<d.n;i++)G.plates.push({weeks:8,shady:Math.random()<.12,code:plateCode()});
+  G.plateDeal=null;G.mile.bulkPlates=1;heatAdd(3);save();
+  popNum("-"+fmt(total),"pred");sfx("kaching");stamp("DESEM PLAATJES","gold");
+  log("🔴 'Nen desem plaatjes' gekocht van de platenman: "+d.n+" ZZ-platen voor "+fmt(total)+" samen ("+fmt(d.per)+"/stuk, veel goedkoper dan los). Voorraad voor de trips.");
+  toast("🔴 "+d.n+" ZZ-platen in de kluis.");render();
+}
+function passPlateDeal(){G.plateDeal=null;save();render();}
 function shadyPlate(){
   const cost=Math.round(75000*shadyMult()*platePerkMul());
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
