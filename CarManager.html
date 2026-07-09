@@ -827,6 +827,7 @@ const GOALS=[
  {id:"poach",t:"Hou een weggekaapte werknemer aan boord",r:"+110 XP · goed werkgeverschap",c:()=>!!G.mile.poach,fn:()=>addXP(110)},
  {id:"rushjob",t:"Betaal voor een spoedklus 's nachts",r:"+70 XP · geen tijd te verliezen",c:()=>!!G.mile.rushJob,fn:()=>addXP(70)},
  {id:"charity",t:"Doneer aan een goed doel",r:"+120 XP · een hart van goud (of toch bijna)",c:()=>!!G.mile.charity,fn:()=>addXP(120)},
+ {id:"keuring",t:"Loods een wagen door de autokeuring",r:"+80 XP · alles in orde, meneer de agent",c:()=>!!G.mile.keuring,fn:()=>addXP(80)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -3715,7 +3716,7 @@ function renderGarage(){
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rallyT>0?'<span class="pill good">🏁 rally-held</span>':'')+(c.featured?'<span class="pill good">📸 cover</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.joblot?'<span class="pill">🚜 kavel</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rallyT>0?'<span class="pill good">🏁 rally-held</span>':'')+(c.featured?'<span class="pill good">📸 cover</span>':'')+(c.keured?'<span class="pill good">✅ gekeurd</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.joblot?'<span class="pill">🚜 kavel</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
@@ -3804,6 +3805,7 @@ function openCar(id){
    +'<button class="btn" onclick="tuneCar('+c.id+')" '+(c.tuned>=2?"disabled":"")+'>⚡ Tunen<br><span class="small">'+fmt(Math.round(25000*apprMul()/1000)*1000)+'</span></button>'
    +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(Math.round(RESPRAY_COST*apprMul()/1000)*1000)+'</span></button>'
    +'<button class="btn" onclick="washCar('+c.id+')">✨ Wassen & poetsen<br><span class="small">'+fmt(WASH_COST)+' · '+(c.washT>0?"nog "+c.washT+" wk blink":"+appeal "+WASH_WEEKS+" wk")+'</span></button>'
+   +'<button class="btn" onclick="keuringCar('+c.id+')" '+(c.keured?"disabled":"")+'>🔧 Naar de keuring<br><span class="small">'+(c.keured?"✅ groene kaart":fmt(KEURING_FEE)+" · +vertrouwen")+'</span></button>'
    +'<button class="btn" onclick="fitTyres('+c.id+')">'+(tyreSeasonType()==="winter"?"❄️ Winterbanden":"☀️ Zomerbanden")+'<br><span class="small">'+fmt(TYRE_COST)+' · '+(tyresInSeason(c)?"✓ in seizoen (+"+Math.round(TYRE_BONUS*100)+"%)":c.tyres?tyreLabel(c.tyres)+" (uit seizoen)":"+"+Math.round(TYRE_BONUS*100)+"% in seizoen")+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
@@ -3885,6 +3887,33 @@ function tuneCar(id){const c=getCar(id);const cost=Math.round(25000*apprMul()/10
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;c.tuned++;popNum("⚡ +tuning","pamber");addXP(4);
   log(carName(c)+": getuned. Klinkt nu boos in de goeie zin.");save();openCar(id);hdr()}
+/* autokeuring: laat een wagen technisch keuren — proper wagen slaagt (koperskeurmerk), wrak wordt afgekeurd */
+const KEURING_FEE=4000, KEURING_BONUS=.05;
+const KEUR_FAIL_Q=["crash","flood","gearbox","electr","warm"];
+function keuringFails(c){return c.eng<50||c.body<50||c.quirks.some(q=>KEUR_FAIL_Q.includes(q));}
+function keuringCar(id){
+  const c=getCar(id);if(!c)return;
+  if(c.keured){toast("Die heeft al een geldige keuring.");return}
+  if(G.cash-KEURING_FEE<creditLimit()){toast("Te weinig geld voor de keuring.");return}
+  G.cash-=KEURING_FEE;popNum("-"+fmt(KEURING_FEE),"pred");
+  const fail=keuringFails(c);
+  if(!fail){
+    c.keured=1;G.mile.keuring=1;addXP(6);sfx("kaching");stamp("GROENE KAART","gold");
+    log("✅ De "+carName(c)+" is door de autokeuring: groene kaart! Kopers zijn gerust, ge kunt met een propere lei verkopen.");
+    modal("<b>✅ Groene kaart!</b><br>De <b>"+esc(carName(c))+"</b> raakt vlot door de keuring in "+pick(["Sint-Denijs","Erpe-Mere","Asse"])+". Remmen, lichten, uitlaat: alles in orde. Een vers keuringsbewijs stelt elke koper gerust.",
+     [{t:"Netjes!",fn:()=>{closeModal();openCar(id);hdr()}}]);
+  } else {
+    // afgekeurd: de gebreken komen aan het licht (voortaan bekend/te melden)
+    const revealed=[];
+    for(const q of c.quirks)if(KEUR_FAIL_Q.includes(q)&&!c.known.includes(q)){c.known.push(q);const Q=QUIRKS.find(x=>x.id===q);if(Q)revealed.push(Q.t);}
+    if(c.eng<50)revealed.push("motor onder de norm");if(c.body<50)revealed.push("koetswerk te zwak");
+    sfx("bad");ouch();stamp("RODE KAART","pink");
+    log("❌ De "+carName(c)+" is AFGEKEURD — rode kaart. De keurmeester noteert alles; verzwijgen kan nu niet meer. Eerst herstellen.");
+    modal("<b>❌ Rode kaart!</b><br>De keurmeester loopt fronsend rond de <b>"+esc(carName(c))+"</b> en tikt af: <i>"+esc(revealed.join(", ")||"diverse gebreken")+"</i>. Afgekeurd. Herstel eerst, dan opnieuw. De keuringskost ("+fmt(KEURING_FEE)+") zijt ge kwijt.",
+     [{t:"Verdorie.",fn:()=>{closeModal();openCar(id);hdr()}}]);
+  }
+  save();
+}
 const RESPRAY_COST=20000;
 /* seizoensbanden: kleine upsell die extra scoort als ze bij 't seizoen passen */
 const TYRE_COST=4000, TYRE_BONUS=.05;
@@ -4955,6 +4984,7 @@ function percFor(cu,c,disclosed){
   if(c.washT>0)perc*=1+WASH_BONUS;
   if(c.rallyT>0)perc*=1+RALLY_BONUS;
   if(c.featured)perc*=1+MAG_BONUS;
+  if(c.keured)perc*=1+KEURING_BONUS;
   if(tyresInSeason(c))perc*=1+TYRE_BONUS;
   perc*=fuelMod(c);
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
