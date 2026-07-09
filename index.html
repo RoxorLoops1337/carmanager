@@ -769,6 +769,7 @@ const GOALS=[
  {id:"toptier",t:"Word Legende van Essene (★85 reputatie)",r:"+200 XP · de top van de perkladder",c:()=>repTier()>=4,fn:()=>addXP(200)},
  {id:"sabine",t:"Laat Sabine van 't Autohuis je 3× een VIP-opdracht afsnoepen",r:"+100 XP · de rivaliteit houdt u scherp",c:()=>(G.sabineSteals||0)>=3,fn:()=>addXP(100)},
  {id:"wash",t:"Poets een wagen op in de wasstraat",r:"+50 XP · blinkende koopwaar",c:()=>!!G.mile.wash,fn:()=>addXP(50)},
+ {id:"vipplate",t:"Verkoop een wagen met een gepersonaliseerde nummerplaat",r:"+70 XP · cachet verkoopt",c:()=>!!G.mile.vipPlate,fn:()=>addXP(70)},
  {id:"warrsold",t:"Verkoop een wagen mét garantie",r:"+60 XP · vertrouwen verkoopt",c:()=>!!G.mile.warrantySold,fn:()=>addXP(60)},
  {id:"warrhon",t:"Kom een garantie eervol na",r:"+120 XP · een man/vrouw van zijn woord",c:()=>!!G.mile.warrantyHonored,fn:()=>addXP(120)},
  {id:"loyal",t:"Verkoop een tweede wagen aan een tevreden klant",r:"+90 XP · vaste klanten, vast inkomen",c:()=>!!G.mile.loyalSold,fn:()=>addXP(90)},
@@ -3784,7 +3785,7 @@ function renderGarage(){
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rallyT>0?'<span class="pill good">🏁 rally-held</span>':'')+(c.featured?'<span class="pill good">📸 cover</span>':'')+(c.keured?'<span class="pill good">✅ gekeurd</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.joblot?'<span class="pill">🚜 kavel</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rallyT>0?'<span class="pill good">🏁 rally-held</span>':'')+(c.featured?'<span class="pill good">📸 cover</span>':'')+(c.keured?'<span class="pill good">✅ gekeurd</span>':'')+(c.vipPlate?'<span class="pill good">🔖 eigen plaat</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.joblot?'<span class="pill">🚜 kavel</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
@@ -3874,6 +3875,7 @@ function openCar(id){
    +'<button class="btn" onclick="resprayCar('+c.id+')">🌈 Overspuiten<br><span class="small">'+fmt(Math.round(RESPRAY_COST*apprMul()/1000)*1000)+'</span></button>'
    +'<button class="btn" onclick="washCar('+c.id+')">✨ Wassen & poetsen<br><span class="small">'+fmt(WASH_COST)+' · '+(c.washT>0?"nog "+c.washT+" wk blink":"+appeal "+WASH_WEEKS+" wk")+'</span></button>'
    +'<button class="btn" onclick="keuringCar('+c.id+')" '+(c.keured?"disabled":"")+'>🔧 Naar de keuring<br><span class="small">'+(c.keured?"✅ groene kaart":fmt(KEURING_FEE)+" · +vertrouwen")+'</span></button>'
+   +'<button class="btn" onclick="fitPlate('+c.id+')" '+(c.vipPlate?"disabled":"")+'>🔖 Eigen nummerplaat<br><span class="small">'+(c.vipPlate?"✅ gepersonaliseerd (+"+Math.round(PLATE_BONUS*100)+"%)":fmt(plateFee(c))+" · +"+Math.round(PLATE_BONUS*100)+"% appeal")+'</span></button>'
    +'<button class="btn" onclick="fitTyres('+c.id+')">'+(tyreSeasonType()==="winter"?"❄️ Winterbanden":"☀️ Zomerbanden")+'<br><span class="small">'+fmt(TYRE_COST)+' · '+(tyresInSeason(c)?"✓ in seizoen (+"+Math.round(TYRE_BONUS*100)+"%)":c.tyres?tyreLabel(c.tyres)+" (uit seizoen)":"+"+Math.round(TYRE_BONUS*100)+"% in seizoen")+'</span></button>'
    +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
@@ -3980,6 +3982,22 @@ function keuringCar(id){
     modal("<b>❌ Rode kaart!</b><br>De keurmeester loopt fronsend rond de <b>"+esc(carName(c))+"</b> en tikt af: <i>"+esc(revealed.join(", ")||"diverse gebreken")+"</i>. Afgekeurd. Herstel eerst, dan opnieuw. De keuringskost ("+fmt(KEURING_FEE)+") zijt ge kwijt.",
      [{t:"Verdorie.",fn:()=>{closeModal();openCar(id);hdr()}}]);
   }
+  save();
+}
+// gepersonaliseerde nummerplaat: eenmalige, blijvende opsmuk die de wagen begeerlijker maakt
+const PLATE_BONUS=.08;
+function plateFee(c){return Math.max(6000,Math.round(askValue(c)*.03/1000)*1000);}
+function fitPlate(id){
+  const c=getCar(id);if(!c)return;
+  if(c.vipPlate){toast("Die heeft al een gepersonaliseerde plaat.");return}
+  const fee=plateFee(c);
+  if(G.cash-fee<creditLimit()){toast("Te weinig geld voor een gepersonaliseerde plaat.");return}
+  G.cash-=fee;popNum("-"+fmt(fee),"pred");
+  c.vipPlate=1;G.mile.vipPlate=1;addXP(5);sfx("kaching");stamp("EIGEN PLAAT","gold");
+  const combo=ri(1,9)+"-"+pick(["ABC","GTI","VIP","LUX","BOSS","EUR"])+"-"+ri(100,999);
+  log("🔖 De "+carName(c)+" krijgt een gepersonaliseerde nummerplaat ("+combo+", "+fmt(fee)+"). Chique detail — kopers betalen er graag wat extra voor.");
+  modal("<b>🔖 Gepersonaliseerde plaat!</b><br>De <b>"+esc(carName(c))+"</b> rijdt voortaan met <b>"+esc(combo)+"</b>. Een vanity-plaatje geeft de wagen net dat tikkeltje cachet — kopers happen makkelijker en betalen wat meer.",
+   [{t:"Klasse!",fn:()=>{closeModal();openCar(id);hdr()}}]);
   save();
 }
 const RESPRAY_COST=20000;
@@ -5073,6 +5091,7 @@ function percFor(cu,c,disclosed){
   if(c.rallyT>0)perc*=1+RALLY_BONUS;
   if(c.featured)perc*=1+MAG_BONUS;
   if(c.keured)perc*=1+KEURING_BONUS;
+  if(c.vipPlate)perc*=1+PLATE_BONUS;
   if(tyresInSeason(c))perc*=1+TYRE_BONUS;
   perc*=fuelMod(c);
   for(const i of hiddenIssues(c))if(disclosed.includes(i.id))perc*=(1-i.pen);
@@ -5118,6 +5137,7 @@ function negModal(){
    +(fuelCrisisOn()?'<div class="small"><span class="pill '+(isEco(c)?"good":isGuzzler(c)?"bad":"warn")+'">⛽ Brandstofcrisis: '+(isEco(c)?"zuinig, erg gegeerd (+14%)":isGuzzler(c)?"slokop, blijft staan (−20%)":"neutraal")+'</span></div>':'')
    +(classicFairOn()?'<div class="small"><span class="pill '+(isFairClassic(c)?"good":"warn")+'">🏛️ Oldtimerbeurs: '+(isFairClassic(c)?"klassieker, erg gegeerd (+18%)!":"geen echte oldtimer — beurs helpt hier niet")+'</span></div>':'')
    +(cheapFuelOn()?'<div class="small"><span class="pill '+(isGuzzler(c)?"good":"warn")+'">⛽ Goedkope brandstof: '+(isGuzzler(c)?"dorstige motor, nu erg gegeerd (+15%)!":"geen slokop — hier helpt de lage pompprijs niet")+'</span></div>':'')
+   +(c.vipPlate?'<div class="small"><span class="pill good">🔖 Gepersonaliseerde plaat (+'+Math.round(PLATE_BONUS*100)+'%)</span></div>':'')
    +(cu.wantColor!=null?'<div class="small"><span class="pill '+(colorMatch(cu,c)?"good":"warn")+'">🎨 wil '+esc(COLORS[cu.wantColor].n)+': '+(colorMatch(cu,c)?"exact goed (+10%)!":"deze is "+esc(COLORS[c.col].n)+" — overspuiten kan helpen")+'</span></div>':'')
    +(cu.wantMk?'<div class="small"><span class="pill '+(brandMatch(cu,c)?"good":"warn")+'">🏷️ merkfan van '+esc(cu.wantMk)+': '+(brandMatch(cu,c)?"precies zijn merk (+16%)!":"dit is een "+esc(CARS[c.ci].mk)+" — niet zijn merk")+'</span></div>':'')
    +(cu.inspector?'<div class="small"><span class="pill '+(iss.filter(i=>!NEG.disclosed.includes(i.id)).length?"bad":"good")+'">🔍 Zijn kenner kijkt alles na — '+(iss.filter(i=>!NEG.disclosed.includes(i.id)).length?"verzwegen gebreken vallen zwaar door":"proper/eerlijk = vertrouwen + premie")+'</span></div>':'')
@@ -5284,6 +5304,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(isCabrioHot(c))G.mile.cabrioSpike=1;
   if(isFairClassic(c))G.mile.classicFair=1;
   if(isGuzzlerHot(c))G.mile.cheapFuel=1;
+  if(c.vipPlate)G.mile.vipPlate=1;
   if(isCarYear(c))G.mile.carYear=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
