@@ -670,7 +670,7 @@ function newGame(ch){
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
      comebacks:[], mile:{}, over:false};
-  rotateTrend(true);rotateCotm(true);rotateRadioCar(true);
+  rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
   save(); nav("office");
@@ -717,6 +717,7 @@ function migrate(){if(!G)return;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
   G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;
+  if(!G.carYear||G.carYear.year!==G.year)rotateCarYear();
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
@@ -832,6 +833,7 @@ const GOALS=[
  {id:"bulkplates",t:"Koop een desem ZZ-platen in bulk",r:"+80 XP · voorraad is macht",c:()=>!!G.mile.bulkPlates,fn:()=>addXP(80)},
  {id:"envelope",t:"Reken een keer onder tafel af",r:"+80 XP · geen BTW, geen bewijs",c:()=>!!G.mile.envelope,fn:()=>addXP(80)},
  {id:"cabriospike",t:"Verkoop een cabrio tijdens de zomerpiek",r:"+90 XP · dakje open, kassa toe",c:()=>!!G.mile.cabrioSpike,fn:()=>addXP(90)},
+ {id:"caryear",t:"Verkoop de Auto van het Jaar",r:"+130 XP · verkozen én verkocht",c:()=>!!G.mile.carYear,fn:()=>addXP(130)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -906,6 +908,10 @@ function rotateRadioCar(quiet){
   if(!quiet)log("📻 Radio Essene, 'De Wagen van de Week': "+radioCarLabel()+" — "+pick(["'dé slimme keuze van het moment,' aldus de presentator.","'ge ziet ze deze week overal,' klinkt het tussen twee plaatjes door.","'de luisteraars zijn er zot van,' zegt de radioman met veel te veel enthousiasme.","gesponsord door niemand, beweerd door iedereen."]))}
 function radioCarLabel(){if(!G.radioCar)return "";return G.radioCar.kind==="body"?BODN[G.radioCar.val]:"alles van "+G.radioCar.val;}
 function isRadioCar(c){if(!G.radioCar)return false;const d=CARS[c.ci];return G.radioCar.kind==="body"?d.body===G.radioCar.val:d.mk===G.radioCar.val;}
+/* jaarlijkse Auto van het Jaar: één model, geldt heel het jaar (+15%) */
+const CARYEAR_MUL=1.15;
+function rotateCarYear(){const ci=ri(0,CARS.length-1);G.carYear={ci,year:G.year,name:CARS[ci].mk+" "+CARS[ci].md};}
+function isCarYear(c){return !!G.carYear&&c.ci===G.carYear.ci;}
 /* TV-feature: af en toe maakt een programma/film ÉÉN model plots gegeerd (+22%), een paar weken */
 const TV_MUL=1.22;
 const TV_SHOWS=["'Autovisie' op de VRT","de nieuwe James Bond-film","'Man bijt hond'","een reportage in 'Telefacts'","'Opgeruimd staat netjes' op TV1","een videoclip op TMF","'Wedden dat...'","een aflevering van 'F.C. De Kampioenen'"];
@@ -1539,6 +1545,11 @@ function endWeek(silent){
     if(!silent){stamp("🏆 "+G.cotm,"gold");sfx("win")}}
   // wekelijkse Wagen van de Week op Radio Essene
   rotateRadioCar();extra.push(["📻 Wagen van de Week",radioCarLabel()+" (+7%)",""]);
+  // jaarlijkse Auto van het Jaar (reveal rond nieuwjaar, geldt heel het jaar)
+  if(!G.carYear||G.carYear.year!==G.year){rotateCarYear();
+    extra.push(["🏆 Auto van het Jaar",G.carYear.name,"money"]);
+    log("🏆 De jury van De Streekkrant heeft gesproken: de <b>"+G.carYear.name+"</b> is verkozen tot Auto van het Jaar "+G.year+"! Wie er een op 't koertje heeft, kan heel het jaar een streepje meer vragen.");
+    if(!silent){stamp("🏆 "+G.carYear.name,"gold");confetti(50);sfx("win")}}
   // season change
   const se=season();
   if(se.n!==seasonWas){extra.push([se.emo+" "+se.n,se.bodies.map(b=>BODN[b]).join("/")+" nu gegeerd",""]);
@@ -4037,6 +4048,7 @@ function renderSell(){
    +(G.radioCar?'<span class="pill info">📻 Wagen v/d Week: '+esc(radioCarLabel())+' (+7%)</span>':'')
    +(tvOn()?'<span class="pill good">📺 TV-rage: '+esc(tvLabel())+' (+22%, nog '+G.tvFeature.weeks+' wk)</span>':'')
    +(cabrioSpikeOn()?'<span class="pill good">🌞 Cabrio-piek: open rijden +18% (nog '+G.cabrioSpike.weeks+' wk)</span>':'')
+   +(G.carYear?'<span class="pill good">🏆 Auto v/h Jaar: '+esc(G.carYear.name)+' (+15%)</span>':'')
    +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
@@ -5005,6 +5017,7 @@ function percFor(cu,c,disclosed){
   if(isRadioCar(c))perc*=RADIO_MUL;
   if(isTvFeatured(c))perc*=TV_MUL;
   if(isCabrioHot(c))perc*=CABRIO_MUL;
+  if(isCarYear(c))perc*=CARYEAR_MUL;
   if(c.washT>0)perc*=1+WASH_BONUS;
   if(c.rallyT>0)perc*=1+RALLY_BONUS;
   if(c.featured)perc*=1+MAG_BONUS;
@@ -5202,6 +5215,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(tyresInSeason(c))G.mile.tyresSold=1;
   if(isTvFeatured(c))G.mile.tvFeature=1;
   if(isCabrioHot(c))G.mile.cabrioSpike=1;
+  if(isCarYear(c))G.mile.carYear=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
