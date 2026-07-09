@@ -819,6 +819,7 @@ const GOALS=[
  {id:"flipwin",t:"Win een flip-off van een rivaal",r:"+160 XP · de beste handelaar van de streek",c:()=>!!G.mile.flipWin,fn:()=>addXP(160)},
  {id:"colormatch",t:"Lever een kleurkieskeurige klant zijn exacte kleur",r:"+90 XP · oog voor de klant",c:()=>!!G.mile.colorMatch,fn:()=>addXP(90)},
  {id:"brandmatch",t:"Verkoop een merkfan precies zijn merk",r:"+90 XP · trouw aan het merk",c:()=>!!G.mile.brandMatch,fn:()=>addXP(90)},
+ {id:"modelmatch",t:"Vind een verzamelaar precies zijn droommodel",r:"+110 XP · de juiste wagen op de juiste dag",c:()=>!!G.mile.modelMatch,fn:()=>addXP(110)},
  {id:"scrapboom",t:"Sloop een wagen tijdens een schrootboom",r:"+70 XP · oud ijzer, vers geld",c:()=>!!G.mile.scrapBoom,fn:()=>addXP(70)},
  {id:"inspector",t:"Verkoop eerlijk aan een klant met een kenner erbij",r:"+110 XP · niets te verbergen",c:()=>!!G.mile.inspector,fn:()=>addXP(110)},
  {id:"joblot",t:"Koop een hele kavel in één keer",r:"+120 XP · groothandelaar in oud ijzer",c:()=>!!G.mile.jobLot,fn:()=>addXP(120)},
@@ -1357,6 +1358,8 @@ function genCustomers(){
       cu.t+=" — maar wil het per se in "+COLORS[cu.wantColor].n;cu.budget=Math.round(cu.budget*1.08/1000)*1000;}
     if(!cu.tradeIn&&cu.wantColor==null&&Math.random()<.09){cu.wantMk=pick(CARS).mk;cu.fuss=Math.min(.9,cu.fuss+.05);
       cu.t+=" — merkfan, wil per se iets van "+cu.wantMk;cu.budget=Math.round(cu.budget*1.10/1000)*1000;}
+    if(!cu.tradeIn&&cu.wantColor==null&&cu.wantMk==null&&Math.random()<.07){const mi=ri(0,CARS.length-1);cu.wantModel={ci:mi,name:CARS[mi].mk+" "+CARS[mi].md};cu.fuss=Math.min(.9,cu.fuss+.05);
+      cu.t+=" — zoekt al maanden precies een "+cu.wantModel.name;cu.budget=Math.round(cu.budget*1.15/1000)*1000;}
     if(!cu.vip&&Math.random()<.10){cu.inspector=true;cu.t+=" — brengt een kenner mee die alles nakijkt";}
     if(!cu.vip&&!cu.inspector&&Math.random()<.09){cu.envelope=true;cu.t+=" — wil cash onder tafel afrekenen, geen papieren";}
     if(!cu.vip&&!cu.tradeIn&&Math.random()<.10){const b=genBarter();cu.barter=b;cu.t+=" — krap bij kas, wil deels in natura betalen";}
@@ -4113,7 +4116,7 @@ function renderSell(){
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
   for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.wantMk?' <span class="pill warn">🏷️ wil een '+esc(cu.wantMk)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+(cu.moto?' <span class="pill">🏍️ moto-inruil</span>':'')+'</h3>'
+    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.wantMk?' <span class="pill warn">🏷️ wil een '+esc(cu.wantMk)+'</span>':'')+(cu.wantModel?' <span class="pill warn">🎯 zoekt een '+esc(cu.wantModel.name)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+(cu.moto?' <span class="pill">🏍️ moto-inruil</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -5074,10 +5077,13 @@ const COLOR_MATCH_MUL=1.10;
 function colorMatch(cu,c){return cu&&cu.wantColor!=null&&c.col===cu.wantColor;}
 const BRAND_MATCH_MUL=1.16;
 function brandMatch(cu,c){return !!(cu&&cu.wantMk!=null&&CARS[c.ci]&&CARS[c.ci].mk===cu.wantMk);}
+const MODEL_MATCH_MUL=1.25;
+function modelMatch(cu,c){return !!(cu&&cu.wantModel!=null&&c.ci===cu.wantModel.ci);}
 function percFor(cu,c,disclosed){
   let perc=askValue(c)*(carMatches(c,cu.want)?1.06:.82)*OFFICES[G.office].bonus*(isCh("martine")?1.05:1);
   if(colorMatch(cu,c))perc*=COLOR_MATCH_MUL;
   if(brandMatch(cu,c))perc*=BRAND_MATCH_MUL;
+  if(modelMatch(cu,c))perc*=MODEL_MATCH_MUL;
   if(isTrend(c))perc*=1.12;
   if(isSeason(c))perc*=SEASON_MUL;
   if(isCotm(c))perc*=COTM_MUL;
@@ -5140,6 +5146,7 @@ function negModal(){
    +(c.vipPlate?'<div class="small"><span class="pill good">🔖 Gepersonaliseerde plaat (+'+Math.round(PLATE_BONUS*100)+'%)</span></div>':'')
    +(cu.wantColor!=null?'<div class="small"><span class="pill '+(colorMatch(cu,c)?"good":"warn")+'">🎨 wil '+esc(COLORS[cu.wantColor].n)+': '+(colorMatch(cu,c)?"exact goed (+10%)!":"deze is "+esc(COLORS[c.col].n)+" — overspuiten kan helpen")+'</span></div>':'')
    +(cu.wantMk?'<div class="small"><span class="pill '+(brandMatch(cu,c)?"good":"warn")+'">🏷️ merkfan van '+esc(cu.wantMk)+': '+(brandMatch(cu,c)?"precies zijn merk (+16%)!":"dit is een "+esc(CARS[c.ci].mk)+" — niet zijn merk")+'</span></div>':'')
+   +(cu.wantModel?'<div class="small"><span class="pill '+(modelMatch(cu,c)?"good":"warn")+'">🎯 zoekt een '+esc(cu.wantModel.name)+': '+(modelMatch(cu,c)?"precies dat model (+25%)!":"dit is een "+esc(CARS[c.ci].mk+" "+CARS[c.ci].md)+" — niet zijn droommodel")+'</span></div>':'')
    +(cu.inspector?'<div class="small"><span class="pill '+(iss.filter(i=>!NEG.disclosed.includes(i.id)).length?"bad":"good")+'">🔍 Zijn kenner kijkt alles na — '+(iss.filter(i=>!NEG.disclosed.includes(i.id)).length?"verzwegen gebreken vallen zwaar door":"proper/eerlijk = vertrouwen + premie")+'</span></div>':'')
    +(cu.testFirst?'<div class="small"><span class="pill '+((c.tested||c.driven)?"good":"warn")+'">🛞 Wil eerst rijden: '+((c.tested||c.driven)?"al gereden, vertrouwt u (+)":"neem \'m eerst mee op proefrit (garage)")+'</span></div>':'')
    +'<div class="small dim"><b>'+esc(carName(c))+'</b> · marktwaarde <b class="money">'+fmt(base)+'</b> · humeur: <span class="mood" id="mood">'+moodFace(p0)+'</span></div>'
@@ -5297,6 +5304,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(clearanceOn())G.mile.clearance=1;
   if(colorMatch(cu,c))G.mile.colorMatch=1;
   if(brandMatch(cu,c))G.mile.brandMatch=1;
+  if(modelMatch(cu,c))G.mile.modelMatch=1;
   if(cu.flush)G.mile.flush=1;
   if(cu.testFirst&&(c.tested||c.driven))G.mile.testFirst=1;
   if(tyresInSeason(c))G.mile.tyresSold=1;
