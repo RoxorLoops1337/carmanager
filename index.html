@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
@@ -831,6 +831,7 @@ const GOALS=[
  {id:"financing",t:"Sluit een verkoop met bankfinanciering",r:"+90 XP · de bank draagt het risico",c:()=>!!G.mile.financing,fn:()=>addXP(90)},
  {id:"bulkplates",t:"Koop een desem ZZ-platen in bulk",r:"+80 XP · voorraad is macht",c:()=>!!G.mile.bulkPlates,fn:()=>addXP(80)},
  {id:"envelope",t:"Reken een keer onder tafel af",r:"+80 XP · geen BTW, geen bewijs",c:()=>!!G.mile.envelope,fn:()=>addXP(80)},
+ {id:"cabriospike",t:"Verkoop een cabrio tijdens de zomerpiek",r:"+90 XP · dakje open, kassa toe",c:()=>!!G.mile.cabrioSpike,fn:()=>addXP(90)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1566,6 +1567,18 @@ function endWeek(silent){
     extra.push(["🪙 Schrootboom!",tot+" weken · slopen betaalt fors meer","money"]);
     log("🪙 "+pick(["Schrootprijzen door het dak! China koopt al het oud ijzer op.","De prijs van oud metaal ontploft — de kozijn betaalt ineens vorstelijk.","Recordprijzen voor schroot: elke roestbak is plots goud waard."])+" De komende "+tot+" weken brengt slopen "+Math.round((SCRAP_BOOM_MUL-1)*100)+"% meer op. Tijd om de hopeloze gevallen weg te doen.");
     if(!silent){stamp("🪙 SCHROOTBOOM","gold");sfx("win")}}
+  // zomerse cabrio-piek: bij mooi weer wil iedereen open rijden
+  if(G.cabrioSpike&&G.cabrioSpike.weeks>0){
+    G.cabrioSpike.weeks--;
+    if(G.cabrioSpike.weeks<=0){G.cabrioSpike=null;
+      extra.push(["🌤️ Cabrio-gekte voorbij","de zomer luwt",""]);
+      log("🌤️ De cabrio-gekte is geluwd — de eerste blaadjes vallen, de daken gaan weer dicht en de prijzen normaliseren.")}
+    else extra.push(["🌞 Cabrio-piek","open rijden gegeerd · nog "+G.cabrioSpike.weeks+" wk","money"]);
+  } else if(season().n==="Zomer"&&Math.random()<.14){
+    const tot=ri(2,3);G.cabrioSpike={weeks:tot,tot:tot};
+    extra.push(["🌞 Cabrio-piek!",tot+" weken · cabrio's extra gegeerd","money"]);
+    log("🌞 "+pick(["De zon lokt, iedereen wil ineens open rijden!","Hittegolf op komst — de cabrio's vliegen de deur uit.","Mooi weer, dakje open: een cabrio is plots goud waard."])+" De komende "+tot+" weken betaalt men straf voor een cabrio.");
+    if(!silent){stamp("🌞 CABRIO!","gold");sfx("win")}}
   // Kermis van Essene, één keer per jaar in september (rond week 37)
   if(G.week>=36&&G.week<=38&&G.mile.kermisYear!==G.year){
     G.mile.kermisYear=G.year;G.mile.kermis=1;repAdd(3);
@@ -4023,6 +4036,7 @@ function renderSell(){
    +(G.cotm?'<span class="pill good">🏆 Auto v/d Maand: '+esc(G.cotm)+' (+22%)</span>':'')
    +(G.radioCar?'<span class="pill info">📻 Wagen v/d Week: '+esc(radioCarLabel())+' (+7%)</span>':'')
    +(tvOn()?'<span class="pill good">📺 TV-rage: '+esc(tvLabel())+' (+22%, nog '+G.tvFeature.weeks+' wk)</span>':'')
+   +(cabrioSpikeOn()?'<span class="pill good">🌞 Cabrio-piek: open rijden +18% (nog '+G.cabrioSpike.weeks+' wk)</span>':'')
    +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
@@ -4977,6 +4991,9 @@ function fuelCrisisOn(){return !!(G.fuelCrisis&&G.fuelCrisis.weeks>0)}
 function isEco(c){const d=CARS[c.ci];return d.body==="hatch"||d.base<=170000}
 function isGuzzler(c){const d=CARS[c.ci];return ["sport","coupe","suv"].includes(d.body)||d.base>=500000}
 function fuelMod(c){if(!fuelCrisisOn())return 1;return isEco(c)?1.14:isGuzzler(c)?.80:1}
+const CABRIO_MUL=1.18;
+function cabrioSpikeOn(){return !!(G.cabrioSpike&&G.cabrioSpike.weeks>0)}
+function isCabrioHot(c){return cabrioSpikeOn()&&CARS[c.ci].body==="cabrio";}
 const COLOR_MATCH_MUL=1.10;
 function colorMatch(cu,c){return cu&&cu.wantColor!=null&&c.col===cu.wantColor;}
 function percFor(cu,c,disclosed){
@@ -4987,6 +5004,7 @@ function percFor(cu,c,disclosed){
   if(isCotm(c))perc*=COTM_MUL;
   if(isRadioCar(c))perc*=RADIO_MUL;
   if(isTvFeatured(c))perc*=TV_MUL;
+  if(isCabrioHot(c))perc*=CABRIO_MUL;
   if(c.washT>0)perc*=1+WASH_BONUS;
   if(c.rallyT>0)perc*=1+RALLY_BONUS;
   if(c.featured)perc*=1+MAG_BONUS;
@@ -5183,6 +5201,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(cu.testFirst&&(c.tested||c.driven))G.mile.testFirst=1;
   if(tyresInSeason(c))G.mile.tyresSold=1;
   if(isTvFeatured(c))G.mile.tvFeature=1;
+  if(isCabrioHot(c))G.mile.cabrioSpike=1;
   G.modelsSold=G.modelsSold||{};G.modelsSold[c.ci]=1;
   const nm=Object.keys(G.modelsSold).length,M=G.mile;
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
