@@ -716,7 +716,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
   G.leger=G.leger||null;G.vipQuest=G.vipQuest||null;G.vipDone=G.vipDone||0;
@@ -826,6 +826,7 @@ const GOALS=[
  {id:"testfirst",t:"Verkoop na een proefrit aan een voorzichtige klant",r:"+90 XP · eerst rijden, dan tekenen",c:()=>!!G.mile.testFirst,fn:()=>addXP(90)},
  {id:"poach",t:"Hou een weggekaapte werknemer aan boord",r:"+110 XP · goed werkgeverschap",c:()=>!!G.mile.poach,fn:()=>addXP(110)},
  {id:"rushjob",t:"Betaal voor een spoedklus 's nachts",r:"+70 XP · geen tijd te verliezen",c:()=>!!G.mile.rushJob,fn:()=>addXP(70)},
+ {id:"charity",t:"Doneer aan een goed doel",r:"+120 XP · een hart van goud (of toch bijna)",c:()=>!!G.mile.charity,fn:()=>addXP(120)},
 ];
 function checkGoals(){
   if(!G||G.over||!G.goalsDone)return;
@@ -1734,6 +1735,8 @@ function endWeek(silent){
   if(!G.jobLot&&Math.random()<.07)G.jobLot=genJobLot();
   // klassieker-magazine biedt een cover-feature aan (als je een geschikte wagen hebt)
   if(!G.magOffer&&G.cars.some(magEligible)&&Math.random()<.07)G.magOffer={mag:pick(MAGS)};
+  // goede doel klopt aan voor een donatie
+  if(!G.charity&&Math.random()<.06)G.charity={cause:pick(CHARITY_CAUSES)};
   // flip-off: een rivaal daagt je uit (alleen als de zaak wat naam heeft)
   if(!G.flipChallenge&&(G.rep>=45||G.sold>=10)&&Math.random()<.10)G.flipChallenge=genFlipDare();
   // winterse nachtvorst: bedreigt de stock op 't koertje
@@ -2257,6 +2260,15 @@ function renderOffice(){
      +'<button class="btn primary" onclick="buyJobLot()">🚜 Heel de kavel kopen ('+fmt(jl.price)+')</button>'
      +'<button class="btn ghost" onclick="passJobLot()">Laten staan</button></div>';
   }
+  // goede doel / charity
+  if(G.charity){const cause=G.charity.cause;
+    h+='<div class="card" style="border-color:var(--pink)"><div class="spread"><h3 style="margin:0">❤️ Goed doel</h3><span class="pill warn">'+esc(cause)+'</span></div>'
+     +'<div class="small dim">'+esc(cause)+' komt langs voor steun. Een gift levert geen cash op, maar wél veel goodwill en reputatie (en de gemeenschap kijkt milder naar uw... praktijken).</div>'
+     +'<div class="tablebtns" style="margin-top:6px">'
+     +'<button class="btn primary" onclick="donateCash()">💶 Cash geven ('+fmt(CHARITY_CASH)+')<br><span class="small">+4 rep · -4 heat</span></button>';
+    for(const c of G.cars.slice(0,6))h+='<button class="btn" onclick="donateCar('+c.id+')">🚗 '+esc(carName(c))+' schenken<br><span class="small">+6 rep · -6 heat</span></button>';
+    h+='</div><button class="btn ghost" style="margin-top:4px" onclick="declineCharity()">Nu even niet</button></div>';
+  }
   // klassieker-magazine cover feature
   if(G.magOffer){const elig=G.cars.filter(magEligible);
     h+='<div class="card"><div class="spread"><h3 style="margin:0">📸 '+esc(G.magOffer.mag)+' belt</h3><span class="pill warn">cover-aanbod</span></div>'
@@ -2636,6 +2648,32 @@ function buyJobLot(){
   toast("🚜 Kavel binnen: "+jl.cars.length+" wagens ineens.");render();
 }
 function passJobLot(){G.jobLot=null;save();render();}
+/* goede doel: doneer een wagen of cash voor blijvende reputatie + goodwill */
+const CHARITY_CAUSES=["een benefiet voor de plaatselijke voetbalclub","De Warmste Week","een inzameling voor de kerk van Essene","een schoolfeest voor een nieuwe speelplaats","Music for Life op de Markt","een steunactie voor het rusthuis"];
+const CHARITY_CASH=25000;
+function donateCar(id){
+  const c=getCar(id);if(!c||!G.charity)return;
+  const cause=G.charity.cause;
+  const ix=G.cars.findIndex(x=>x.id===c.id);if(ix<0)return;
+  G.cars.splice(ix,1);G.charity=null;G.mile.charity=1;
+  repAdd(6);G.heat=clamp(G.heat-6,0,100);addXP(20);
+  stamp("GOED HART!","gold");confetti(40);sfx("win");
+  log("❤️ De "+carName(c)+" geschonken aan "+cause+"! De hele streek smelt: foto in de gazet, handdrukken, en een pluim voor CarManager. (+6 rep, -6 heat)");
+  modal("<b>❤️ Gulle gever!</b><br>Ge schenkt de <b>"+esc(carName(c))+"</b> aan "+esc(cause)+". De voorzitter knijpt een traantje weg, de fanfare speelt vals maar hartelijk, en heel Essene weet nu: die van CarManager, dat zijn goei mensen. (+6 reputatie, -6 heat)",
+   [{t:"Graag gedaan",fn:()=>{closeModal();render()}}]);
+  save();
+}
+function donateCash(){
+  if(!G.charity)return;
+  if(G.cash-CHARITY_CASH<creditLimit()){toast("Zoveel kunt ge nu niet missen.");return}
+  const cause=G.charity.cause;
+  G.cash-=CHARITY_CASH;G.charity=null;G.mile.charity=1;
+  repAdd(4);G.heat=clamp(G.heat-4,0,100);addXP(12);popNum("-"+fmt(CHARITY_CASH),"pred");
+  stamp("GOED HART!","gold");sfx("win");
+  log("❤️ "+fmt(CHARITY_CASH)+" gestort voor "+cause+". Een cheque zo groot als een deur, een applaus, en veel goodwill. (+4 rep, -4 heat)");
+  toast("❤️ Gedoneerd aan "+cause+".");save();render();
+}
+function declineCharity(){if(!G.charity)return;G.charity=null;save();render();}
 function danyBuy(){
   const dd=G.danyDeal;if(!dd)return;
   if(G.cash-dd.price<creditLimit()){toast("Zoveel cash heb je niet, en Dany geeft geen krediet.");return}
