@@ -77,8 +77,12 @@ h3{font-family:var(--hfont);font-weight:600;font-size:18px;letter-spacing:.8px}
   color:var(--txt);border:1px solid var(--edge2);border-top-color:#7a689f;border-radius:12px;
   padding:10px 15px;font-family:inherit;font-size:14px;font-weight:bold;cursor:pointer;
   margin:3px 4px 3px 0;text-align:center;
-  box-shadow:0 3px 8px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08)}
-.btn:active{transform:translateY(1px);box-shadow:0 1px 3px rgba(0,0,0,.35)}
+  box-shadow:0 3px 8px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+  transition:transform .09s ease, box-shadow .13s ease, filter .13s ease}
+@media (hover:hover){.btn:hover{transform:translateY(-1px);box-shadow:0 5px 13px rgba(0,0,0,.42), inset 0 1px 0 rgba(255,255,255,.1);filter:brightness(1.06)}}
+.btn:active{transform:translateY(1px) scale(.985);box-shadow:0 1px 3px rgba(0,0,0,.35);filter:brightness(.97)}
+.btn:disabled,.btn[disabled]{transform:none;filter:none;box-shadow:0 2px 5px rgba(0,0,0,.28)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover,.btn:active{transform:none}}
 .btn.primary{background:linear-gradient(180deg,#ffd07d,#ea9c2b);color:#33200a;
   border-color:#c47f1d;border-top-color:#ffe4b0;text-shadow:0 1px 0 rgba(255,255,255,.28)}
 .btn.shady{background:linear-gradient(180deg,#7d3d6d,#54254a);border-color:#94517f;
