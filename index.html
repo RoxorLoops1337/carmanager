@@ -1111,6 +1111,7 @@ const GOALS=[
  {id:"vermogen5m",t:"Bouw een vermogen van 5 miljoen (cash + stock + schuur)",r:"+200 XP · een klein imperium in Essene",c:()=>netWorth()>=5000000,fn:()=>addXP(200)},
  {id:"wallet",t:"Geef een gevonden portefeuille netjes terug",r:"+60 XP · een eerlijke ziel (voor deze ene keer)",c:()=>!!G.mile.wallet,fn:()=>addXP(60)},
  {id:"collector",t:"Verkoop een zeldzame wagen aan een verzamelaar",r:"+90 XP · de juiste bak bij de juiste liefhebber",c:()=>!!G.mile.collector,fn:()=>addXP(90)},
+ {id:"nostalgic",t:"Verkoop een oldtimer aan een nostalgische liefhebber",r:"+80 XP · jeugdsentiment verkoopt",c:()=>!!G.mile.nostalgic,fn:()=>addXP(80)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
@@ -1692,6 +1693,9 @@ function genCustomers(){
     if(!cu.vip&&!cu.flush&&!cu.inspector&&Math.random()<.07){cu.collector=true;cu.face="🎩";cu.fuss=.08;
       cu.budget=Math.round(cu.budget*2.1/1000)*1000;cu.want={rar:2};
       cu.t=pick(["is een verwoede verzamelaar — betaalt gráág te veel voor iets zeldzaams","zoekt een pareltje voor de privécollectie, geld speelt geen rol","een kenner-liefhebber: alleen het uitzonderlijke doet zijn hart sneller slaan"]);}
+    if(!cu.vip&&!cu.flush&&!cu.collector&&Math.random()<.08){cu.nostalgic=true;cu.face="👴";cu.fuss=.10;
+      cu.budget=Math.round(cu.budget*1.6/1000)*1000;cu.want={dec:"old"};
+      cu.t=pick(["reed er vroeger zelf in — zoekt een oldtimer voor de nostalgie","wil precies zo'n wagen als die van zijn nonkel zaliger","droomt van een klassieker uit zijn jeugd, en betaalt voor 't gevoel"]);}
     G.custs.push(cu);
   }
   if(G.web&&G.web.live){
@@ -4930,7 +4934,7 @@ function renderSell(){
   const custs=G.custs.slice().sort((a,b)=>(hotLead(b)?1:0)-(hotLead(a)?1:0)); // hete leads bovenaan
   for(const cu of custs){
     const hot=hotLead(cu);
-    h+='<div class="card'+(hot?" hotlead":"")+'"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(hot?' <span class="pill good" title="Ge hebt een wagen in stock die precies bij zijn vraag past">🔥 hete lead</span>':'')+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.wantMk?' <span class="pill warn">🏷️ wil een '+esc(cu.wantMk)+'</span>':'')+(cu.wantModel?' <span class="pill warn">🎯 zoekt een '+esc(cu.wantModel.name)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.collector?' <span class="pill good">🎩 verzamelaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+(cu.moto?' <span class="pill">🏍️ moto-inruil</span>':'')+'</h3>'
+    h+='<div class="card'+(hot?" hotlead":"")+'"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(hot?' <span class="pill good" title="Ge hebt een wagen in stock die precies bij zijn vraag past">🔥 hete lead</span>':'')+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.wantMk?' <span class="pill warn">🏷️ wil een '+esc(cu.wantMk)+'</span>':'')+(cu.wantModel?' <span class="pill warn">🎯 zoekt een '+esc(cu.wantModel.name)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.collector?' <span class="pill good">🎩 verzamelaar</span>':'')+(cu.nostalgic?' <span class="pill good">👴 oldtimer-liefhebber</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+(cu.moto?' <span class="pill">🏍️ moto-inruil</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
@@ -6037,10 +6041,11 @@ function percFor(cu,c,disclosed){
   }
   if(cu&&cu.flush)perc*=carImpressive(c)?FLUSH_MUL:0.90; // lottowinnaar: dik betalen voor iets flashy, niet voor een sukkelbak
   if(cu&&cu.collector)perc*=CARS[c.ci].rar>=2?COLLECTOR_MUL:(CARS[c.ci].rar>=1?1.10:0.82); // verzamelaar: dik betalen voor zeldzaam, weinig interesse in gewoon
+  if(cu&&cu.nostalgic)perc*=((c.year||9999)<1985)?NOSTALGIC_MUL:0.85; // oldtimer-liefhebber: betaalt voor het gevoel van een echte klassieker, niet voor iets moderns
   if(cu&&cu.testFirst)perc*=(c.tested||c.driven)?1.06:0.92; // wil eerst rijden: vertrouwen na proefrit, anders wat huiverig
   return perc;
 }
-const FLUSH_MUL=1.25, COLLECTOR_MUL=1.55;
+const FLUSH_MUL=1.25, COLLECTOR_MUL=1.55, NOSTALGIC_MUL=1.4;
 function carImpressive(c){const d=CARS[c.ci];return d.rar>=1||(c.eng>=90&&c.body>=90)||["sport","coupe","cabrio"].includes(d.body);}
 function clearanceOn(){return (G.clearance||0)>0}
 const CLEARANCE_ODDS=.11;
@@ -6267,6 +6272,8 @@ function doSale(cu,c,price,disclosed,iss){
   if(cu.vip){stamp("VIP KLANT!","pink");repAdd(5);addXP(20);log("⭐ "+cu.name+" vertelt het op café én op de radio.")}
   // verzamelaar die een zeldzame wagen scoort
   if(cu.collector&&CARS[c.ci].rar>=2){G.mile.collector=1;stamp("VERZAMELSTUK!","gold");addXP(15);log("🎩 "+cu.name+" neemt een pareltje mee voor de privécollectie — betaalde met plezier te veel.")}
+  // oldtimer-liefhebber die een echte klassieker meeneemt
+  if(cu.nostalgic&&(c.year||9999)<1985){G.mile.nostalgic=1;stamp("KLASSIEKER!","pink");addXP(12);log("👴 "+cu.name+" rijdt weg met een stuk jeugdsentiment — een traan en een dikke prijs.")}
   // collection
   if(CARS[c.ci].rar===3)G.mile.legendSold=1;
   if(isCotm(c))G.mile.cotmSold=1;
