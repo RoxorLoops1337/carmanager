@@ -2324,9 +2324,10 @@ function radioNext(){
   toast("📻 "+st.name+" — "+st.tag);
   if(typeof render==="function")render();
 }
-function confetti(n){for(let i=0;i<(n||36);i++){const d=document.createElement("div");d.className="conf";
+function confetti(n,cols){const pal=(Array.isArray(cols)&&cols.length)?cols:["#ffd76a","#ff5d9e","#72e08e","#6cc4ff","#ffb347","#e8e6df"];
+  for(let i=0;i<(n||36);i++){const d=document.createElement("div");d.className="conf";
   d.style.left=(20+Math.random()*60)+"%";d.style.top=(24+Math.random()*14)+"%";
-  d.style.background=pick(["#ffd76a","#ff5d9e","#72e08e","#6cc4ff","#ffb347","#e8e6df"]);
+  d.style.background=pick(pal);
   d.style.setProperty("--dx",(Math.random()*180-90)+"px");d.style.setProperty("--dy",(130+Math.random()*280)+"px");
   d.style.setProperty("--rot",(Math.random()*720-360)+"deg");d.style.animationDelay=(Math.random()*.18)+"s";
   document.body.appendChild(d);setTimeout(()=>d.remove(),1750)}}
@@ -5802,7 +5803,8 @@ function doSale(cu,c,price,disclosed,iss){
   if(c.bargain&&(price-tradeCut)>(c.paid||0))G.mile.bargainFlip=1;
   const saleProfit=price-(c.paid||0);
   const jackpot=saleProfit>=150000||(c.paid>0&&saleProfit>=2*c.paid);
-  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26);coinBurst(saleProfit);driveOff(c);
+  const saleCols=(COLORS[c.col]?[COLORS[c.col].h,COLORS[c.col].h,"#ffd76a","#ffffff"]:null);
+  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26,saleCols);coinBurst(saleProfit);driveOff(c);
   if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");shakeLite();confetti(30);}
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak — escalerende verkoopstreak met oplopende cashbonus (variable-ratio-achtige beloning die tot 'nog eentje' aanzet)
