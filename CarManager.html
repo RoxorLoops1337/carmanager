@@ -44,6 +44,9 @@ body{background:
 #hdr .cash.cash-recover{animation:cashrecover .8s ease-out}
 @keyframes cashrecover{0%{transform:scale(1)}35%{transform:scale(1.16);text-shadow:0 0 11px rgba(114,224,142,1)}100%{transform:scale(1);text-shadow:none}}
 @media (prefers-reduced-motion:reduce){#hdr .cash.cash-danger,#hdr .cash.cash-recover{animation:none}}
+#hdr .stat.heat-spike{animation:heatspike .85s ease-out}
+@keyframes heatspike{0%,100%{transform:scale(1)}18%{transform:scale(1.2);text-shadow:0 0 12px rgba(255,60,40,1)}42%{transform:scale(1)}64%{transform:scale(1.1);text-shadow:0 0 9px rgba(255,60,40,.85)}}
+@media (prefers-reduced-motion:reduce){#hdr .stat.heat-spike{animation:none}}
 #hdr #hrep,#hdr #hheat{display:inline-block}
 .replad-stat .replad{display:inline-block;width:34px;height:5px;margin-left:5px;vertical-align:middle;
   background:rgba(255,255,255,.14);border-radius:3px;overflow:hidden;box-shadow:inset 0 0 2px rgba(0,0,0,.5)}
@@ -80,7 +83,14 @@ h3{font-family:var(--hfont);font-weight:600;font-size:18px;letter-spacing:.8px}
 .card{background:linear-gradient(165deg,#2e2344 0%,#271d3b 55%,#241a37 100%);
   border:1px solid var(--edge);border-radius:16px;
   padding:14px;margin-bottom:12px;
-  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.05)}
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.05);
+  animation:cardin .26s ease-out both}
+@keyframes cardin{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+#view>.card:nth-child(2){animation-delay:.04s}
+#view>.card:nth-child(3){animation-delay:.08s}
+#view>.card:nth-child(4){animation-delay:.12s}
+#view>.card:nth-child(n+5){animation-delay:.15s}
+@media (prefers-reduced-motion:reduce){.card{animation:none}}
 .card.flat{box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
 .btn{display:inline-block;background:linear-gradient(180deg,#524174,#3c2f58);
   color:var(--txt);border:1px solid var(--edge2);border-top-color:#7a689f;border-radius:12px;
@@ -898,7 +908,7 @@ let G=null, UID=1;
 /* ============ STATE ============ */
 function newGame(ch){
   const c=CHARS[ch];
-  MK=null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;
+  MK=null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;HEAT_BAND_SHOWN=null;
   G={ch, week:1, year:1995, cash:c.cash, rep:c.rep, heat:c.heat,
      office:0, cars:[], custs:[], log:[], plates:[], plateOrder:null,
      rb:false, smokes:0, sold:0, spent:0, earned:0, trips:0,
@@ -965,6 +975,9 @@ function migrate(){if(!G)return;
   if(!G.radioCar)rotateRadioCar(true);
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
+/* eerstvolgende titel-promotie (voor de niveau-hint in het kantoor) */
+const TITLE_TIERS=[{lvl:3,n:"Sjacheraar"},{lvl:5,n:"Occasieboer"},{lvl:8,n:"Gevestigde Handelaar"},{lvl:12,n:"Autobaron"},{lvl:16,n:"Legende van Essene"}];
+function nextTitle(){const l=(G&&G.lvl)||1;for(const t of TITLE_TIERS)if(t.lvl>l)return {n:t.n,lvl:t.lvl,toGo:t.lvl-l};return null;}
 /* ---- goal chain: always something to look forward to ---- */
 const GOALS=[
  {id:"s1",t:"Verkoop je eerste wagen",r:"+15.000 BEF startpremie",c:()=>G.sold>=1,fn:()=>{G.cash+=15000}},
@@ -1095,6 +1108,7 @@ const GOALS=[
  {id:"pincar",t:"Zet een wagen vast als houder",r:"+30 XP · die geeft ge niet zomaar weg",c:()=>!!G.mile.pinCar,fn:()=>addXP(30)},
  {id:"bestweek",t:"Breek uw eigen weekrecord",r:"+90 XP · nog nooit zo'n week gedraaid",c:()=>!!G.mile.bestWeek,fn:()=>addXP(90)},
  {id:"bliksemflip",t:"Flip een wagen dezelfde week dat ge hem kocht",r:"+70 XP · gekocht en weg voor de koffie koud was",c:()=>G.fastFlip===0,fn:()=>addXP(70)},
+ {id:"vermogen5m",t:"Bouw een vermogen van 5 miljoen (cash + stock + schuur)",r:"+200 XP · een klein imperium in Essene",c:()=>netWorth()>=5000000,fn:()=>addXP(200)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
@@ -2636,7 +2650,9 @@ function modal(html,btns){
 }
 function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(typeof TD!=="undefined"&&TD&&TD.on)tdCleanup();if(G)render()}
 function modalOpen(){return $("modal").style.display==="flex"}
-let HCASH=null,HTW=null,REP_SHOWN=null,HEAT_SHOWN=null,REP_TIER_SHOWN=null,CASH_NEG_SHOWN=null;
+let HCASH=null,HTW=null,REP_SHOWN=null,HEAT_SHOWN=null,REP_TIER_SHOWN=null,CASH_NEG_SHOWN=null,HEAT_BAND_SHOWN=null;
+/* heat-band: kalm(0) / onrustig(1,>30) / heet(2,>60) / paniek(3,>85) — voor de escalatie-waarschuwing */
+function heatBand(h){h=h||0;return h>85?3:h>60?2:h>30?1:0;}
 /* reputatie-promotie: vier het als de zaak een hogere status-trap bereikt */
 function repPromoCheck(){try{
   if(!G)return;
@@ -2689,12 +2705,19 @@ function hdr(){
   let cashPulse="";
   if(CASH_NEG_SHOWN!=null&&cashNeg!==CASH_NEG_SHOWN)cashPulse=cashNeg?" cash-danger":" cash-recover";
   CASH_NEG_SHOWN=cashNeg;
+  const hband=heatBand(G.heat);
+  let heatPulse="";
+  if(HEAT_BAND_SHOWN!=null&&hband>HEAT_BAND_SHOWN){
+    heatPulse=" heat-spike";
+    if(hband>=2&&typeof toast==="function")toast(hband>=3?"🚨 De heat is torenhoog — de flikken ruiken u. Hou u gedeisd!":"🔥 De heat loopt op. Iets te veel opgevallen — even rustiger aan.");
+  }
+  HEAT_BAND_SHOWN=hband;
   h.innerHTML='<span class="stat">📅 W'+G.week+" '"+String(G.year).slice(2)+'</span>'
    +'<span class="stat cash'+cashPulse+'"'+(cashNeg?' style="color:var(--red)"':'')+' title="'+titleFor(G.lvl||1)+'">💰 <span id="hcash">'+fmt(HCASH)+'</span></span>'
    +(function(){const L=repLadder();
       const tt=L.next?esc(L.toNext+' reputatie tot '+L.next.emo+' '+L.next.n):'Hoogste status bereikt — Legende van Essene';
       return '<span class="stat replad-stat'+(L.next?'':' replad-max')+'" title="'+tt+'"><span class="repv">★</span> <span id="hrep">'+Math.round(REP_SHOWN==null?G.rep:REP_SHOWN)+'</span><span class="replad"><i style="width:'+Math.round(L.frac*100)+'%"></i></span></span>';})()
-   +'<span class="stat"><span class="heatv">🔥</span> <span id="hheat">'+Math.round(HEAT_SHOWN==null?G.heat:HEAT_SHOWN)+'</span></span>'
+   +'<span class="stat'+heatPulse+'"><span class="heatv">🔥</span> <span id="hheat">'+Math.round(HEAT_SHOWN==null?G.heat:HEAT_SHOWN)+'</span></span>'
    +'<span class="stat">🎖️ '+(G.lvl||1)+'</span>'
    +(validPlate()?'<span class="stat"><span class="plate">'+bestPlate().code+'</span>&nbsp;'+bestPlate().weeks+'w</span>':'')
    +(G.rb?'<span class="stat">🪽</span>':'')
@@ -2776,7 +2799,20 @@ function renderStart(){
   }
   $("view").innerHTML=h;
 }
-function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;migrate();syncUID();render()}
+function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;HEAT_BAND_SHOWN=null;migrate();syncUID();render();welcomeBack()}
+/* welkom-terug: korte samenvatting van wat er wacht bij het hervatten van een opgeslagen spel (heropstart-prikkel) */
+function welcomeBack(){try{
+  if(!G||G.over)return "";
+  const parts=["👋 Welkom terug — week "+(G.week||1)];
+  const cust=(G.custs||[]).length;
+  if(cust)parts.push(cust+" kandidaat"+(cust>1?"-kopers":"")+" op 't koertje");
+  if(G.flashDeal)parts.push("⏳ flitsdeal loopt af");
+  const wq=(typeof weekQuestProg==="function")?weekQuestProg():null;
+  if(wq&&!wq.claimed)parts.push("🎯 weekdoel: "+wq.prog+"/"+wq.tgt);
+  const msg=parts.join(" · ")+".";
+  if(typeof toast==="function")toast(msg);
+  return msg;
+}catch(e){return ""}}
 function pickChar(k){
   modal("<b>"+CHARS[k].face+" "+CHARS[k].n+"</b> neemt de sleutels van het koertje in Essene. De asbak staat klaar, de frigo is gevuld met Red Bull.<br><br>Startkapitaal: <b>"+fmt(CHARS[k].cash)+"</b>",
    [{t:"Aan de slag",fn:()=>{closeModal();newGame(k)}},{t:"Toch niet",cls:"ghost",fn:closeModal}]);
@@ -2790,6 +2826,7 @@ function renderOffice(){
    +'<div class="row small"><span class="pill">Huur '+fmt(of.rent)+'/week</span>'
    +'<span class="pill">Reputatie ★ '+Math.round(G.rep)+'</span><span class="pill '+(G.heat>60?"bad":G.heat>30?"warn":"")+'">Heat 🔥 '+Math.round(G.heat)+'</span>'
    +'<span class="pill">'+G.cars.length+' wagens in stock</span>'
+   +'<span class="pill" title="Cash + vraagwaarde van stock + schuur — uw totale vermogen">💎 Vermogen '+fmt(netWorth())+'</span>'
    +((G.bestWeek||0)>0?'<span class="pill" title="Uw beste weekresultaat ooit — probeer het te breken">🏆 Recordweek '+fmt(G.bestWeek)+'</span>':'')
    +((G.fastFlip!=null&&G.fastFlip>=0)?'<span class="pill" title="Uw snelste flip: minste weken tussen inkoop en verkoop">⚡ Snelste flip: '+(G.fastFlip===0?"zelfde week":G.fastFlip+" wk")+'</span>':'')
    +'<span class="pill" title="Klantenkaart: elke verkoop een stempel, volle kaart = bonus">🎟️ '+"●".repeat(G.stamps||0)+"○".repeat(Math.max(0,CARD_SIZE-(G.stamps||0)))+((G.cardsFull||0)>0?' ·'+G.cardsFull+'× vol':'')+'</span>'
@@ -2802,7 +2839,8 @@ function renderOffice(){
   const xpNeed=G.lvl*120;
   h+='<div class="card"><div class="spread"><h3 style="margin:0">🎖️ '+titleFor(G.lvl)+' · niveau '+G.lvl+'</h3><span class="small dim">'+G.xp+' / '+xpNeed+' XP</span></div>'
    +'<div class="bar" style="margin-top:6px"><i style="width:'+Math.min(100,Math.round(G.xp/xpNeed*100))+'%;background:linear-gradient(90deg,var(--amber),#ffd76a)"></i></div>'
-   +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div>';
+   +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div>'
+   +(function(){const nt=nextTitle();return nt?'<div class="small" style="margin-top:4px">🏅 Volgende titel: <b>'+esc(nt.n)+'</b> op niveau '+nt.lvl+' <span class="dim">(nog '+nt.toGo+' niveau'+(nt.toGo===1?'':'s')+')</span></div>':'<div class="small dim" style="margin-top:4px">🏅 Hoogste titel bereikt — Legende van Essene. 👑</div>';})();
   {const tz=nextGoalTeaser();
    if(tz){const big=tz.target>=1000000,cs=big?fmt(tz.cur):tz.cur,ts=big?fmt(tz.target):tz.target;
      h+='<hr><div class="spread small"><span>🎯 <b>'+esc(tz.title)+'</b></span><span class="dim">'+cs+' / '+ts+'</span></div>'
@@ -4468,6 +4506,12 @@ function stockAgeTag(c){const w=(c&&c.stockWk)||0;
 function goalsFrac(){const total=GOALS.length;
   const done=(G&&G.goalsDone)?G.goalsDone.filter(id=>GOALS.some(g=>g.id===id)).length:0;
   return {done:done,total:total,frac:total?clamp(done/total,0,1):0};}
+/* totale nettowaarde: cash + vraagwaarde van de stock + vraagwaarde van de schuur (het 'imperium' om te laten groeien) */
+function netWorth(){if(!G)return 0;
+  let w=G.cash||0;
+  for(const c of (G.cars||[]))w+=askValue(c);
+  for(const c of (G.collection||[]))w+=askValue(c);
+  return Math.round(w);}
 /* records-kaart: verzamelt de persoonlijke toppers op één plek (iets om te breken) */
 function recordsCard(){
   const rows=[
