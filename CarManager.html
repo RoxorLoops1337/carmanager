@@ -266,6 +266,14 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   background:radial-gradient(1.6px 1.6px at 12% 30%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 34% 62%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 58% 38%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 79% 70%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 91% 34%,#57506a 50%,transparent 51%)}
+/* te-koop-vlaggetjes over 't koertje */
+.lot-bunting{position:absolute;left:0;right:0;top:5%;height:16px;z-index:4;pointer-events:none;
+  display:flex;justify-content:space-around;align-items:flex-start;padding:0 6px;
+  background:linear-gradient(180deg,transparent 0,transparent 1px,rgba(255,255,255,.25) 1px,rgba(255,255,255,.25) 2px,transparent 2px)}
+.lot-bunting i{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:11px solid var(--c,#ffd76a);transform-origin:top center;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
+  animation:buntflutter 2.6s ease-in-out infinite}
+@keyframes buntflutter{0%,100%{transform:rotate(-6deg) scaleY(1)}50%{transform:rotate(6deg) scaleY(.9)}}
 /* dag/nacht-lucht: traag verschuivende tint over de basis-achtergrond */
 .lot-sky{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .8s}
 .lot.dawn .lot-sky{opacity:1;background:linear-gradient(180deg,rgba(255,150,120,.28),rgba(255,200,120,.10) 45%,transparent 60%)}
@@ -4611,8 +4619,13 @@ function lotScene(){
   if(hm.cls==="lot-panic")G.mile.heatSweat=1;
   let carsH="";
   cars.forEach((c,i)=>{carsH+='<div class="lot-car" onclick="lotCarPoke(this,'+i+')" style="left:'+(25+i*13.5)+'%;animation-delay:'+(i*.7)+'s">'+carArt(c,74)+'<div class="lot-tag" style="animation-delay:'+(i*.35).toFixed(2)+'s">'+fmt(askValue(c))+'</div></div>'});
+  const buntCols=["#ffd76a","#ff5d9e","#72e08e","#6cc4ff","#ffb347"];
+  let buntH='<div class="lot-bunting">';
+  for(let i=0;i<16;i++)buntH+='<i style="--c:'+buntCols[i%buntCols.length]+';animation-delay:'+(i*.13).toFixed(2)+'s"></i>';
+  buntH+='</div>';
   return '<div class="lot '+wx.cls+(hm.cls?" "+hm.cls:"")+(dp.cls?" "+dp.cls:"")+'">'
    +'<div class="lot-sky"></div><div class="lot-tint"></div><div class="lot-heatglow"></div>'
+   +buntH
    +'<div class="lot-sun"></div><div class="lot-clouds">☁️ ☁️ ☁️ ☁️</div>'
    +'<div class="lot-fence"></div><div class="lot-office"></div>'
    +'<div class="lot-neon '+sign.cls+'" onclick="lotSignClick()" style="--nh:'+hue+'">'+sign.txt+'</div>'
