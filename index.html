@@ -176,9 +176,16 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   box-shadow:0 0 6px 1px currentColor;animation:fwburst 1.4s ease-out forwards}
 @keyframes fwburst{0%{opacity:0;transform:translate(0,0) scale(.4)}
   10%{opacity:1}70%{opacity:.9}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1)}}
+.coin{position:fixed;z-index:77;font-size:18px;pointer-events:none;opacity:0;will-change:transform;
+  animation:coinfly 1.5s cubic-bezier(.2,.7,.4,1) forwards}
+@keyframes coinfly{0%{opacity:0;transform:translate(0,0) rotateY(0) scale(.5)}
+  12%{opacity:1;transform:translate(calc(var(--dx)*.4),calc(var(--dy)*.7)) rotateY(180deg) scale(1)}
+  100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 240px)) rotateY(900deg) scale(.9)}}
 .shake{animation:shake .45s}
 @keyframes shake{0%,100%{transform:none}20%{transform:translate(-7px,2px)}40%{transform:translate(6px,-3px)}
   60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}
+.shake-lite{animation:shakelite .4s}
+@keyframes shakelite{0%,100%{transform:none}25%{transform:translate(-3px,1px)}50%{transform:translate(3px,-1px)}75%{transform:translate(-2px,1px)}}
 .mood{font-size:24px;vertical-align:-3px}
 .scr{display:inline-block;width:64px;height:64px;line-height:62px;font-size:34px;text-align:center;
   background:linear-gradient(180deg,#9da1ab,#6a6d75);border-radius:10px;margin:4px;cursor:pointer;
@@ -832,6 +839,7 @@ const GOALS=[
  {id:"punchcard5",t:"Vul 5 klantenkaarten",r:"+300 XP · huisleverancier van heel Essene",c:()=>(G.cardsFull||0)>=5,fn:()=>addXP(300)},
  {id:"bargain",t:"Koop een project uit de koopjesbak",r:"+70 XP · handige harry",c:()=>!!G.mile.bargain,fn:()=>addXP(70)},
  {id:"bargainflip",t:"Verkoop een opgeknapt koopjesbak-project met winst",r:"+130 XP · van schroot naar schat",c:()=>!!G.mile.bargainFlip,fn:()=>addXP(130)},
+ {id:"jackpotsale",t:"Sluit een monsterdeal (dikke winst in één klap)",r:"+140 XP · de kassa rinkelt na",c:()=>!!G.mile.jackpotSale,fn:()=>addXP(140)},
  {id:"referral",t:"Verkoop aan een doorverwezen klant",r:"+80 XP · mond-tot-mondreclame",c:()=>!!G.mile.referral,fn:()=>addXP(80)},
  {id:"referchain",t:"Bouw een verwijsketen van 3 diep",r:"+220 XP · heel de familie rijdt nu bij u",c:()=>!!G.mile.referChain,fn:()=>addXP(220)},
  {id:"mystery",t:"Waag een verrassingskavel op de veiling",r:"+80 XP · wie niet waagt, niet wint",c:()=>!!G.mile.mysteryLot,fn:()=>addXP(80)},
@@ -2116,6 +2124,22 @@ function fireworks(n){try{
     }
   }
 }catch(e){}}
+/* muntenfontein bij een verkoop: aantal schaalt met de winst */
+function coinBurst(profit){try{
+  const p=Math.max(0,profit||0);
+  const n=clamp(8+Math.round(p/12000),8,40);
+  const glyphs=["🪙","💰","💶","🟡"];
+  for(let i=0;i<n;i++){
+    const d=document.createElement("div");d.className="coin";d.textContent=pick(glyphs);
+    d.style.left=(42+Math.random()*16)+"%";d.style.top=(46+Math.random()*8)+"%";
+    d.style.setProperty("--dx",Math.round(Math.random()*360-180)+"px");
+    d.style.setProperty("--dy",Math.round(-120-Math.random()*160)+"px");
+    d.style.animationDelay=(Math.random()*.22).toFixed(2)+"s";
+    document.body.appendChild(d);setTimeout(()=>d.remove(),1750);
+  }
+}catch(e){}}
+/* zachte schok bij een uitzonderlijke marge */
+function shakeLite(){try{document.body.classList.remove("shake-lite");void document.body.offsetWidth;document.body.classList.add("shake-lite");}catch(e){}}
 function ouch(){sfx("bad");if(typeof TD!=="undefined"&&TD&&TD.on){TD.shake=Math.min(.6,(TD.shake||0)+.42);return}document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
 let REEL_MS=950,WIV=null,SWEEP=null;
 function suspense(faces,txt,cb,sceneHtml){
@@ -5380,7 +5404,10 @@ function doSale(cu,c,price,disclosed,iss){
   if(c.tradein&&(price-tradeCut)>(c.paid||0))G.mile.tradeFlip=1;
   // een koopjesbak-project met winst doorverkopen
   if(c.bargain&&(price-tradeCut)>(c.paid||0))G.mile.bargainFlip=1;
-  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26);driveOff(c);
+  const saleProfit=price-(c.paid||0);
+  const jackpot=saleProfit>=150000||(c.paid>0&&saleProfit>=2*c.paid);
+  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26);coinBurst(saleProfit);driveOff(c);
+  if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");shakeLite();confetti(30);}
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak
   G.combo=(G.combo||0)+1;
