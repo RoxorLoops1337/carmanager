@@ -274,6 +274,15 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 @keyframes puff{0%{opacity:.7;transform:translate(0,0) scale(.5)}100%{opacity:0;transform:translate(-26px,-14px) scale(1.6)}}
 .roadscene.night{background:linear-gradient(180deg,#05040f 0%,#141030 45%,#1c1430 52%,#16121f 52.5%)}
 .roadscene.night .rs-sun{background:radial-gradient(circle,#e8e6df,#9aa 70%);box-shadow:0 0 18px #ccd;width:26px;height:26px}
+/* neerslag op de terugreis (regen/sneeuw) */
+.rs-precip{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:6}
+.rs-precip i{position:absolute;top:-12%;opacity:0}
+.rs-precip.rain i{width:1px;height:16px;background:linear-gradient(180deg,transparent,rgba(210,225,255,.75));
+  transform:rotate(16deg);animation:rainfall linear infinite}
+.rs-precip.snow i{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.9);
+  box-shadow:0 0 3px rgba(255,255,255,.6);animation:snowfall linear infinite}
+@keyframes rainfall{0%{opacity:0;transform:translate(0,-20px) rotate(16deg)}8%{opacity:.9}100%{opacity:.6;transform:translate(-60px,240px) rotate(16deg)}}
+@keyframes snowfall{0%{opacity:0;transform:translate(0,-10px)}12%{opacity:.95}100%{opacity:.5;transform:translate(-26px,240px)}}
 .rs-beam{position:absolute;bottom:14%;width:120px;height:26px;
   background:linear-gradient(90deg,rgba(255,240,180,.35),transparent 85%);
   clip-path:polygon(0 40%,100% 0,100% 100%,0 60%);pointer-events:none}
@@ -4657,8 +4666,21 @@ function driveScene(txt,cb){
    +'<div class="rs-car">'+(c?carArt(c,150):'<div style="font-size:54px">🚚</div>')
    +'<span class="rs-puff" style="left:-4px;bottom:8px"></span><span class="rs-puff" style="left:-10px;bottom:4px;animation-delay:.4s"></span>'
    +(night?'<span class="rs-beam" style="left:96%"></span>':'')+'</div>'
+   +roadPrecipHtml(roadPrecip())
    +'<div class="rs-txt">'+txt+'</div></div>',[]);
   setTimeout(cb,1500);
+}
+/* seizoensweer op de terugreis: regenstrepen in lente/herfst, sneeuw in winter, helder in zomer */
+const ROAD_PRECIP={Winter:{cls:"snow",n:16},Lente:{cls:"rain",n:20},Zomer:{cls:"clear",n:0},Herfst:{cls:"rain",n:22}};
+function roadPrecip(se){return ROAD_PRECIP[(se||season()).n]||ROAD_PRECIP.Lente;}
+function roadPrecipHtml(rp){
+  if(!rp||!rp.n)return '<div class="rs-precip '+((rp&&rp.cls)||"clear")+'"></div>';
+  let h='<div class="rs-precip '+rp.cls+'">';
+  for(let i=0;i<rp.n;i++){
+    const left=Math.round(rnd(0,100)),dur=(rp.cls==="snow"?rnd(2.2,4):rnd(.5,1.1)).toFixed(2),del=(rnd(0,2)).toFixed(2);
+    h+='<i style="left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+del+'s"></i>';
+  }
+  return h+'</div>';
 }
 /* seizoensweer op 't koertje: welk deeltje valt er en hoeveel */
 const LOT_WX={Winter:{cls:"winter",glyph:"❄",n:14},Lente:{cls:"lente",glyph:"🌸",n:10},
