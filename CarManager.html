@@ -112,6 +112,12 @@ h3{font-family:var(--hfont);font-weight:600;font-size:18px;letter-spacing:.8px}
   transition:border-color .1s, transform .08s}
 .carline:hover{border-color:var(--edge2)}
 .carline:active{transform:scale(.99);background:#3b2f55}
+.carline.pinned{border-color:rgba(114,224,141,.55);box-shadow:0 4px 12px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05), 0 0 0 1px rgba(114,224,141,.25)}
+.carline-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.pinbtn{border:1px solid var(--edge);background:rgba(255,255,255,.05);border-radius:9px;cursor:pointer;
+  font-size:14px;line-height:1;padding:4px 6px;opacity:.5;filter:grayscale(1);transition:opacity .12s,transform .08s,filter .12s}
+.pinbtn:hover{opacity:.9;transform:scale(1.1)}
+.pinbtn.on{opacity:1;filter:none;border-color:rgba(114,224,141,.6);background:rgba(114,224,141,.14)}
 /* zeldzaamheids-aura: legende = pulserende gouden gloed, zeldzaam = subtiele amber rand */
 .carline.legend-aura{border-color:#ffcf5a;
   box-shadow:0 0 0 1px rgba(255,207,90,.6),0 0 14px rgba(255,190,70,.45),0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06);
@@ -1061,6 +1067,7 @@ const GOALS=[
  {id:"weekquest",t:"Haal een weekdoel binnen",r:"+60 XP · doel van de week gehaald",c:()=>!!G.mile.weekQuest,fn:()=>addXP(60)},
  {id:"cashmile",t:"Breek de 2,5 miljoen op de rekening",r:"+150 XP · dik binnen",c:()=>!!G.mile.cashMile,fn:()=>addXP(150)},
  {id:"comeback",t:"Kom terug na een gebroken verkoopreeks",r:"+50 XP · niet bij de pakken blijven zitten",c:()=>!!G.mile.comeback,fn:()=>addXP(50)},
+ {id:"pincar",t:"Zet een wagen vast als houder",r:"+30 XP · die geeft ge niet zomaar weg",c:()=>!!G.mile.pinCar,fn:()=>addXP(30)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
@@ -4393,13 +4400,14 @@ function renderGarage(){
      +'<button class="btn primary" onclick="hireAppr()">🧑‍🔧 Leerjongen aannemen</button></div>';
   }
   if(G.cars.length===0)h+='<div class="card center dim" style="margin-top:10px">Leeg koertje. Tijd voor een inkooptrip.</div>';
-  for(const c of G.cars){
-    h+='<div class="carline'+carAura(c)+'" onclick="openCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
+  const stock=G.cars.slice().sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)); // gepinde wagens bovenaan
+  for(const c of stock){
+    h+='<div class="carline'+carAura(c)+(c.fav?" pinned":"")+'" onclick="openCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
-     +'<div>'+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rallyT>0?'<span class="pill good">🏁 rally-held</span>':'')+(c.featured?'<span class="pill good">📸 cover</span>':'')+(c.keured?'<span class="pill good">✅ gekeurd</span>':'')+(c.vipPlate?'<span class="pill good">🔖 eigen plaat</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.joblot?'<span class="pill">🚜 kavel</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
-     +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
+     +'<div>'+(c.fav?'<span class="pill good">📌 vast</span>':'')+condPill(c.eng,"motor")+condPill(c.body,"koets")+(isTrend(c)?'<span class="pill warn">📈 trend</span>':'')+(c.washT>0?'<span class="pill good">✨ blink</span>':'')+(c.rallyT>0?'<span class="pill good">🏁 rally-held</span>':'')+(c.featured?'<span class="pill good">📸 cover</span>':'')+(c.keured?'<span class="pill good">✅ gekeurd</span>':'')+(c.vipPlate?'<span class="pill good">🔖 eigen plaat</span>':'')+(tyresInSeason(c)?'<span class="pill good">'+(c.tyres==="winter"?"❄️":"☀️")+' banden</span>':'')+(c.lesauto?'<span class="pill info">🚗 lesauto</span>':'')+(c.tradein?'<span class="pill">🔄 inruil</span>':'')+(c.bargain?'<span class="pill">🔧 project</span>':'')+(c.joblot?'<span class="pill">🚜 kavel</span>':'')+(c.rolled?'<span class="pill bad">teller 🔧</span>':'')+(c.papers>0?'<span class="pill '+(c.papers===2?"bad":"warn")+'">papieren</span>':'')+'</div></div>'
+     +'<div class="carline-right"><button class="pinbtn'+(c.fav?" on":"")+'" onclick="event.stopPropagation();toggleFav('+c.id+')" title="'+(c.fav?"Losmaken — terug gewoon te koop":"Vastzetten — markeer als houder")+'">📌</button><div class="money small">'+fmt(askValue(c))+'</div></div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
   const coll=G.collection||[];
@@ -4418,6 +4426,15 @@ function renderGarage(){
   if(G.collSlots<6)h+='<button class="btn" onclick="expandBarn()">🏗️ Schuur uitbreiden (+1 plaats, '+fmt(250000)+')</button>';
   h+='</div>';
   $("view").innerHTML=h;
+}
+/* pin/houder-toggle: markeer een wagen die ge (voorlopig) niet kwijt wilt — komt bovenaan in de stocklijst */
+function toggleFav(id){
+  const c=getCar(id);if(!c)return;
+  c.fav=!c.fav;
+  if(c.fav){G.mile.pinCar=1;if(typeof sfx==="function")sfx("tick");if(typeof toast==="function")toast("📌 "+carName(c)+" vastgezet — bovenaan de stock.");}
+  else if(typeof toast==="function")toast("📌 "+carName(c)+" losgemaakt.");
+  if(typeof save==="function")save();
+  if(CUR==="garage"&&typeof render==="function")render();
 }
 function moveToColl(id){
   const c=getCar(id);if(!c)return;
