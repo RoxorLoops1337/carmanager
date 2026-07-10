@@ -260,6 +260,7 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
   display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(245,197,66,.35);transition:background .6s ease-out}
 .mile-ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#161822}
 .mile-ring span{position:relative;font-size:11px;font-weight:700;color:#ffd76a}
+.stocksum .spread{flex-wrap:wrap;gap:8px 14px;align-items:center}
 .weektip{margin-top:6px;font-size:12px;color:#cdbb92;font-style:italic;line-height:1.35;animation:tipfade .6s ease-out}
 .weektip b{font-style:normal;color:#ffd76a;display:inline-block;margin-right:5px}
 .weektip span{display:block;margin-top:2px;color:#b7c2a8}
@@ -4397,11 +4398,20 @@ function evBridalParty(next){
    {t:"Toeteren en doorrijden",cls:"ghost",fn:()=>{closeModal();next()}}]);
 }
 
+/* stockoverzicht: totale vraagwaarde, geïnvesteerd kapitaal en de papieren winst die in de stock zit */
+function stockSummary(){const cars=(G&&G.cars)||[];let ask=0,paid=0;
+  for(const c of cars){ask+=askValue(c);paid+=(c.paid||0);}
+  return {count:cars.length,ask:Math.round(ask),paid:Math.round(paid),profit:Math.round(ask-paid)};}
 /* ============ GARAGE ============ */
 function renderGarage(){
   const st=Math.min(5,Math.floor((G.mech||0)/12));
   let h='<div class="spread"><h2 style="margin:0">🔧 Garage & Stock</h2>'
    +'<span class="pill" title="De monteur wordt beter met elke klus">👨‍🔧 '+"★".repeat(st)+"☆".repeat(5-st)+'</span></div>';
+  {const ss=stockSummary();
+   if(ss.count>0)h+='<div class="card flat stocksum"><div class="spread small">'
+     +'<span title="Wat de markt voor heel uw stock zou geven">📦 <b>Stockwaarde</b> <span class="money">'+fmt(ss.ask)+'</span></span>'
+     +'<span title="Wat ge er zelf voor betaald hebt">💸 vast <span class="dim">'+fmt(ss.paid)+'</span></span>'
+     +'<span title="Papieren winst als ge alles nu tegen vraagprijs verkocht">📈 <b class="'+(ss.profit>=0?"money":"neg")+'">'+(ss.profit>=0?"+":"")+fmt(ss.profit)+'</b></span></div></div>';}
   if(scrapBoomOn())h+='<div class="card flat"><span class="small"><b>🪙 Schrootboom!</b> <span class="dim">Slopen brengt nu +'+Math.round((SCRAP_BOOM_MUL-1)*100)+'% op (nog '+G.scrapBoom.weeks+' wk). Ideaal voor hopeloze roestbakken.</span></span></div>';
   // leerjongen
   if(G.appr){const l=apprLvl();
