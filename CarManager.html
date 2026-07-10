@@ -393,6 +393,13 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
 .lot-pigeon.flap{animation:pigeonflap .55s ease}
 @keyframes pigeonflap{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(6px,-16px) rotate(-14deg)}
   55%{transform:translate(12px,-9px) rotate(10deg)}100%{transform:translate(0,0) rotate(0)}}
+.lot-redbull{position:absolute;bottom:10%;right:22%;font-size:15px;z-index:5;cursor:pointer;transform-origin:bottom center}
+.lot-redbull.fizz{animation:canfizz .5s ease}
+@keyframes canfizz{0%,100%{transform:translate(0,0) rotate(0)}15%{transform:translate(-2px,-1px) rotate(-8deg)}
+  35%{transform:translate(2px,-1px) rotate(7deg)}55%{transform:translate(-2px,0) rotate(-5deg)}75%{transform:translate(1px,0) rotate(3deg)}}
+.can-bub{position:absolute;bottom:16%;right:23%;font-size:11px;color:#cfe8ff;z-index:6;pointer-events:none;
+  animation:canbub .9s ease-out forwards}
+@keyframes canbub{0%{opacity:0;transform:translate(0,0) scale(.6)}20%{opacity:.9}100%{opacity:0;transform:translate(var(--bx,0),-26px) scale(1.1)}}
 /* seizoenssfeer op 't koertje: sneeuw, bloesem, zonnevonken, vallende blaadjes */
 .lot-wx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
 .lot-wx i{position:absolute;top:-14px;display:inline-block;opacity:0;will-change:transform;animation:wxfall linear infinite}
@@ -1013,6 +1020,7 @@ const GOALS=[
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
+ {id:"canfizz",t:"Schud eens aan het blikje op 't koertje",r:"+20 XP · bruis",c:()=>!!G.mile.canFizz,fn:()=>addXP(20)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -4894,8 +4902,20 @@ function lotScene(){
    +carsH
    +(cars.length===0?'<div class="lot-duif">🐦</div>':'')
    +'<div class="lot-pigeon" onclick="pigeonPoke(this)">🐦</div>'
+   +'<div class="lot-redbull" onclick="canFizz(this)" title="Even schudden...">🥫</div>'
    +'<div class="lot-char" onclick="lotPoke(this)">'+chr().face+'<div class="lot-smoke"><i></i><i></i><i></i></div></div>'
    +'</div>';
+}
+/* klik op 't Red Bull-blikje: cosmetische fidget (los van de echte redbull()-mechaniek) */
+const CAN_QUIPS=["🥤 *psssjt* — bruisend.","🥤 Vleugels? Bijna.","🥤 Suiker en taurine, het brandstof van de zaak.","🥤 Nog eentje en de cijfers kloppen vanzelf.","🥤 Schudden helpt niet, maar 't voelt goed."];
+function canFizz(el){
+  if(!el)return;
+  el.classList.remove("fizz");void el.offsetWidth;el.classList.add("fizz");
+  for(let i=0;i<4;i++){const b=document.createElement("div");b.className="can-bub";b.textContent="•";
+    b.style.setProperty("--bx",(Math.random()*24-12).toFixed(0)+"px");b.style.animationDelay=(i*.08).toFixed(2)+"s";
+    if(el.parentNode)el.parentNode.appendChild(b);const bb=b;setTimeout(()=>bb.remove(),900);}
+  if(G&&G.mile)G.mile.canFizz=1;
+  sfx("tick");toast(pick(CAN_QUIPS));
 }
 /* klik op de duif op de omheining: ze fladdert op met een koer */
 const PIGEON_COOS=["Roekoe!","*fladder fladder*","De duif is niet onder de indruk.","Ze pikt nog eens naar een frietje.","Terug op de omheining, alsof er niks gebeurd is."];
