@@ -40,6 +40,12 @@ body{background:
 #hdr #hcash.cash-up{animation:cashup .55s ease-out}
 @keyframes cashup{0%{transform:scale(1);text-shadow:none}30%{transform:scale(1.22);text-shadow:0 0 10px rgba(114,224,142,.9)}100%{transform:scale(1);text-shadow:none}}
 #hdr #hrep,#hdr #hheat{display:inline-block}
+.replad-stat .replad{display:inline-block;width:34px;height:5px;margin-left:5px;vertical-align:middle;
+  background:rgba(255,255,255,.14);border-radius:3px;overflow:hidden;box-shadow:inset 0 0 2px rgba(0,0,0,.5)}
+.replad-stat .replad i{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#f5c542,#ffe9a8);box-shadow:0 0 5px rgba(245,197,66,.8);transition:width .6s ease-out}
+.replad-stat.replad-max .replad i{background:linear-gradient(90deg,#ffd76a,#fff3c8);animation:repladglow 1.8s ease-in-out infinite}
+@keyframes repladglow{0%,100%{box-shadow:0 0 4px rgba(245,197,66,.6)}50%{box-shadow:0 0 10px rgba(255,231,168,1)}}
 #hdr #hrep.stat-up{animation:statup .55s ease-out}
 @keyframes statup{0%{transform:scale(1)}30%{transform:scale(1.25);text-shadow:0 0 9px rgba(255,179,71,.9)}100%{transform:scale(1)}}
 #hdr #hheat.stat-hot{animation:stathot .55s ease-out}
@@ -1184,6 +1190,12 @@ const REP_TIERS=[
  {min:85,n:"Legende van Essene",emo:"👑",perk:"Betere verkoopkansen (+3%)."},
 ];
 function repTier(){let t=0;for(let i=0;i<REP_TIERS.length;i++)if((G.rep||0)>=REP_TIERS[i].min)t=i;return t}
+/* voortgang binnen de huidige status-trap richting de volgende (voor de kop-ladder) */
+function repLadder(){const rep=G.rep||0,t=repTier();
+  if(t>=REP_TIERS.length-1)return{frac:1,next:null,toNext:0,tier:REP_TIERS[t]};
+  const lo=REP_TIERS[t].min,hi=REP_TIERS[t+1].min;
+  const frac=clamp((rep-lo)/(hi-lo||1),0,1);
+  return{frac:frac,next:REP_TIERS[t+1],toNext:Math.max(0,Math.ceil(hi-rep)),tier:REP_TIERS[t]};}
 function platePerkMul(){return repTier()>=2?0.9:1}
 /* ---- bank: een lening nu, elke week rente + afbetaling ---- */
 const LOAN_RATE=0.04, LOAN_MIN=5000;
@@ -2480,7 +2492,9 @@ function hdr(){
   if(HCASH==null)HCASH=G.cash;
   h.innerHTML='<span class="stat">📅 W'+G.week+" '"+String(G.year).slice(2)+'</span>'
    +'<span class="stat cash"'+(G.cash<0?' style="color:var(--red)"':'')+' title="'+titleFor(G.lvl||1)+'">💰 <span id="hcash">'+fmt(HCASH)+'</span></span>'
-   +'<span class="stat"><span class="repv">★</span> <span id="hrep">'+Math.round(REP_SHOWN==null?G.rep:REP_SHOWN)+'</span></span>'
+   +(function(){const L=repLadder();
+      const tt=L.next?esc(L.toNext+' reputatie tot '+L.next.emo+' '+L.next.n):'Hoogste status bereikt — Legende van Essene';
+      return '<span class="stat replad-stat'+(L.next?'':' replad-max')+'" title="'+tt+'"><span class="repv">★</span> <span id="hrep">'+Math.round(REP_SHOWN==null?G.rep:REP_SHOWN)+'</span><span class="replad"><i style="width:'+Math.round(L.frac*100)+'%"></i></span></span>';})()
    +'<span class="stat"><span class="heatv">🔥</span> <span id="hheat">'+Math.round(HEAT_SHOWN==null?G.heat:HEAT_SHOWN)+'</span></span>'
    +'<span class="stat">🎖️ '+(G.lvl||1)+'</span>'
    +(validPlate()?'<span class="stat"><span class="plate">'+bestPlate().code+'</span>&nbsp;'+bestPlate().weeks+'w</span>':'')
