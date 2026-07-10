@@ -240,7 +240,16 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   background:radial-gradient(1.6px 1.6px at 12% 30%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 34% 62%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 58% 38%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 79% 70%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 91% 34%,#57506a 50%,transparent 51%)}
-.lot-car{position:absolute;bottom:7%;animation:idlebob 4s ease-in-out infinite}
+.lot-car{position:absolute;bottom:7%;animation:idlebob 4s ease-in-out infinite;cursor:pointer}
+.lot-car.honk{animation:carhonk .5s ease}
+@keyframes carhonk{0%{transform:translateY(0) rotate(0)}18%{transform:translateY(-9px) rotate(-3deg)}
+  40%{transform:translateY(-2px) rotate(3deg)}62%{transform:translateY(-6px) rotate(-2deg)}100%{transform:translateY(0) rotate(0)}}
+.lot-carbubble{position:absolute;bottom:34%;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;
+  background:rgba(20,16,34,.92);border:1px solid var(--edge);color:var(--amber);font-size:9px;font-weight:600;
+  white-space:nowrap;padding:3px 7px;border-radius:7px;box-shadow:0 3px 9px rgba(0,0,0,.5);animation:bubblepop 1.3s ease-out forwards}
+@keyframes bubblepop{0%{opacity:0;transform:translateX(-50%) translateY(6px) scale(.7)}
+  14%{opacity:1;transform:translateX(-50%) translateY(-4px) scale(1.05)}80%{opacity:1;transform:translateX(-50%) translateY(-8px) scale(1)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-18px) scale(1)}}
 .lot-char{position:absolute;bottom:12%;right:11%;font-size:27px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.5));animation:idlebob 3s ease-in-out infinite}
 .lot-smoke{position:absolute}
 .lot-smoke i{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(210,210,220,.45);animation:cigsmoke 2.4s ease-out infinite}
@@ -4458,7 +4467,7 @@ function lotScene(){
   const cars=G.cars.slice(0,5);
   const wx=lotWeather();
   let carsH="";
-  cars.forEach((c,i)=>{carsH+='<div class="lot-car" style="left:'+(25+i*13.5)+'%;animation-delay:'+(i*.7)+'s">'+carArt(c,74)+'</div>'});
+  cars.forEach((c,i)=>{carsH+='<div class="lot-car" onclick="lotCarPoke(this,'+i+')" style="left:'+(25+i*13.5)+'%;animation-delay:'+(i*.7)+'s">'+carArt(c,74)+'</div>'});
   return '<div class="lot '+wx.cls+'">'
    +'<div class="lot-tint"></div>'
    +'<div class="lot-sun"></div><div class="lot-clouds">☁️ ☁️ ☁️ ☁️</div>'
@@ -4484,6 +4493,17 @@ function lotPoke(el){
   if(el.parentNode)el.parentNode.appendChild(r);
   setTimeout(()=>r.remove(),1100);
   sfx("tick");toast(chr().face+" "+q[1]);
+}
+/* klik op een geparkeerde wagen: toeter + wiebel + een snelle prijs-peek */
+function lotCarPoke(el,idx){
+  if(!el||!G||!G.cars)return;
+  const c=G.cars[idx];if(!c)return;
+  el.classList.remove("honk");void el.offsetWidth;el.classList.add("honk");
+  const b=document.createElement("div");b.className="lot-carbubble";
+  b.textContent="🚗 "+carName(c)+" · "+fmt(askValue(c));
+  if(el.parentNode)el.parentNode.appendChild(b);
+  setTimeout(()=>b.remove(),1300);
+  sfx("honk");
 }
 /* ============ TEST DRIVE: PROEFRIT RACER ============ */
 let TD=null,ENGO=null,ENGO2=null,ENGG=null,SKID=null,SKIDG=null;
