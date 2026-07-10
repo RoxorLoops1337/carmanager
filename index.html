@@ -172,6 +172,10 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   animation:conffall 1.5s ease-in forwards}
 @keyframes conffall{0%{opacity:1;transform:translate(0,0) rotate(0)}
   100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
+.fw{position:fixed;z-index:76;width:6px;height:6px;border-radius:50%;pointer-events:none;opacity:0;
+  box-shadow:0 0 6px 1px currentColor;animation:fwburst 1.4s ease-out forwards}
+@keyframes fwburst{0%{opacity:0;transform:translate(0,0) scale(.4)}
+  10%{opacity:1}70%{opacity:.9}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1)}}
 .shake{animation:shake .45s}
 @keyframes shake{0%,100%{transform:none}20%{transform:translate(-7px,2px)}40%{transform:translate(6px,-3px)}
   60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}
@@ -865,6 +869,7 @@ const GOALS=[
  {id:"classicfair",t:"Verkoop een klassieker tijdens de Oldtimerbeurs",r:"+100 XP · beurs, boterhammen en briefjes",c:()=>!!G.mile.classicFair,fn:()=>addXP(100)},
  {id:"cheapfuel",t:"Verkoop een slokop tijdens de goedkope-brandstofweek",r:"+90 XP · lage pompprijs, dikke marge",c:()=>!!G.mile.cheapFuel,fn:()=>addXP(90)},
  {id:"caryear",t:"Verkoop de Auto van het Jaar",r:"+130 XP · verkozen én verkocht",c:()=>!!G.mile.carYear,fn:()=>addXP(130)},
+ {id:"newyearshow",t:"Vier Nieuwjaar op het koertje met vuurwerk",r:"+80 XP · een jaar overleefd, proost",c:()=>!!G.mile.newYearShow,fn:()=>addXP(80)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
 ];
 function checkGoals(){
@@ -1594,6 +1599,11 @@ function endWeek(silent){
     extra.push(["🏆 Auto van het Jaar",G.carYear.name,"money"]);
     log("🏆 De jury van De Streekkrant heeft gesproken: de <b>"+G.carYear.name+"</b> is verkozen tot Auto van het Jaar "+G.year+"! Wie er een op 't koertje heeft, kan heel het jaar een streepje meer vragen.");
     if(!silent){stamp("🏆 "+G.carYear.name,"gold");confetti(50);sfx("win")}}
+  // Nieuwjaar op 't koertje: vuurwerk boven de container
+  if(newYear){G.mile.newYearShow=1;
+    extra.push(["🎆 Nieuwjaar","gelukkig "+G.year+"!","money"]);
+    log("🎆 Gelukkig Nieuwjaar "+G.year+"! Om middernacht knalt er vuurwerk boven de container, de buschauffeur toetert, en "+chr().n+" heft een glas cava aan bushalte Koudenberg. Op een goed jaar vol occasies.");
+    if(!silent){stamp("🎆 "+G.year,"pink");fireworks(7);sfx("win")}}
   // season change
   const se=season();
   if(se.n!==seasonWas){extra.push([se.emo+" "+se.n,se.bodies.map(b=>BODN[b]).join("/")+" nu gegeerd",""]);
@@ -2089,6 +2099,23 @@ function confetti(n){for(let i=0;i<(n||36);i++){const d=document.createElement("
   d.style.setProperty("--dx",(Math.random()*180-90)+"px");d.style.setProperty("--dy",(130+Math.random()*280)+"px");
   d.style.setProperty("--rot",(Math.random()*720-360)+"deg");d.style.animationDelay=(Math.random()*.18)+"s";
   document.body.appendChild(d);setTimeout(()=>d.remove(),1750)}}
+/* vuurwerk: enkele rakketten die openspatten in gekleurde vonken */
+function fireworks(n){try{
+  const cols=["#ffd76a","#ff5d9e","#72e08e","#6cc4ff","#ffb347","#e8e6df"];
+  for(let b=0;b<(n||6);b++){
+    const cx=12+Math.random()*76, cy=8+Math.random()*34, col=pick(cols),
+      sparks=12+Math.floor(Math.random()*8), delay=Math.random()*.9, R=70+Math.random()*70;
+    for(let s=0;s<sparks;s++){
+      const ang=(s/sparks)*Math.PI*2, r=R*(.6+Math.random()*.5);
+      const d=document.createElement("div");d.className="fw";
+      d.style.left=cx+"%";d.style.top=cy+"%";d.style.color=col;d.style.background=col;
+      d.style.setProperty("--dx",Math.round(Math.cos(ang)*r)+"px");
+      d.style.setProperty("--dy",Math.round(Math.sin(ang)*r+r*.3)+"px");
+      d.style.animationDelay=delay.toFixed(2)+"s";
+      document.body.appendChild(d);setTimeout(()=>d.remove(),1600+delay*1000);
+    }
+  }
+}catch(e){}}
 function ouch(){sfx("bad");if(typeof TD!=="undefined"&&TD&&TD.on){TD.shake=Math.min(.6,(TD.shake||0)+.42);return}document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
 let REEL_MS=950,WIV=null,SWEEP=null;
 function suspense(faces,txt,cb,sceneHtml){
