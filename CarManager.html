@@ -2790,6 +2790,7 @@ function renderOffice(){
     +'<div class="small dim" style="margin-top:2px">'+(cr.next?"Nog <b>"+fmt(cr.toGo)+"</b> tot de volgende feestknal.":"Élke cash-mijlpaal gebroken — de kroon is binnen. 👑")+'</div></div></div>';}
   h+='<hr><div class="weektip">💡 <b>Tip van de week</b><span>'+esc(weekTip())+'</span></div>';
   h+='</div>';
+  h+=recordsCard();
   {const tier=repTier();
    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+REP_TIERS[tier].emo+' '+REP_TIERS[tier].n+'</h3><span class="pill good">★ '+Math.round(G.rep)+' reputatie</span></div>';
    REP_TIERS.forEach((t,i)=>{if(i===0)return;
@@ -4429,6 +4430,18 @@ function stockAgeTag(c){const w=(c&&c.stockWk)||0;
   if(w<4)return "";
   const cls=w>=8?"bad":"warn";
   return '<span class="pill '+cls+'" title="Staat al '+w+' weken te koop — huur en marktwaarde knagen. Tijd om te bewegen.">'+(w>=8?"🐌":"⌛")+' '+w+' wk op stock</span>';}
+/* records-kaart: verzamelt de persoonlijke toppers op één plek (iets om te breken) */
+function recordsCard(){
+  const rows=[
+   ["🏆 Beste week",(G.bestWeek||0)>0?"+"+fmt(G.bestWeek):"—"],
+   ["⚡ Snelste flip",(G.fastFlip!=null&&G.fastFlip>=0)?(G.fastFlip===0?"zelfde week":G.fastFlip+" wk"):"—"],
+   ["💰 Grootste deal",(G.recProfit||0)>0?"+"+fmt(G.recProfit):"—"],
+   ["🚗 Totaal verkocht",(G.sold||0)+" wagen(s)"],
+  ];
+  return '<div class="card recordscard"><h3 style="margin:0 0 6px">🏅 Records</h3>'
+   +rows.map(r=>'<div class="spread small"><span class="dim">'+r[0]+'</span><b>'+r[1]+'</b></div>').join("")
+   +'<div class="small dim" style="margin-top:5px">Uw persoonlijke toppers. Elke week een kans om er eentje te breken.</div></div>';
+}
 /* stockoverzicht: totale vraagwaarde, geïnvesteerd kapitaal en de papieren winst die in de stock zit */
 function stockSummary(){const cars=(G&&G.cars)||[];let ask=0,paid=0;
   for(const c of cars){ask+=askValue(c);paid+=(c.paid||0);}
