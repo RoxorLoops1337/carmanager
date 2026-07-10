@@ -261,6 +261,12 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
 .mile-ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#161822}
 .mile-ring span{position:relative;font-size:11px;font-weight:700;color:#ffd76a}
 .stocksum .spread{flex-wrap:wrap;gap:8px 14px;align-items:center}
+.coffee-cup{position:relative;display:inline-block;font-size:20px;line-height:1;flex:0 0 auto}
+.coffee-cup i{position:absolute;top:-5px;width:3px;height:8px;border-radius:3px;background:rgba(255,255,255,.4);filter:blur(1px);opacity:0;animation:steam 2.6s ease-in-out infinite}
+.coffee-cup i:nth-child(1){left:5px;animation-delay:0s}
+.coffee-cup i:nth-child(2){left:10px;animation-delay:.9s}
+.coffee-cup i:nth-child(3){left:15px;animation-delay:1.7s}
+@keyframes steam{0%{opacity:0;transform:translateY(2px) scaleY(.6)}30%{opacity:.65}100%{opacity:0;transform:translateY(-11px) scaleY(1.25)}}
 .card.hotlead{border-color:rgba(114,224,141,.5);box-shadow:0 0 0 1px rgba(114,224,141,.25),0 4px 14px rgba(0,0,0,.3)}
 .weektip{margin-top:6px;font-size:12px;color:#cdbb92;font-style:italic;line-height:1.35;animation:tipfade .6s ease-out}
 .weektip b{font-style:normal;color:#ffd76a;display:inline-block;margin-right:5px}
@@ -2729,7 +2735,7 @@ function pickChar(k){
 /* ============ OFFICE ============ */
 function renderOffice(){
   const of=OFFICES[G.office];
-  let h=lotScene()+'<div class="card"><div class="spread"><h2 style="margin:0">🏢 '+of.n+'</h2></div>'
+  let h=lotScene()+'<div class="card"><div class="spread"><h2 style="margin:0">🏢 '+of.n+'</h2><span class="coffee-cup" title="Altijd verse koffie op kantoor">☕<i></i><i></i><i></i></span></div>'
    +'<p class="small dim">'+of.desc+'</p>'
    +'<div class="row small"><span class="pill">Huur '+fmt(of.rent)+'/week</span>'
    +'<span class="pill">Reputatie ★ '+Math.round(G.rep)+'</span><span class="pill '+(G.heat>60?"bad":G.heat>30?"warn":"")+'">Heat 🔥 '+Math.round(G.heat)+'</span>'
