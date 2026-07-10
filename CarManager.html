@@ -4510,6 +4510,11 @@ function renderSell(){
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')
    +(G.flashDeal?'<span class="pill warn">⏳ Flitsdeal: '+esc(G.flashDeal.name)+' nog '+G.flashDeal.weeks+' wk</span>':'')+'</div>';
+  {const cp=comboProgress();
+   if(cp){h+='<div class="card combometer" style="padding:8px 12px"><div class="spread small"><span>🔥 <b>Streak ×'+G.combo+'</b> — '+esc(cp.tier)+' <span class="money">+'+Math.round((cp.mult-1)*100)+'%</span></span>'
+    +'<span class="dim">'+(cp.next==="max"?"max tier — hou \'m vast!":"nog "+cp.toNext+" tot "+esc(cp.next))+'</span></div>'
+    +'<div class="bar" style="margin-top:4px"><i style="width:'+Math.round((cp.next==="max"?1:cp.frac)*100)+'%;background:linear-gradient(90deg,#ff5d9e,#ffb347)"></i></div>'
+    +'<div class="small dim" style="margin-top:2px">Elke verkoop klimt de reeks; een mislukte deal zet \'m terug op nul.</div></div>';}}
   if(G.flashDeal&&G.flashDeal.car){const fd=G.flashDeal,val=askValue(fd.car),afford=G.cash-fd.price>=creditLimit();
     h+='<div class="card" style="border:1px solid #b98b2e"><div class="spread"><h3 style="margin:0">⏳ Flitsdeal — nog '+fd.weeks+' week'+(fd.weeks===1?'':'en')+'!</h3><span class="pill warn">grijp \'t of mis \'t</span></div>'
      +'<div class="carline"><div class="carpic" style="width:86px">'+carArt(fd.car,88)+'</div><div style="flex:1"><b>'+esc(carName(fd.car))+'</b> <span class="small dim">('+fd.car.year+')</span>'
@@ -5758,6 +5763,14 @@ const FIRST_SALE_BONUS=8000;
 const COMBO_TIERS=[{min:10,name:"Legendarisch",mult:1.30,cls:"legend"},{min:7,name:"Vurig",mult:1.20,cls:"hot"},
   {min:4,name:"Straf",mult:1.12,cls:"mid"},{min:2,name:"Vlot",mult:1.06,cls:"low"}];
 function comboTier(n){for(const t of COMBO_TIERS)if((n||0)>=t.min)return t;return null;}
+/* voortgang binnen de huidige streak-trap -> naar de volgende (read-only, voor de streakmeter) */
+function comboProgress(){
+  const n=(G&&G.combo)||0;const cur=comboTier(n);if(!cur)return null;
+  const asc=COMBO_TIERS.slice().sort((a,b)=>a.min-b.min);
+  const idx=asc.findIndex(t=>t.name===cur.name),nextT=asc[idx+1]||null;
+  if(!nextT)return {tier:cur.name,mult:cur.mult,next:"max",toNext:0,frac:1};
+  return {tier:cur.name,mult:cur.mult,next:nextT.name,toNext:nextT.min-n,frac:clamp((n-cur.min)/(nextT.min-cur.min),0,1)};
+}
 function comboBanner(n,t){try{
   const b=document.createElement("div");b.className="combo-banner "+(t.cls||"");
   b.innerHTML='🔥 STREAK ×'+n+'<span>'+esc(t.name)+' · +'+Math.round((t.mult-1)*100)+'%</span>';
