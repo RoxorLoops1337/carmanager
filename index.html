@@ -66,9 +66,13 @@ body{background:
   align-items:center;gap:3px;position:relative}
 #nav button .ic{font-size:20px;line-height:1;transition:transform .12s}
 #nav button.on{color:var(--amber)}
-#nav button.on .ic{transform:translateY(-1px) scale(1.12)}
+#nav button.on .ic{transform:translateY(-1px) scale(1.12);animation:tabic .34s ease-out}
 #nav button.on::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;
-  border-radius:0 0 4px 4px;background:var(--amber);box-shadow:0 0 10px var(--amber)}
+  border-radius:0 0 4px 4px;background:var(--amber);box-shadow:0 0 10px var(--amber);
+  transform-origin:center;animation:tabpop .34s ease-out}
+@keyframes tabpop{0%{transform:scaleX(.2);opacity:0}55%{opacity:1}100%{transform:scaleX(1);opacity:1}}
+@keyframes tabic{0%{transform:translateY(2px) scale(.9)}55%{transform:translateY(-3px) scale(1.2)}100%{transform:translateY(-1px) scale(1.12)}}
+@media (prefers-reduced-motion:reduce){#nav button.on::before,#nav button.on .ic{animation:none}}
 h1,h2,h3{margin:.2em 0 .4em;letter-spacing:.5px}
 h2{font-family:var(--hfont);font-weight:600;font-size:25px;letter-spacing:1.4px;
   color:var(--amber);text-transform:uppercase;text-shadow:0 2px 8px rgba(255,179,71,.18)}
