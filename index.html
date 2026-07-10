@@ -995,6 +995,7 @@ const GOALS=[
  {id:"combolegend",t:"Bouw een legendarische verkoopstreak (×10)",r:"+150 XP · tien op een rij, ongenaakbaar",c:()=>!!G.mile.comboLegend,fn:()=>addXP(150)},
  {id:"weekstreak8",t:"Hou acht goede weken op een rij vol",r:"+120 XP · elke week een wagen weg",c:()=>!!G.mile.weekStreak8,fn:()=>addXP(120)},
  {id:"flashdeal",t:"Grijp een flitsdeal voor het te laat is",r:"+70 XP · wie 't eerst komt",c:()=>!!G.mile.flashDeal,fn:()=>addXP(70)},
+ {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -1031,6 +1032,9 @@ function nextGoalTeaser(){
   }
   return best;
 }
+/* modellenverzameling: hoeveel van alle CARS-modellen ge ooit al verkocht hebt (completionist-meter) */
+function collectionStats(){const total=CARS.length,have=G&&G.modelsSold?Object.keys(G.modelsSold).length:0;
+  return {have,total,frac:total?clamp(have/total,0,1):0};}
 /* ---- prijzenkast: badges afgeleid van G.mile-vlaggen ---- */
 const TROPHIES=[
  {key:"eastTrip",emo:"🗺️",name:"Oostblok-pionier",hint:"Koop een keer in Polen of Oekraïne."},
@@ -2489,6 +2493,10 @@ function renderOffice(){
      h+='<hr><div class="spread small"><span>🎯 <b>'+esc(tz.title)+'</b></span><span class="dim">'+cs+' / '+ts+'</span></div>'
       +'<div class="bar goalbar" style="margin-top:4px"><i style="width:'+Math.round(tz.frac*100)+'%;background:linear-gradient(90deg,#72e08e,#6cc4ff)"></i></div>'
       +'<div class="small dim" style="margin-top:3px">Bijna daar — nog '+(big?fmt(tz.target-tz.cur):(tz.target-tz.cur))+' te gaan.</div>';}}
+  {const cs=collectionStats();
+   h+='<hr><div class="spread small"><span>🚗 <b>Modellenverzameling</b></span><span class="dim">'+cs.have+' / '+cs.total+' ('+Math.round(cs.frac*100)+'%)</span></div>'
+    +'<div class="bar" style="margin-top:4px"><i style="width:'+Math.round(cs.frac*100)+'%;background:linear-gradient(90deg,#ff5d9e,#ffb347)"></i></div>'
+    +'<div class="small dim" style="margin-top:3px">'+(cs.frac>=1?"Élk model minstens één keer verkocht — compleet! 👑":"Verkoop een model dat ge nog nooit verhandeld hebt om de collectie aan te vullen.")+'</div>';}
   h+='</div>';
   {const tier=repTier();
    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+REP_TIERS[tier].emo+' '+REP_TIERS[tier].n+'</h3><span class="pill good">★ '+Math.round(G.rep)+' reputatie</span></div>';
@@ -5773,6 +5781,7 @@ function doSale(cu,c,price,disclosed,iss){
   if(!M.c10&&nm>=10){M.c10=1;stamp("10 MODELLEN","gold");addXP(30)}
   if(!M.c25&&nm>=25){M.c25=1;stamp("25 MODELLEN","gold");addXP(60)}
   if(!M.c50&&nm>=50){M.c50=1;stamp("50 MODELLEN","gold");confetti(60);addXP(120)}
+  if(!M.collectAll&&nm>=CARS.length){M.collectAll=1;stamp("👑 COLLECTIE COMPLEET","gold");confetti(160);sfx("win");addXP(600)}
   const cix=G.cars.findIndex(x=>x.id===c.id);if(cix>=0)G.cars.splice(cix,1);
   G.custs=G.custs.filter(x=>x.id!==cu.id);
   const hiddenLeft=iss.filter(i=>!disclosed.includes(i.id));
