@@ -736,7 +736,7 @@ function newGame(ch){
      busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
-     comebacks:[], mile:{}, neonHue:0, over:false};
+     comebacks:[], mile:{}, neonHue:0, radioStation:0, over:false};
   rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
@@ -783,7 +783,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;G.radioStation=G.radioStation||0;
   if(!G.carYear||G.carYear.year!==G.year)rotateCarYear();
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
@@ -909,6 +909,7 @@ const GOALS=[
  {id:"caryear",t:"Verkoop de Auto van het Jaar",r:"+130 XP · verkozen én verkocht",c:()=>!!G.mile.carYear,fn:()=>addXP(130)},
  {id:"newyearshow",t:"Vier Nieuwjaar op het koertje met vuurwerk",r:"+80 XP · een jaar overleefd, proost",c:()=>!!G.mile.newYearShow,fn:()=>addXP(80)},
  {id:"neontoggle",t:"Speel met het neonbord op de container",r:"+40 XP · sfeer is ook verkoop",c:()=>!!G.mile.neonToggle,fn:()=>addXP(40)},
+ {id:"radiozap",t:"Zap eens door de radiozenders op 't koertje",r:"+40 XP · een deuntje bij de koffie",c:()=>!!G.mile.radioZap,fn:()=>addXP(40)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -2134,6 +2135,27 @@ function sfx(n){if(MUTE)return;
     modem:()=>{beep(350,0,.35,"sine",.06);beep(440,.1,.35,"sine",.06);beep(1300,.5,.3,"sine",.07);
       beep(2100,.82,.28,"sine",.06);beep(980,1.12,.25,"sawtooth",.05,2400);beep(1700,1.4,.6,"square",.03,3200)}})[n]()}catch(e){}}
 function toggleMute(){MUTE=!MUTE;try{localStorage.setItem("cm_mute",MUTE?"1":"0")}catch(e){}if(G)hdr();toast(MUTE?"🔇 Geluid uit":"🔊 Geluid aan")}
+/* de bureau-radio: zap door een paar cheesy 90s-zenders, elk met een eigen tune */
+const RADIO_STATIONS=[
+  {name:"Radio Contact",tag:"'De hits van nu en toen!'",notes:[523,659,784,659]},
+  {name:"Studio Brussel",tag:"'Bij de tijd, bij de zaak.'",notes:[440,554,659,880]},
+  {name:"Donna",tag:"'Muziek om bij te verkopen.'",notes:[659,587,523,587]},
+  {name:"Topradio",tag:"'Bonken tot de wagens weg zijn!'",notes:[784,784,1046,784]},
+  {name:"Radio 538",tag:"'Non-stop, net als gij.'",notes:[587,740,880,740]},
+];
+function radioJingle(notes){if(MUTE||!notes)return;
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+    notes.forEach((f,i)=>beep(f,i*.11,.16,"square",.07));}catch(e){}}
+function radioNext(){
+  if(!G)return;
+  G.radioStation=((G.radioStation||0)+1)%RADIO_STATIONS.length;
+  G.mile.radioZap=1;
+  const st=RADIO_STATIONS[G.radioStation];
+  if(typeof save==="function")save();
+  radioJingle(st.notes);
+  toast("📻 "+st.name+" — "+st.tag);
+  if(typeof render==="function")render();
+}
 function confetti(n){for(let i=0;i<(n||36);i++){const d=document.createElement("div");d.className="conf";
   d.style.left=(20+Math.random()*60)+"%";d.style.top=(24+Math.random()*14)+"%";
   d.style.background=pick(["#ffd76a","#ff5d9e","#72e08e","#6cc4ff","#ffb347","#e8e6df"]);
@@ -2281,7 +2303,8 @@ function renderOffice(){
    +'<div class="row small"><span class="pill">Huur '+fmt(of.rent)+'/week</span>'
    +'<span class="pill">Reputatie ★ '+Math.round(G.rep)+'</span><span class="pill '+(G.heat>60?"bad":G.heat>30?"warn":"")+'">Heat 🔥 '+Math.round(G.heat)+'</span>'
    +'<span class="pill">'+G.cars.length+' wagens in stock</span>'
-   +'<span class="pill" title="Klantenkaart: elke verkoop een stempel, volle kaart = bonus">🎟️ '+"●".repeat(G.stamps||0)+"○".repeat(Math.max(0,CARD_SIZE-(G.stamps||0)))+((G.cardsFull||0)>0?' ·'+G.cardsFull+'× vol':'')+'</span></div>';
+   +'<span class="pill" title="Klantenkaart: elke verkoop een stempel, volle kaart = bonus">🎟️ '+"●".repeat(G.stamps||0)+"○".repeat(Math.max(0,CARD_SIZE-(G.stamps||0)))+((G.cardsFull||0)>0?' ·'+G.cardsFull+'× vol':'')+'</span>'
+   +'<span class="pill" style="cursor:pointer" title="Klik om te zappen" onclick="radioNext()">📻 '+esc(RADIO_STATIONS[(G.radioStation||0)%RADIO_STATIONS.length].name)+'</span></div>';
   if(G.office===0&&true){
     h+='<hr><div class="small">🏗️ <b>Upgrade:</b> showroom in <b>Zellik</b> · '+fmt(OFFICES[1].cost)+' · meer klanten, betere prijzen.</div>'
      +'<button class="btn '+(G.cash>=OFFICES[1].cost?"primary":"")+'" onclick="upgradeOffice()" '+(G.cash<OFFICES[1].cost?"disabled":"")+'>Verhuis naar Zellik</button>';
