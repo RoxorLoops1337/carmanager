@@ -98,6 +98,13 @@ h3{font-family:var(--hfont);font-weight:600;font-size:18px;letter-spacing:.8px}
   transition:border-color .1s, transform .08s}
 .carline:hover{border-color:var(--edge2)}
 .carline:active{transform:scale(.99);background:#3b2f55}
+/* zeldzaamheids-aura: legende = pulserende gouden gloed, zeldzaam = subtiele amber rand */
+.carline.legend-aura{border-color:#ffcf5a;
+  box-shadow:0 0 0 1px rgba(255,207,90,.6),0 0 14px rgba(255,190,70,.45),0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06);
+  animation:legendglow 2.6s ease-in-out infinite}
+.carline.rare-aura{border-color:#d9a24a;box-shadow:0 0 0 1px rgba(217,162,74,.4),0 0 8px rgba(217,162,74,.3),0 4px 12px rgba(0,0,0,.35)}
+@keyframes legendglow{0%,100%{box-shadow:0 0 0 1px rgba(255,207,90,.5),0 0 10px rgba(255,190,70,.35),0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06)}
+  50%{box-shadow:0 0 0 1px rgba(255,220,120,.85),0 0 20px rgba(255,200,90,.6),0 4px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}}
 .carline .em{font-size:26px}
 .carpic{flex:0 0 auto;width:106px;display:flex;justify-content:center;align-items:flex-end}
 .carpic svg{display:block;max-width:100%;filter:drop-shadow(0 3px 3px rgba(0,0,0,.45))}
@@ -1472,6 +1479,8 @@ function carArt(c,w){
 }
 function carArtIx(ci,col,w){return carArt({ci,col,tuned:0,quirks:[],body:85},w)}
 const RARN=["","Niet alledaags","Zeldzaam","LEGENDE"];
+/* premium-glans om zeldzame vondsten te laten opvallen (legende = goud, zeldzaam = subtieler) */
+function carAura(c){const d=c&&CARS[c.ci];if(!d)return"";return d.rar>=3?" legend-aura":d.rar>=2?" rare-aura":"";}
 const PAPN=["papieren in orde","papieren zien er... moe uit","papieren vers van de printer"];
 function condPill(v,lbl){const cls=v>70?"good":v>40?"warn":"bad";return '<span class="pill '+cls+'">'+lbl+" "+Math.round(v)+"%</span>"}
 
@@ -3728,7 +3737,7 @@ function renderMarket(){
    +'<div class="small dim">Je loopt over het terrein. Motorkappen open, sterke koffie, sterkere verhalen.</div></div>';
   if(MK.cars.length===0)h+='<div class="card center dim">Alles bekeken. Tijd om naar huis te rijden.</div>';
   for(const c of MK.cars){
-    h+='<div class="carline" onclick="openMarketCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
+    h+='<div class="carline'+carAura(c)+'" onclick="openMarketCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · '+PAPN[c.papers]+'</div>'
@@ -4123,7 +4132,7 @@ function renderGarage(){
   }
   if(G.cars.length===0)h+='<div class="card center dim" style="margin-top:10px">Leeg koertje. Tijd voor een inkooptrip.</div>';
   for(const c of G.cars){
-    h+='<div class="carline" onclick="openCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
+    h+='<div class="carline'+carAura(c)+'" onclick="openCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim"><span class="swatch" style="background:'+COLORS[c.col].h+'"></span>'+COLORS[c.col].n+' · '+c.km.toLocaleString().replace(/,/g,".")+' km · betaald '+fmt(c.paid||0)+'</div>'
@@ -4136,7 +4145,7 @@ function renderGarage(){
    +'<div class="small dim">Wagens die hier liggen winnen elke week waarde (zeldzaam = sneller)... maar de schuur is vochtig. Af en toe eens komen kijken is geen luxe.</div>';
   for(const c of coll){
     const up=Math.round(((c.prem||1)-1)*100);
-    h+='<div class="carline" onclick="openCollCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
+    h+='<div class="carline'+carAura(c)+'" onclick="openCollCar('+c.id+')"><div class="carpic">'+carArt(c,108)+'</div><div style="flex:1">'
      +'<b>'+esc(carName(c))+'</b> <span class="dim small">('+c.year+')</span>'
      +(CARS[c.ci].rar>0?' <span class="pill '+(CARS[c.ci].rar===3?"bad":"warn")+'">'+RARN[CARS[c.ci].rar]+'</span>':'')
      +'<div class="small dim">'+(c.collWeeks||0)+' weken in de schuur · waarde <span class="'+(up>0?"money":"dim")+'">+'+up+'%</span></div>'
@@ -4478,7 +4487,7 @@ function openCust(cid){
   const forSale=G.cars.filter(c=>!c.lesauto);
   for(const c of forSale){
     const m=carMatches(c,cu.want);
-    h+='<div class="carline" onclick="openNeg('+cid+','+c.id+')"><div class="carpic" style="width:86px">'+carArt(c,88)+'</div><div style="flex:1"><b>'+esc(carName(c))+'</b> <span class="small dim">('+c.year+')</span>'
+    h+='<div class="carline'+carAura(c)+'" onclick="openNeg('+cid+','+c.id+')"><div class="carpic" style="width:86px">'+carArt(c,88)+'</div><div style="flex:1"><b>'+esc(carName(c))+'</b> <span class="small dim">('+c.year+')</span>'
      +'<div class="small">'+(m?'<span class="pill good">past bij de vraag</span>':'<span class="pill">niet echt wat die zoekt</span>')+'</div></div>'
      +'<div class="money small">'+fmt(askValue(c))+'</div></div>';
   }
