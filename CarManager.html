@@ -2342,6 +2342,16 @@ function sfx(n){if(MUTE)return;
     honk:()=>{beep(660,0,.11,"square",.12);beep(660,.16,.2,"square",.12)},
     modem:()=>{beep(350,0,.35,"sine",.06);beep(440,.1,.35,"sine",.06);beep(1300,.5,.3,"sine",.07);
       beep(2100,.82,.28,"sine",.06);beep(980,1.12,.25,"sawtooth",.05,2400);beep(1700,1.4,.6,"square",.03,3200)}})[n]()}catch(e){}}
+/* streak-jingle: een klein majeur-akkoord dat een halve toon per streak-trap hoger klinkt — hoe langer de reeks, hoe triomfantelijker (audio-escalatie die 'nog eentje' beloont). Geeft de basisfrequentie terug (0 = niet gespeeld). */
+function comboChime(n){
+  if(MUTE||!n||n<2)return 0;
+  const step=Math.min(n-2,14);
+  const base=Math.round(523*Math.pow(2,step/12));
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+    [0,4,7,12].forEach((semi,i)=>beep(base*Math.pow(2,semi/12),i*.045,.13,"square",.07));
+  }catch(e){}
+  return base;
+}
 function toggleMute(){MUTE=!MUTE;try{localStorage.setItem("cm_mute",MUTE?"1":"0")}catch(e){}if(G)hdr();toast(MUTE?"🔇 Geluid uit":"🔊 Geluid aan")}
 /* de bureau-radio: zap door een paar cheesy 90s-zenders, elk met een eigen tune */
 const RADIO_STATIONS=[
@@ -5922,6 +5932,7 @@ function doSale(cu,c,price,disclosed,iss){
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak — escalerende verkoopstreak met oplopende cashbonus (variable-ratio-achtige beloning die tot 'nog eentje' aanzet)
   G.combo=(G.combo||0)+1;
+  comboChime(G.combo);
   const ct=comboTier(G.combo);
   if(ct){
     const cbonus=Math.round(price*(ct.mult-1)/1000)*1000;
