@@ -101,7 +101,16 @@ h3{font-family:var(--hfont);font-weight:600;font-size:18px;letter-spacing:.8px}
 .carline .em{font-size:26px}
 .carpic{flex:0 0 auto;width:106px;display:flex;justify-content:center;align-items:flex-end}
 .carpic svg{display:block;max-width:100%;filter:drop-shadow(0 3px 3px rgba(0,0,0,.45))}
-.carpic.big{width:100%;margin:2px 0 4px}
+.carpic.big{width:100%;margin:2px 0 4px;position:relative;overflow:hidden}
+.carpic.big:after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-18deg);
+  animation:shinesweep 5.5s ease-in-out infinite}
+/* glans-sweep die over premium knoppen glijdt (licht op gepolijst blik) */
+.shine-host{position:relative;overflow:hidden}
+.shine{position:absolute;top:0;left:-70%;width:45%;height:100%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-18deg);
+  animation:shinesweep 4.5s ease-in-out infinite}
+@keyframes shinesweep{0%{left:-70%}55%{left:130%}100%{left:130%}}
 .logline{padding:6px 2px;border-bottom:1px dashed #3a2f52;font-size:13px}
 .logline:last-child{border-bottom:none}
 #modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
@@ -203,6 +212,38 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 @keyframes levelup{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}
   16%{opacity:1;transform:translate(-50%,-52%) scale(1.15)}40%{transform:translate(-50%,-50%) scale(1)}
   80%{opacity:1}100%{opacity:0;transform:translate(-50%,-66%) scale(1)}}
+.combo-banner{position:fixed;z-index:90;left:50%;top:24%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;
+  font-family:"Bungee",var(--hfont);font-size:26px;color:#ffdff0;
+  text-shadow:0 0 8px #ff5d9e,0 0 20px #ff2f7e,0 2px 5px rgba(0,0,0,.6);animation:combopop 1.5s ease-out forwards}
+.combo-banner span{display:block;font-family:var(--hfont);font-size:12px;letter-spacing:2px;color:#ffb3d6;margin-top:3px;text-shadow:0 0 8px rgba(255,93,158,.7)}
+.combo-banner.mid{color:#ffe9a8;text-shadow:0 0 8px #ffb347,0 0 20px #ff9a3c,0 2px 5px rgba(0,0,0,.6)}
+.combo-banner.mid span{color:#ffd9a0}
+.combo-banner.hot{color:#ffd0b0;text-shadow:0 0 8px #ff7a3c,0 0 22px #ff5020,0 2px 5px rgba(0,0,0,.6)}
+.combo-banner.hot span{color:#ffb090}
+.combo-banner.legend{color:#fff6c0;font-size:30px;text-shadow:0 0 10px #ffd76a,0 0 26px #ffb347,0 0 44px #ff9a3c,0 2px 6px rgba(0,0,0,.7)}
+.combo-banner.legend span{color:#ffe9a8}
+@keyframes combopop{0%{opacity:0;transform:translate(-50%,-30%) scale(.5) rotate(-4deg)}
+  16%{opacity:1;transform:translate(-50%,-52%) scale(1.18) rotate(2deg)}40%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+  80%{opacity:1}100%{opacity:0;transform:translate(-50%,-64%) scale(1)}}
+.nearmiss-banner{position:fixed;z-index:91;left:50%;top:30%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;
+  font-family:"Bungee",var(--hfont);font-size:24px;color:#ffe0a8;
+  text-shadow:0 0 8px #ff9a3c,0 0 20px #ff5020,0 2px 5px rgba(0,0,0,.6);animation:nearmiss 1.6s ease-out forwards}
+.nearmiss-banner span{display:block;font-family:var(--hfont);font-size:11px;letter-spacing:1px;color:#ffcf9a;margin-top:4px;text-shadow:0 0 8px rgba(255,120,50,.7)}
+@keyframes nearmiss{0%{opacity:0;transform:translate(-50%,-46%) scale(.6)}
+  10%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}18%{transform:translate(-52%,-50%) scale(1.05)}26%{transform:translate(-48%,-50%) scale(1.05)}34%{transform:translate(-50%,-50%) scale(1)}
+  82%{opacity:1}100%{opacity:0;transform:translate(-50%,-58%) scale(1)}}
+.odo-fx{position:fixed;z-index:89;left:50%;top:40%;transform:translate(-50%,-50%);pointer-events:none;
+  display:flex;align-items:center;gap:6px;background:#14100f;border:2px solid #3a2f24;border-radius:6px;
+  padding:8px 12px;box-shadow:0 10px 28px rgba(0,0,0,.6);animation:odopanel 1.5s ease-out forwards}
+.odo-fx .odo-lbl,.odo-fx .odo-km{font-family:var(--hfont);font-size:9px;letter-spacing:1px;color:#c9a35a}
+.odo-drums{display:flex;gap:2px}
+.odo-digit{display:inline-block;width:15px;height:20px;overflow:hidden;background:#efe9dc;border-radius:2px;
+  box-shadow:inset 0 0 4px rgba(0,0,0,.4);text-align:center}
+.odo-digit b{display:block;animation:odospin 1.15s cubic-bezier(.25,.6,.2,1) both;animation-delay:inherit}
+.odo-digit u{display:block;height:20px;line-height:20px;font:700 14px/20px monospace;color:#211c16;text-decoration:none}
+@keyframes odospin{0%{transform:translateY(calc(-9em - 200px))}100%{transform:translateY(calc(var(--n) * -20px))}}
+@keyframes odopanel{0%{opacity:0;transform:translate(-50%,-40%) scale(.85)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.03)}
+  30%{transform:translate(-50%,-50%) scale(1)}82%{opacity:1}100%{opacity:0;transform:translate(-50%,-58%) scale(1)}}
 .mood{font-size:24px;vertical-align:-3px}
 .scr{display:inline-block;width:64px;height:64px;line-height:62px;font-size:34px;text-align:center;
   background:linear-gradient(180deg,#9da1ab,#6a6d75);border-radius:10px;margin:4px;cursor:pointer;
@@ -240,6 +281,15 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 @keyframes puff{0%{opacity:.7;transform:translate(0,0) scale(.5)}100%{opacity:0;transform:translate(-26px,-14px) scale(1.6)}}
 .roadscene.night{background:linear-gradient(180deg,#05040f 0%,#141030 45%,#1c1430 52%,#16121f 52.5%)}
 .roadscene.night .rs-sun{background:radial-gradient(circle,#e8e6df,#9aa 70%);box-shadow:0 0 18px #ccd;width:26px;height:26px}
+/* neerslag op de terugreis (regen/sneeuw) */
+.rs-precip{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:6}
+.rs-precip i{position:absolute;top:-12%;opacity:0}
+.rs-precip.rain i{width:1px;height:16px;background:linear-gradient(180deg,transparent,rgba(210,225,255,.75));
+  transform:rotate(16deg);animation:rainfall linear infinite}
+.rs-precip.snow i{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.9);
+  box-shadow:0 0 3px rgba(255,255,255,.6);animation:snowfall linear infinite}
+@keyframes rainfall{0%{opacity:0;transform:translate(0,-20px) rotate(16deg)}8%{opacity:.9}100%{opacity:.6;transform:translate(-60px,240px) rotate(16deg)}}
+@keyframes snowfall{0%{opacity:0;transform:translate(0,-10px)}12%{opacity:.95}100%{opacity:.5;transform:translate(-26px,240px)}}
 .rs-beam{position:absolute;bottom:14%;width:120px;height:26px;
   background:linear-gradient(90deg,rgba(255,240,180,.35),transparent 85%);
   clip-path:polygon(0 40%,100% 0,100% 100%,0 60%);pointer-events:none}
@@ -765,7 +815,7 @@ function newGame(ch){
      busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
-     comebacks:[], mile:{}, neonHue:0, radioStation:0, over:false};
+     comebacks:[], mile:{}, neonHue:0, radioStation:0, weekStreak:0, over:false};
   rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
@@ -812,7 +862,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;G.radioStation=G.radioStation||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;G.radioStation=G.radioStation||0;G.weekStreak=G.weekStreak||0;
   if(!G.carYear||G.carYear.year!==G.year)rotateCarYear();
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
@@ -941,6 +991,9 @@ const GOALS=[
  {id:"radiozap",t:"Zap eens door de radiozenders op 't koertje",r:"+40 XP · een deuntje bij de koffie",c:()=>!!G.mile.radioZap,fn:()=>addXP(40)},
  {id:"leveledup",t:"Klim een niveau hoger",r:"+30 XP · de eerste sport op de ladder",c:()=>!!G.mile.leveledUp,fn:()=>addXP(30)},
  {id:"pigeon",t:"Jaag de duif eens op 't koertje op",r:"+30 XP · roekoe",c:()=>!!G.mile.pigeon,fn:()=>addXP(30)},
+ {id:"odoroll",t:"Draai een teller terug (en voel de spanning)",r:"+50 XP · wij weten van niets",c:()=>!!G.mile.odoRoll,fn:()=>addXP(50)},
+ {id:"combolegend",t:"Bouw een legendarische verkoopstreak (×10)",r:"+150 XP · tien op een rij, ongenaakbaar",c:()=>!!G.mile.comboLegend,fn:()=>addXP(150)},
+ {id:"weekstreak8",t:"Hou acht goede weken op een rij vol",r:"+120 XP · elke week een wagen weg",c:()=>!!G.mile.weekStreak8,fn:()=>addXP(120)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -1592,6 +1645,9 @@ function carMatches(c,w){
   return true;
 }
 
+/* wekelijkse-streakbonus: oplopend maar gecapt (één dial: WEEK_STREAK_BASE) */
+const WEEK_STREAK_BASE=6000, WEEK_STREAK_CAP=60000;
+function weekStreakBonus(n){return Math.min(WEEK_STREAK_CAP,WEEK_STREAK_BASE*Math.max(0,(n||0)-1));}
 /* ============ WEEK TICK ============ */
 function endWeek(silent){
   const wkLbl="Week "+G.week+" '"+String(G.year).slice(2);
@@ -1944,6 +2000,17 @@ function endWeek(silent){
   // marktstand geldt maar één weekend
   if(G.marketWeek){G.marketWeek=false;extra.push(["🏬 Marktweekend voorbij","de kraam wordt weer ingeklapt",""]);}
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
+  // wekelijkse hot streak: opeenvolgende weken met minstens één verkoop bouwen een oplopende bonus op (don't break the streak)
+  if((G.wkSold||0)>0){
+    G.weekStreak=(G.weekStreak||0)+1;
+    if(G.weekStreak>=2){const wb=weekStreakBonus(G.weekStreak);G.cash+=wb;repAdd(1);
+      if(G.weekStreak>=8)G.mile.weekStreak8=1;
+      const tag=G.weekStreak>=8?"🔥 in vuur en vlam!":G.weekStreak>=4?"lekkere reeks":"goed bezig";
+      extra.push(["🔥 "+G.weekStreak+" goede weken op rij",tag+" · +"+fmt(wb),"money"]);
+      if(!silent&&G.weekStreak>=4){stamp("🔥 STREAK "+G.weekStreak,"gold")}}
+  } else if((G.weekStreak||0)>0){
+    extra.push(["💤 Streak gebroken","geen verkoop deze week — reeks terug op 0","neg"]);G.weekStreak=0;
+  }
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
   if(!silent&&!G.over){
     if(newYear){if(modalOpen())G.pendingGala=1;else showAwards()}
@@ -2244,6 +2311,21 @@ function polaroidPop(c){try{
     +'<div class="polaroid-cap">'+esc(carName(c))+'<span>nieuw op \'t koertje</span></div>';
   document.body.appendChild(d);setTimeout(()=>d.remove(),2100);
   if(G&&G.mile)G.mile.polaroid=1;
+  sfx("tick");
+}catch(e){}}
+/* rollende teller-trommeltjes wanneer ge de kilometerstand 'corrigeert' */
+function odometerFx(fromKm,toKm){try{
+  const to=Math.max(0,Math.round(toKm||0));
+  const digits=String(to).padStart(6,"0").slice(-6).split("");
+  const wrap=document.createElement("div");wrap.className="odo-fx";
+  let inner='<div class="odo-lbl">TELLER</div><div class="odo-drums">';
+  digits.forEach((dg,i)=>{
+    inner+='<span class="odo-digit" style="--n:'+dg+';animation-delay:'+(i*.12).toFixed(2)+'s"><b>'
+      +'0123456789'.split("").map(x=>'<u>'+x+'</u>').join("")+'</b></span>';
+  });
+  inner+='</div><div class="odo-km">km</div>';
+  wrap.innerHTML=inner;
+  document.body.appendChild(wrap);setTimeout(()=>wrap.remove(),1500);
   sfx("tick");
 }catch(e){}}
 function ouch(){sfx("bad");if(typeof TD!=="undefined"&&TD&&TD.on){TD.shake=Math.min(.6,(TD.shake||0)+.42);return}document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
@@ -3360,6 +3442,15 @@ const WHEEL=[
  {e:"👮",t:"+4 heat. De wijkagent zag je draaien.",w:8,fn:()=>{heatAdd(4);popNum("+4 🔥","pred");ouch()}},
 ];
 const WCOLS=["#52417a","#3c2f58","#5d3a78","#463763","#33274b","#54254a","#443a60"];
+const WHEEL_JACKPOT=WHEEL.findIndex(w=>/JACKPOT/i.test(w.t));
+/* near-miss: landde het rad pal naast de jackpot? (circulaire buur, maar niet de jackpot zelf) */
+function isNearMiss(landed,jackpot,n){if(n<3||landed===jackpot)return false;
+  const d=Math.min((landed-jackpot+n)%n,(jackpot-landed+n)%n);return d===1;}
+function nearMissBanner(){try{
+  const b=document.createElement("div");b.className="nearmiss-banner";
+  b.innerHTML='😬 ZO DICHTBIJ!<span>de jackpot op een haar na — nog een keer?</span>';
+  document.body.appendChild(b);setTimeout(()=>b.remove(),1600);sfx("thud");
+}catch(e){}}
 function spinWheel(){
   if(G.spun){toast("Al gedraaid deze week.");return}
   let tot=WHEEL.reduce((s,w)=>s+w.w,0),r=Math.random()*tot,si=0;
@@ -3370,6 +3461,7 @@ function spinWheel(){
     G.spun=true;seg.fn();addXP(3);save();hdr();
     modal('<div class="center" style="padding:10px 0"><div class="reel">'+seg.e+'</div><b>'+seg.t+'</b></div>',
      [{t:"OK",fn:closeModal}]);
+    if(isNearMiss(si,WHEEL_JACKPOT,WHEEL.length))nearMissBanner();
   };
   if(!REEL_MS){land();return}
   const n=WHEEL.length,sa=360/n;
@@ -4018,7 +4110,7 @@ function openCollCar(id){
    +'<div class="small dim" style="margin-top:4px">'+(c.collWeeks||0)+' weken in de schuur · waarde <b class="money">'+fmt(askValue(c))+'</b> (+'+up+'%)</div>'
    +'<div class="small dim">Elke week een beetje meer waard. Elke week een beetje meer vocht.</div><hr><div class="tablebtns">'
    +'<button class="btn primary" onclick="collPull('+c.id+')">⬅️ Terug naar de stock</button>'
-   +'<button class="btn" onclick="show3D((G.collection||[]).find(x=>x.id==='+c.id+'),false)">🌀 Showroom 3D</button>'
+   +'<button class="btn shine-host" onclick="show3D((G.collection||[]).find(x=>x.id==='+c.id+'),false)">🌀 Showroom 3D<span class="shine"></span></button>'
    +'</div>',
   [{t:"Zeil er terug over",cls:"ghost",fn:closeModal}]);
 }
@@ -4065,7 +4157,7 @@ function openCar(id){
    +'<button class="btn" onclick="keuringCar('+c.id+')" '+(c.keured?"disabled":"")+'>🔧 Naar de keuring<br><span class="small">'+(c.keured?"✅ groene kaart":fmt(KEURING_FEE)+" · +vertrouwen")+'</span></button>'
    +'<button class="btn" onclick="fitPlate('+c.id+')" '+(c.vipPlate?"disabled":"")+'>🔖 Eigen nummerplaat<br><span class="small">'+(c.vipPlate?"✅ gepersonaliseerd (+"+Math.round(PLATE_BONUS*100)+"%)":fmt(plateFee(c))+" · +"+Math.round(PLATE_BONUS*100)+"% appeal")+'</span></button>'
    +'<button class="btn" onclick="fitTyres('+c.id+')">'+(tyreSeasonType()==="winter"?"❄️ Winterbanden":"☀️ Zomerbanden")+'<br><span class="small">'+fmt(TYRE_COST)+' · '+(tyresInSeason(c)?"✓ in seizoen (+"+Math.round(TYRE_BONUS*100)+"%)":c.tyres?tyreLabel(c.tyres)+" (uit seizoen)":"+"+Math.round(TYRE_BONUS*100)+"% in seizoen")+'</span></button>'
-   +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
+   +'<button class="btn shine-host" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D<span class="shine"></span></button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
    +'<button class="btn" onclick="moveToColl('+c.id+')" '+((G.collection||[]).length>=G.collSlots?"disabled":"")+'>🏛️ In de schuur leggen<br><span class="small">wordt meer waard · kan roesten</span></button>'
    +'<button class="btn'+(c.lesauto?" primary":"")+'" onclick="toggleLesauto('+c.id+')">🚗 '+(c.lesauto?"Uit de rijschool halen":"Als lesauto verhuren")+'<br><span class="small">'+(c.lesauto?"nu in dienst · niet te koop":"~"+fmt(Math.max(1500,Math.round(askValue(c)*.02/1000)*1000))+"/wk · slijtage")+'</span></button>'
@@ -4268,8 +4360,9 @@ function rollKm(id){const c=getCar(id);const shM=shadyMult();const cost=Math.rou
    +'<div class="small dim">Kost '+fmt(cost)+". De marktwaarde stijgt, je karma daalt, en de heat ook een beetje omhoog natuurlijk.</div>",
   [{t:"Draai maar terug",cls:"shady",fn:()=>{
      if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
-     G.cash-=cost;c.km=+$("kmsl").value;c.rolled=true;
+     const oldKm=c.km;G.cash-=cost;c.km=+$("kmsl").value;c.rolled=true;G.mile.odoRoll=1;
      if(!c.known.includes("__rolled"))c.known.push("__rolled");
+     odometerFx(oldKm,c.km);
      heatAdd(5);popNum("+5 🔥","pred");log(carName(c)+": teller 'gecorrigeerd'. Wij weten van niets.");closeModal();openCar(id);hdr()}},
    {t:"Toch maar niet",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
 }
@@ -4296,7 +4389,8 @@ function renderSell(){
    +(cheapFuelOn()?'<span class="pill good">⛽ Goedkope brandstof: slokops +15% (nog '+G.cheapFuel.weeks+' wk)</span>':'')
    +(G.carYear?'<span class="pill good">🏆 Auto v/h Jaar: '+esc(G.carYear.name)+' (+15%)</span>':'')
    +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
-   +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
+   +((G.weekStreak||0)>=2?'<span class="pill good" title="Verkoop elke week minstens één wagen om de reeks vol te houden">🔥 '+G.weekStreak+' goede weken op rij</span>':'')
+   +((G.combo||0)>=2?'<span class="pill good">🔥 Streak ×'+G.combo+(comboTier(G.combo)?' · '+comboTier(G.combo).name+' +'+Math.round((comboTier(G.combo).mult-1)*100)+'%':'')+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
@@ -4605,8 +4699,21 @@ function driveScene(txt,cb){
    +'<div class="rs-car">'+(c?carArt(c,150):'<div style="font-size:54px">🚚</div>')
    +'<span class="rs-puff" style="left:-4px;bottom:8px"></span><span class="rs-puff" style="left:-10px;bottom:4px;animation-delay:.4s"></span>'
    +(night?'<span class="rs-beam" style="left:96%"></span>':'')+'</div>'
+   +roadPrecipHtml(roadPrecip())
    +'<div class="rs-txt">'+txt+'</div></div>',[]);
   setTimeout(cb,1500);
+}
+/* seizoensweer op de terugreis: regenstrepen in lente/herfst, sneeuw in winter, helder in zomer */
+const ROAD_PRECIP={Winter:{cls:"snow",n:16},Lente:{cls:"rain",n:20},Zomer:{cls:"clear",n:0},Herfst:{cls:"rain",n:22}};
+function roadPrecip(se){return ROAD_PRECIP[(se||season()).n]||ROAD_PRECIP.Lente;}
+function roadPrecipHtml(rp){
+  if(!rp||!rp.n)return '<div class="rs-precip '+((rp&&rp.cls)||"clear")+'"></div>';
+  let h='<div class="rs-precip '+rp.cls+'">';
+  for(let i=0;i<rp.n;i++){
+    const left=Math.round(rnd(0,100)),dur=(rp.cls==="snow"?rnd(2.2,4):rnd(.5,1.1)).toFixed(2),del=(rnd(0,2)).toFixed(2);
+    h+='<i style="left:'+left+'%;animation-duration:'+dur+'s;animation-delay:'+del+'s"></i>';
+  }
+  return h+'</div>';
 }
 /* seizoensweer op 't koertje: welk deeltje valt er en hoeveel */
 const LOT_WX={Winter:{cls:"winter",glyph:"❄",n:14},Lente:{cls:"lente",glyph:"🌸",n:10},
@@ -5519,6 +5626,15 @@ function trySell(){
     }
   });
 }
+/* escalerende verkoopstreak: elke opeenvolgende verkoop klimt een trap hoger en levert een oplopende bonus */
+const COMBO_TIERS=[{min:10,name:"Legendarisch",mult:1.30,cls:"legend"},{min:7,name:"Vurig",mult:1.20,cls:"hot"},
+  {min:4,name:"Straf",mult:1.12,cls:"mid"},{min:2,name:"Vlot",mult:1.06,cls:"low"}];
+function comboTier(n){for(const t of COMBO_TIERS)if((n||0)>=t.min)return t;return null;}
+function comboBanner(n,t){try{
+  const b=document.createElement("div");b.className="combo-banner "+(t.cls||"");
+  b.innerHTML='🔥 STREAK ×'+n+'<span>'+esc(t.name)+' · +'+Math.round((t.mult-1)*100)+'%</span>';
+  document.body.appendChild(b);setTimeout(()=>b.remove(),1500);
+}catch(e){}}
 function doSale(cu,c,price,disclosed,iss){
   const useTrade=!!(cu._useTrade&&cu.tradeIn);
   const warranted=!!cu._warranty;
@@ -5561,9 +5677,15 @@ function doSale(cu,c,price,disclosed,iss){
   stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26);coinBurst(saleProfit);driveOff(c);
   if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");shakeLite();confetti(30);}
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
-  // combo streak
+  // combo streak — escalerende verkoopstreak met oplopende cashbonus (variable-ratio-achtige beloning die tot 'nog eentje' aanzet)
   G.combo=(G.combo||0)+1;
-  if(G.combo>=2){stamp("COMBO ×"+G.combo,"pink");addXP(Math.min(G.combo-1,5)*8)}
+  const ct=comboTier(G.combo);
+  if(ct){
+    const cbonus=Math.round(price*(ct.mult-1)/1000)*1000;
+    if(cbonus>0){G.cash+=cbonus;G.earned+=cbonus;popNum("+"+fmt(cbonus)+" 🔥","pgreen")}
+    comboBanner(G.combo,ct);addXP(Math.min(G.combo-1,5)*8);
+    if(G.combo>=10)G.mile.comboLegend=1;
+  }
   // klantenkaart: elke verkoop een stempel
   addStamp();
   // pearl: flawless car sold
