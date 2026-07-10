@@ -176,9 +176,26 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   box-shadow:0 0 6px 1px currentColor;animation:fwburst 1.4s ease-out forwards}
 @keyframes fwburst{0%{opacity:0;transform:translate(0,0) scale(.4)}
   10%{opacity:1}70%{opacity:.9}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1)}}
+.coin{position:fixed;z-index:77;font-size:18px;pointer-events:none;opacity:0;will-change:transform;
+  animation:coinfly 1.5s cubic-bezier(.2,.7,.4,1) forwards}
+@keyframes coinfly{0%{opacity:0;transform:translate(0,0) rotateY(0) scale(.5)}
+  12%{opacity:1;transform:translate(calc(var(--dx)*.4),calc(var(--dy)*.7)) rotateY(180deg) scale(1)}
+  100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 240px)) rotateY(900deg) scale(.9)}}
 .shake{animation:shake .45s}
 @keyframes shake{0%,100%{transform:none}20%{transform:translate(-7px,2px)}40%{transform:translate(6px,-3px)}
   60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}
+.shake-lite{animation:shakelite .4s}
+@keyframes shakelite{0%,100%{transform:none}25%{transform:translate(-3px,1px)}50%{transform:translate(3px,-1px)}75%{transform:translate(-2px,1px)}}
+.polaroid{position:fixed;z-index:88;left:50%;top:38%;transform:translate(-50%,-50%);pointer-events:none;
+  background:#f5f2ea;padding:8px 8px 4px;border-radius:3px;box-shadow:0 10px 30px rgba(0,0,0,.55);
+  animation:develop 2.1s ease-out forwards}
+.polaroid-pic{width:120px;height:80px;overflow:hidden;border-radius:2px;background:#20202a;display:flex;align-items:center;justify-content:center}
+.polaroid-cap{font-family:var(--hfont);font-size:11px;color:#2a2620;text-align:center;padding:5px 2px 2px;line-height:1.15}
+.polaroid-cap span{display:block;font-size:8px;color:#8a8478;letter-spacing:.5px}
+@keyframes develop{0%{opacity:0;transform:translate(-50%,-30%) rotate(-8deg) scale(.7);filter:sepia(1) contrast(.6) brightness(1.5)}
+  18%{opacity:1;transform:translate(-50%,-52%) rotate(3deg) scale(1.06);filter:sepia(.7) contrast(.8) brightness(1.2)}
+  45%{transform:translate(-50%,-50%) rotate(-1deg) scale(1);filter:sepia(0) contrast(1) brightness(1)}
+  82%{opacity:1;filter:none}100%{opacity:0;transform:translate(-50%,-64%) rotate(2deg) scale(.98);filter:none}}
 .mood{font-size:24px;vertical-align:-3px}
 .scr{display:inline-block;width:64px;height:64px;line-height:62px;font-size:34px;text-align:center;
   background:linear-gradient(180deg,#9da1ab,#6a6d75);border-radius:10px;margin:4px;cursor:pointer;
@@ -233,6 +250,11 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 .lot-office:before{content:"";position:absolute;left:8px;top:6px;width:22px;height:12px;background:#ffe9a8;border-radius:2px;
   box-shadow:34px 0 0 #ffd76a;animation:offlight 7s steps(1) infinite}
 @keyframes offlight{0%,88%{opacity:1}89%,93%{opacity:.35}94%,100%{opacity:1}}
+.lot-neon{position:absolute;left:6%;top:20%;font-family:"Bungee",var(--hfont);font-size:9px;letter-spacing:1px;
+  cursor:pointer;z-index:4;color:#fff;--nh:#ff2f7e;text-shadow:0 0 4px var(--nh),0 0 9px var(--nh),0 0 15px var(--nh);
+  animation:neonflik 3s ease-in-out infinite}
+.lot-neon.dicht{--nh:#5aa0ff;font-size:7px;opacity:.75;animation:neonflik 1.6s steps(1) infinite}
+@keyframes neonflik{0%,100%{opacity:1}47%{opacity:.9}50%{opacity:.5}53%{opacity:.95}}
 .lot-office:after{content:"CARMANAGER";position:absolute;left:0;right:0;top:-13px;text-align:center;
   font-family:var(--hfont);font-size:9px;letter-spacing:1.5px;color:var(--amber);text-shadow:0 0 6px rgba(255,179,71,.6)}
 .lot-halte{position:absolute;right:7%;top:24%;font-size:22px}
@@ -244,7 +266,22 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   background:radial-gradient(1.6px 1.6px at 12% 30%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 34% 62%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 58% 38%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 79% 70%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 91% 34%,#57506a 50%,transparent 51%)}
+/* heat-reactieve sfeer: hoe heter, hoe zenuwachtiger de container */
+.lot-heatglow{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .6s}
+.lot.lot-warm .lot-heatglow{opacity:1;background:radial-gradient(90px 60px at 12% 34%,rgba(255,150,60,.16),transparent 70%)}
+.lot.lot-hot .lot-heatglow{opacity:1;background:radial-gradient(110px 70px at 12% 34%,rgba(255,70,50,.30),transparent 72%);animation:heatpulse 1.5s ease-in-out infinite}
+.lot.lot-panic .lot-heatglow{opacity:1;background:radial-gradient(120px 80px at 12% 34%,rgba(255,50,40,.40),transparent 70%);animation:heatpulse .9s ease-in-out infinite}
+.lot.lot-panic .lot-heatglow:after{content:"";position:absolute;inset:0;background:radial-gradient(80px 50px at 50% 0,rgba(70,130,255,.5),transparent 70%);animation:police 1.1s steps(1) infinite}
+@keyframes heatpulse{0%,100%{opacity:.65}50%{opacity:1}}
+@keyframes police{0%,49%{opacity:.15;transform:translateX(-30%)}50%,100%{opacity:.6;transform:translateX(30%)}}
+.lot.lot-hot .lot-smoke i,.lot.lot-panic .lot-smoke i{animation-duration:1.4s;background:rgba(235,225,225,.6)}
 .lot-car{position:absolute;bottom:7%;animation:idlebob 4s ease-in-out infinite;cursor:pointer}
+.lot-tag{position:absolute;top:-9px;left:50%;transform-origin:top center;pointer-events:none;
+  font-family:var(--hfont);font-size:7px;font-weight:700;letter-spacing:.2px;white-space:nowrap;
+  color:#2a2620;background:#ffe08a;padding:1px 4px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.45);
+  border:1px solid #d9b06a;animation:tagswing 3.4s ease-in-out infinite}
+.lot-tag:before{content:"";position:absolute;top:-4px;left:50%;width:1px;height:4px;background:#9a8a55}
+@keyframes tagswing{0%,100%{transform:translateX(-50%) rotate(-5deg)}50%{transform:translateX(-50%) rotate(5deg)}}
 .lot-car.honk{animation:carhonk .5s ease}
 @keyframes carhonk{0%{transform:translateY(0) rotate(0)}18%{transform:translateY(-9px) rotate(-3deg)}
   40%{transform:translateY(-2px) rotate(3deg)}62%{transform:translateY(-6px) rotate(-2deg)}100%{transform:translateY(0) rotate(0)}}
@@ -699,7 +736,7 @@ function newGame(ch){
      busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
-     comebacks:[], mile:{}, over:false};
+     comebacks:[], mile:{}, neonHue:0, over:false};
   rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
@@ -746,7 +783,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;
   if(!G.carYear||G.carYear.year!==G.year)rotateCarYear();
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
@@ -832,6 +869,7 @@ const GOALS=[
  {id:"punchcard5",t:"Vul 5 klantenkaarten",r:"+300 XP · huisleverancier van heel Essene",c:()=>(G.cardsFull||0)>=5,fn:()=>addXP(300)},
  {id:"bargain",t:"Koop een project uit de koopjesbak",r:"+70 XP · handige harry",c:()=>!!G.mile.bargain,fn:()=>addXP(70)},
  {id:"bargainflip",t:"Verkoop een opgeknapt koopjesbak-project met winst",r:"+130 XP · van schroot naar schat",c:()=>!!G.mile.bargainFlip,fn:()=>addXP(130)},
+ {id:"jackpotsale",t:"Sluit een monsterdeal (dikke winst in één klap)",r:"+140 XP · de kassa rinkelt na",c:()=>!!G.mile.jackpotSale,fn:()=>addXP(140)},
  {id:"referral",t:"Verkoop aan een doorverwezen klant",r:"+80 XP · mond-tot-mondreclame",c:()=>!!G.mile.referral,fn:()=>addXP(80)},
  {id:"referchain",t:"Bouw een verwijsketen van 3 diep",r:"+220 XP · heel de familie rijdt nu bij u",c:()=>!!G.mile.referChain,fn:()=>addXP(220)},
  {id:"mystery",t:"Waag een verrassingskavel op de veiling",r:"+80 XP · wie niet waagt, niet wint",c:()=>!!G.mile.mysteryLot,fn:()=>addXP(80)},
@@ -870,6 +908,9 @@ const GOALS=[
  {id:"cheapfuel",t:"Verkoop een slokop tijdens de goedkope-brandstofweek",r:"+90 XP · lage pompprijs, dikke marge",c:()=>!!G.mile.cheapFuel,fn:()=>addXP(90)},
  {id:"caryear",t:"Verkoop de Auto van het Jaar",r:"+130 XP · verkozen én verkocht",c:()=>!!G.mile.carYear,fn:()=>addXP(130)},
  {id:"newyearshow",t:"Vier Nieuwjaar op het koertje met vuurwerk",r:"+80 XP · een jaar overleefd, proost",c:()=>!!G.mile.newYearShow,fn:()=>addXP(80)},
+ {id:"neontoggle",t:"Speel met het neonbord op de container",r:"+40 XP · sfeer is ook verkoop",c:()=>!!G.mile.neonToggle,fn:()=>addXP(40)},
+ {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
+ {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
 ];
 function checkGoals(){
@@ -2115,6 +2156,32 @@ function fireworks(n){try{
       document.body.appendChild(d);setTimeout(()=>d.remove(),1600+delay*1000);
     }
   }
+}catch(e){}}
+/* muntenfontein bij een verkoop: aantal schaalt met de winst */
+function coinBurst(profit){try{
+  const p=Math.max(0,profit||0);
+  const n=clamp(8+Math.round(p/12000),8,40);
+  const glyphs=["🪙","💰","💶","🟡"];
+  for(let i=0;i<n;i++){
+    const d=document.createElement("div");d.className="coin";d.textContent=pick(glyphs);
+    d.style.left=(42+Math.random()*16)+"%";d.style.top=(46+Math.random()*8)+"%";
+    d.style.setProperty("--dx",Math.round(Math.random()*360-180)+"px");
+    d.style.setProperty("--dy",Math.round(-120-Math.random()*160)+"px");
+    d.style.animationDelay=(Math.random()*.22).toFixed(2)+"s";
+    document.body.appendChild(d);setTimeout(()=>d.remove(),1750);
+  }
+}catch(e){}}
+/* zachte schok bij een uitzonderlijke marge */
+function shakeLite(){try{document.body.classList.remove("shake-lite");void document.body.offsetWidth;document.body.classList.add("shake-lite");}catch(e){}}
+/* polaroid: een nieuwe aanwinst ontwikkelt zich op een kiekje */
+function polaroidPop(c){try{
+  if(!c)return;
+  const d=document.createElement("div");d.className="polaroid";
+  d.innerHTML='<div class="polaroid-pic">'+carArt(c,120)+'</div>'
+    +'<div class="polaroid-cap">'+esc(carName(c))+'<span>nieuw op \'t koertje</span></div>';
+  document.body.appendChild(d);setTimeout(()=>d.remove(),2100);
+  if(G&&G.mile)G.mile.polaroid=1;
+  sfx("tick");
 }catch(e){}}
 function ouch(){sfx("bad");if(typeof TD!=="undefined"&&TD&&TD.on){TD.shake=Math.min(.6,(TD.shake||0)+.42);return}document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
 let REEL_MS=950,WIV=null,SWEEP=null;
@@ -3515,6 +3582,7 @@ function buyCar(c,price){
   MK.bought.push(c);MK.cars=MK.cars.filter(x=>x.id!==c.id);
   popNum("-"+fmt(price),"pred");addXP(8);
   log(carName(c)+" gekocht in "+MARKETS[MK.k].n+" voor "+fmt(price)+".");
+  polaroidPop(c);
   closeModal();render();toast("🔑 "+carName(c)+" is van jou!");
 }
 function mkCarSheet(c,mine){
@@ -4489,16 +4557,30 @@ function lotWeatherHtml(wx){
   }
   return h+'</div>';
 }
+/* neonbord op de container: OPEN als er koopwaar staat, anders GESLOTEN */
+const NEON_HUES=["#ff2f7e","#ffb347","#38d66b","#35d6d6"];
+const NEON_NAMES=["roze","amber","groen","cyaan"];
+function lotSign(){return (G&&G.cars&&G.cars.length>0)?{txt:"OPEN",cls:""}:{txt:"GESLOTEN",cls:"dicht"};}
+/* heat-sfeer op 't koertje (drempels als de heat-balk in de header: 30/60, + paniek boven 85) */
+function heatMood(heat){const h=heat||0;
+  if(h>85)return {cls:"lot-panic",label:"paniek"};
+  if(h>60)return {cls:"lot-hot",label:"heet"};
+  if(h>30)return {cls:"lot-warm",label:"onrustig"};
+  return {cls:"",label:"kalm"};}
 /* the koertje, alive */
 function lotScene(){
   const cars=G.cars.slice(0,5);
   const wx=lotWeather();
+  const sign=lotSign(),hue=NEON_HUES[(G.neonHue||0)%NEON_HUES.length];
+  const hm=heatMood(G.heat);
+  if(hm.cls==="lot-panic")G.mile.heatSweat=1;
   let carsH="";
-  cars.forEach((c,i)=>{carsH+='<div class="lot-car" onclick="lotCarPoke(this,'+i+')" style="left:'+(25+i*13.5)+'%;animation-delay:'+(i*.7)+'s">'+carArt(c,74)+'</div>'});
-  return '<div class="lot '+wx.cls+'">'
-   +'<div class="lot-tint"></div>'
+  cars.forEach((c,i)=>{carsH+='<div class="lot-car" onclick="lotCarPoke(this,'+i+')" style="left:'+(25+i*13.5)+'%;animation-delay:'+(i*.7)+'s">'+carArt(c,74)+'<div class="lot-tag" style="animation-delay:'+(i*.35).toFixed(2)+'s">'+fmt(askValue(c))+'</div></div>'});
+  return '<div class="lot '+wx.cls+(hm.cls?" "+hm.cls:"")+'">'
+   +'<div class="lot-tint"></div><div class="lot-heatglow"></div>'
    +'<div class="lot-sun"></div><div class="lot-clouds">☁️ ☁️ ☁️ ☁️</div>'
    +'<div class="lot-fence"></div><div class="lot-office"></div>'
+   +'<div class="lot-neon '+sign.cls+'" onclick="lotSignClick()" style="--nh:'+hue+'">'+sign.txt+'</div>'
    +'<div class="lot-halte">🚏</div><div class="lot-bus">🚌</div>'
    +'<div class="lot-ground"></div>'
    +lotWeatherHtml(wx)
@@ -4506,6 +4588,15 @@ function lotScene(){
    +(cars.length===0?'<div class="lot-duif">🐦</div>':'')
    +'<div class="lot-char" onclick="lotPoke(this)">'+chr().face+'<div class="lot-smoke"><i></i><i></i><i></i></div></div>'
    +'</div>';
+}
+/* klik op het neonbord: cycle de neonkleur (easter-egg, blijft bewaard) */
+function lotSignClick(){
+  if(!G)return;
+  G.neonHue=((G.neonHue||0)+1)%NEON_HUES.length;
+  G.mile.neonToggle=1;
+  sfx("tick");if(typeof save==="function")save();
+  toast("💡 Neon: "+NEON_NAMES[G.neonHue]);
+  if(typeof render==="function")render();
 }
 /* klik op de zaakvoerder: klein interactief momentje op 't koertje */
 const LOT_QUIPS=[["🚬","Ah, ge zijt er nog. Koffie?"],["☕","Rustig aan, de klanten komen wel."],
@@ -5380,7 +5471,10 @@ function doSale(cu,c,price,disclosed,iss){
   if(c.tradein&&(price-tradeCut)>(c.paid||0))G.mile.tradeFlip=1;
   // een koopjesbak-project met winst doorverkopen
   if(c.bargain&&(price-tradeCut)>(c.paid||0))G.mile.bargainFlip=1;
-  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26);driveOff(c);
+  const saleProfit=price-(c.paid||0);
+  const jackpot=saleProfit>=150000||(c.paid>0&&saleProfit>=2*c.paid);
+  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26);coinBurst(saleProfit);driveOff(c);
+  if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");shakeLite();confetti(30);}
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak
   G.combo=(G.combo||0)+1;
