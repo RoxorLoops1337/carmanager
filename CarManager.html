@@ -196,6 +196,13 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   18%{opacity:1;transform:translate(-50%,-52%) rotate(3deg) scale(1.06);filter:sepia(.7) contrast(.8) brightness(1.2)}
   45%{transform:translate(-50%,-50%) rotate(-1deg) scale(1);filter:sepia(0) contrast(1) brightness(1)}
   82%{opacity:1;filter:none}100%{opacity:0;transform:translate(-50%,-64%) rotate(2deg) scale(.98);filter:none}}
+.levelup-banner{position:fixed;z-index:90;left:50%;top:34%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;
+  font-family:"Bungee",var(--hfont);font-size:30px;color:#ffe9a8;
+  text-shadow:0 0 8px #ffb347,0 0 22px #ff9a3c,0 3px 6px rgba(0,0,0,.6);animation:levelup 1.9s ease-out forwards}
+.levelup-banner span{display:block;font-family:var(--hfont);font-size:13px;letter-spacing:2px;color:var(--amber);margin-top:4px;text-shadow:0 0 8px rgba(255,179,71,.7)}
+@keyframes levelup{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}
+  16%{opacity:1;transform:translate(-50%,-52%) scale(1.15)}40%{transform:translate(-50%,-50%) scale(1)}
+  80%{opacity:1}100%{opacity:0;transform:translate(-50%,-66%) scale(1)}}
 .mood{font-size:24px;vertical-align:-3px}
 .scr{display:inline-block;width:64px;height:64px;line-height:62px;font-size:34px;text-align:center;
   background:linear-gradient(180deg,#9da1ab,#6a6d75);border-radius:10px;margin:4px;cursor:pointer;
@@ -266,6 +273,22 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   background:radial-gradient(1.6px 1.6px at 12% 30%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 34% 62%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 58% 38%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 79% 70%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 91% 34%,#57506a 50%,transparent 51%)}
+/* te-koop-vlaggetjes over 't koertje */
+.lot-bunting{position:absolute;left:0;right:0;top:5%;height:16px;z-index:4;pointer-events:none;
+  display:flex;justify-content:space-around;align-items:flex-start;padding:0 6px;
+  background:linear-gradient(180deg,transparent 0,transparent 1px,rgba(255,255,255,.25) 1px,rgba(255,255,255,.25) 2px,transparent 2px)}
+.lot-bunting i{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:11px solid var(--c,#ffd76a);transform-origin:top center;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
+  animation:buntflutter 2.6s ease-in-out infinite}
+@keyframes buntflutter{0%,100%{transform:rotate(-6deg) scaleY(1)}50%{transform:rotate(6deg) scaleY(.9)}}
+/* dag/nacht-lucht: traag verschuivende tint over de basis-achtergrond */
+.lot-sky{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .8s}
+.lot.dawn .lot-sky{opacity:1;background:linear-gradient(180deg,rgba(255,150,120,.28),rgba(255,200,120,.10) 45%,transparent 60%)}
+.lot.dusk .lot-sky{opacity:1;background:linear-gradient(180deg,rgba(120,60,140,.30),rgba(255,120,80,.14) 48%,transparent 62%)}
+.lot.night .lot-sky{opacity:1;background:linear-gradient(180deg,rgba(6,8,30,.62),rgba(20,20,55,.34) 50%,rgba(10,10,25,.15) 60%)}
+.lot.night .lot-office:before{box-shadow:34px 0 0 #ffd76a,0 0 10px 3px rgba(255,224,120,.7)}
+.lot.night .lot-neon{text-shadow:0 0 6px var(--nh),0 0 14px var(--nh),0 0 26px var(--nh)}
+.lot.night .lot-sun{opacity:.35;filter:brightness(.7)}
 /* heat-reactieve sfeer: hoe heter, hoe zenuwachtiger de container */
 .lot-heatglow{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .6s}
 .lot.lot-warm .lot-heatglow{opacity:1;background:radial-gradient(90px 60px at 12% 34%,rgba(255,150,60,.16),transparent 70%)}
@@ -299,6 +322,12 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 .lot-duif{position:absolute;bottom:9%;left:42%;font-size:15px;animation:duifhop 5s ease-in-out infinite}
 @keyframes duifhop{0%,20%,100%{transform:translate(0,0)}25%{transform:translate(9px,-7px)}30%,60%{transform:translate(16px,0)}
   65%{transform:translate(26px,-6px)}70%,95%{transform:translate(34px,0)}}
+.lot-pigeon{position:absolute;top:32%;right:26%;font-size:13px;z-index:4;cursor:pointer;transform-origin:bottom center;
+  animation:pigeonbob 3.6s ease-in-out infinite}
+@keyframes pigeonbob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-3deg)}}
+.lot-pigeon.flap{animation:pigeonflap .55s ease}
+@keyframes pigeonflap{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(6px,-16px) rotate(-14deg)}
+  55%{transform:translate(12px,-9px) rotate(10deg)}100%{transform:translate(0,0) rotate(0)}}
 /* seizoenssfeer op 't koertje: sneeuw, bloesem, zonnevonken, vallende blaadjes */
 .lot-wx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
 .lot-wx i{position:absolute;top:-14px;display:inline-block;opacity:0;will-change:transform;animation:wxfall linear infinite}
@@ -736,7 +765,7 @@ function newGame(ch){
      busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
-     comebacks:[], mile:{}, neonHue:0, over:false};
+     comebacks:[], mile:{}, neonHue:0, radioStation:0, over:false};
   rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
@@ -759,7 +788,7 @@ function heatAdd(h){G.heat=clamp(G.heat+Math.round(h*(isCh("thomas")?1.5:1)),0,1
 function repAdd(r){G.rep=clamp(G.rep+(r>0&&isCh("thomas")?r*1.5:r),0,100)}
 function addXP(n){G.xp+=n;
   while(G.xp>=G.lvl*120){G.xp-=G.lvl*120;G.lvl++;repAdd(2);
-    stamp("NIVEAU "+G.lvl+"!","gold");sfx("level");confetti(40);
+    levelUpFx(G.lvl);
     toast("🎖️ "+titleFor(G.lvl)+" — niveau "+G.lvl+"! Onderhandelen gaat nét iets vlotter.")}}
 function migrate(){if(!G)return;
   G.cars=G.cars||[];G.custs=G.custs||[];G.log=G.log||[];G.plates=G.plates||[];
@@ -783,7 +812,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;G.radioStation=G.radioStation||0;
   if(!G.carYear||G.carYear.year!==G.year)rotateCarYear();
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
@@ -909,6 +938,9 @@ const GOALS=[
  {id:"caryear",t:"Verkoop de Auto van het Jaar",r:"+130 XP · verkozen én verkocht",c:()=>!!G.mile.carYear,fn:()=>addXP(130)},
  {id:"newyearshow",t:"Vier Nieuwjaar op het koertje met vuurwerk",r:"+80 XP · een jaar overleefd, proost",c:()=>!!G.mile.newYearShow,fn:()=>addXP(80)},
  {id:"neontoggle",t:"Speel met het neonbord op de container",r:"+40 XP · sfeer is ook verkoop",c:()=>!!G.mile.neonToggle,fn:()=>addXP(40)},
+ {id:"radiozap",t:"Zap eens door de radiozenders op 't koertje",r:"+40 XP · een deuntje bij de koffie",c:()=>!!G.mile.radioZap,fn:()=>addXP(40)},
+ {id:"leveledup",t:"Klim een niveau hoger",r:"+30 XP · de eerste sport op de ladder",c:()=>!!G.mile.leveledUp,fn:()=>addXP(30)},
+ {id:"pigeon",t:"Jaag de duif eens op 't koertje op",r:"+30 XP · roekoe",c:()=>!!G.mile.pigeon,fn:()=>addXP(30)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -2134,6 +2166,27 @@ function sfx(n){if(MUTE)return;
     modem:()=>{beep(350,0,.35,"sine",.06);beep(440,.1,.35,"sine",.06);beep(1300,.5,.3,"sine",.07);
       beep(2100,.82,.28,"sine",.06);beep(980,1.12,.25,"sawtooth",.05,2400);beep(1700,1.4,.6,"square",.03,3200)}})[n]()}catch(e){}}
 function toggleMute(){MUTE=!MUTE;try{localStorage.setItem("cm_mute",MUTE?"1":"0")}catch(e){}if(G)hdr();toast(MUTE?"🔇 Geluid uit":"🔊 Geluid aan")}
+/* de bureau-radio: zap door een paar cheesy 90s-zenders, elk met een eigen tune */
+const RADIO_STATIONS=[
+  {name:"Radio Contact",tag:"'De hits van nu en toen!'",notes:[523,659,784,659]},
+  {name:"Studio Brussel",tag:"'Bij de tijd, bij de zaak.'",notes:[440,554,659,880]},
+  {name:"Donna",tag:"'Muziek om bij te verkopen.'",notes:[659,587,523,587]},
+  {name:"Topradio",tag:"'Bonken tot de wagens weg zijn!'",notes:[784,784,1046,784]},
+  {name:"Radio 538",tag:"'Non-stop, net als gij.'",notes:[587,740,880,740]},
+];
+function radioJingle(notes){if(MUTE||!notes)return;
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+    notes.forEach((f,i)=>beep(f,i*.11,.16,"square",.07));}catch(e){}}
+function radioNext(){
+  if(!G)return;
+  G.radioStation=((G.radioStation||0)+1)%RADIO_STATIONS.length;
+  G.mile.radioZap=1;
+  const st=RADIO_STATIONS[G.radioStation];
+  if(typeof save==="function")save();
+  radioJingle(st.notes);
+  toast("📻 "+st.name+" — "+st.tag);
+  if(typeof render==="function")render();
+}
 function confetti(n){for(let i=0;i<(n||36);i++){const d=document.createElement("div");d.className="conf";
   d.style.left=(20+Math.random()*60)+"%";d.style.top=(24+Math.random()*14)+"%";
   d.style.background=pick(["#ffd76a","#ff5d9e","#72e08e","#6cc4ff","#ffb347","#e8e6df"]);
@@ -2173,6 +2226,16 @@ function coinBurst(profit){try{
 }catch(e){}}
 /* zachte schok bij een uitzonderlijke marge */
 function shakeLite(){try{document.body.classList.remove("shake-lite");void document.body.offsetWidth;document.body.classList.add("shake-lite");}catch(e){}}
+/* niveau-omhoog: stamp + confetti + vuurwerk + een gouden banner */
+function levelUpFx(lvl){
+  stamp("NIVEAU "+lvl+"!","gold");sfx("level");confetti(40);
+  try{fireworks(3);
+    const b=document.createElement("div");b.className="levelup-banner";
+    b.innerHTML='🎖️ NIVEAU '+lvl+'<span>'+esc(titleFor(lvl))+'</span>';
+    document.body.appendChild(b);setTimeout(()=>b.remove(),1900);
+  }catch(e){}
+  if(G&&G.mile)G.mile.leveledUp=1;
+}
 /* polaroid: een nieuwe aanwinst ontwikkelt zich op een kiekje */
 function polaroidPop(c){try{
   if(!c)return;
@@ -2281,7 +2344,8 @@ function renderOffice(){
    +'<div class="row small"><span class="pill">Huur '+fmt(of.rent)+'/week</span>'
    +'<span class="pill">Reputatie ★ '+Math.round(G.rep)+'</span><span class="pill '+(G.heat>60?"bad":G.heat>30?"warn":"")+'">Heat 🔥 '+Math.round(G.heat)+'</span>'
    +'<span class="pill">'+G.cars.length+' wagens in stock</span>'
-   +'<span class="pill" title="Klantenkaart: elke verkoop een stempel, volle kaart = bonus">🎟️ '+"●".repeat(G.stamps||0)+"○".repeat(Math.max(0,CARD_SIZE-(G.stamps||0)))+((G.cardsFull||0)>0?' ·'+G.cardsFull+'× vol':'')+'</span></div>';
+   +'<span class="pill" title="Klantenkaart: elke verkoop een stempel, volle kaart = bonus">🎟️ '+"●".repeat(G.stamps||0)+"○".repeat(Math.max(0,CARD_SIZE-(G.stamps||0)))+((G.cardsFull||0)>0?' ·'+G.cardsFull+'× vol':'')+'</span>'
+   +'<span class="pill" style="cursor:pointer" title="Klik om te zappen" onclick="radioNext()">📻 '+esc(RADIO_STATIONS[(G.radioStation||0)%RADIO_STATIONS.length].name)+'</span></div>';
   if(G.office===0&&true){
     h+='<hr><div class="small">🏗️ <b>Upgrade:</b> showroom in <b>Zellik</b> · '+fmt(OFFICES[1].cost)+' · meer klanten, betere prijzen.</div>'
      +'<button class="btn '+(G.cash>=OFFICES[1].cost?"primary":"")+'" onclick="upgradeOffice()" '+(G.cash<OFFICES[1].cost?"disabled":"")+'>Verhuis naar Zellik</button>';
@@ -4567,17 +4631,26 @@ function heatMood(heat){const h=heat||0;
   if(h>60)return {cls:"lot-hot",label:"heet"};
   if(h>30)return {cls:"lot-warm",label:"onrustig"};
   return {cls:"",label:"kalm"};}
+/* dag/nacht-sfeer: de lucht kleurt traag mee met de weken (dageraad->dag->schemer->nacht) */
+const DAY_PHASES=[{cls:"dawn",label:"dageraad"},{cls:"",label:"dag"},{cls:"dusk",label:"schemer"},{cls:"night",label:"nacht"}];
+function dayPhase(week){const w=((week||1)-1);return DAY_PHASES[Math.floor(w/2)%DAY_PHASES.length];}
 /* the koertje, alive */
 function lotScene(){
   const cars=G.cars.slice(0,5);
   const wx=lotWeather();
   const sign=lotSign(),hue=NEON_HUES[(G.neonHue||0)%NEON_HUES.length];
   const hm=heatMood(G.heat);
+  const dp=dayPhase(G.week);
   if(hm.cls==="lot-panic")G.mile.heatSweat=1;
   let carsH="";
   cars.forEach((c,i)=>{carsH+='<div class="lot-car" onclick="lotCarPoke(this,'+i+')" style="left:'+(25+i*13.5)+'%;animation-delay:'+(i*.7)+'s">'+carArt(c,74)+'<div class="lot-tag" style="animation-delay:'+(i*.35).toFixed(2)+'s">'+fmt(askValue(c))+'</div></div>'});
-  return '<div class="lot '+wx.cls+(hm.cls?" "+hm.cls:"")+'">'
-   +'<div class="lot-tint"></div><div class="lot-heatglow"></div>'
+  const buntCols=["#ffd76a","#ff5d9e","#72e08e","#6cc4ff","#ffb347"];
+  let buntH='<div class="lot-bunting">';
+  for(let i=0;i<16;i++)buntH+='<i style="--c:'+buntCols[i%buntCols.length]+';animation-delay:'+(i*.13).toFixed(2)+'s"></i>';
+  buntH+='</div>';
+  return '<div class="lot '+wx.cls+(hm.cls?" "+hm.cls:"")+(dp.cls?" "+dp.cls:"")+'">'
+   +'<div class="lot-sky"></div><div class="lot-tint"></div><div class="lot-heatglow"></div>'
+   +buntH
    +'<div class="lot-sun"></div><div class="lot-clouds">☁️ ☁️ ☁️ ☁️</div>'
    +'<div class="lot-fence"></div><div class="lot-office"></div>'
    +'<div class="lot-neon '+sign.cls+'" onclick="lotSignClick()" style="--nh:'+hue+'">'+sign.txt+'</div>'
@@ -4586,8 +4659,20 @@ function lotScene(){
    +lotWeatherHtml(wx)
    +carsH
    +(cars.length===0?'<div class="lot-duif">🐦</div>':'')
+   +'<div class="lot-pigeon" onclick="pigeonPoke(this)">🐦</div>'
    +'<div class="lot-char" onclick="lotPoke(this)">'+chr().face+'<div class="lot-smoke"><i></i><i></i><i></i></div></div>'
    +'</div>';
+}
+/* klik op de duif op de omheining: ze fladdert op met een koer */
+const PIGEON_COOS=["Roekoe!","*fladder fladder*","De duif is niet onder de indruk.","Ze pikt nog eens naar een frietje.","Terug op de omheining, alsof er niks gebeurd is."];
+function pigeonPoke(el){
+  if(!el)return;
+  el.classList.remove("flap");void el.offsetWidth;el.classList.add("flap");
+  const r=document.createElement("div");r.className="lot-react";r.textContent=pick(["🕊️","💨","🎵"]);
+  if(el.parentNode)el.parentNode.appendChild(r);
+  setTimeout(()=>r.remove(),1100);
+  if(G&&G.mile)G.mile.pigeon=1;
+  sfx("tick");toast("🐦 "+pick(PIGEON_COOS));
 }
 /* klik op het neonbord: cycle de neonkleur (easter-egg, blijft bewaard) */
 function lotSignClick(){
