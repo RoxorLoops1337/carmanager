@@ -239,6 +239,10 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
 @keyframes goalban{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}
   12%{opacity:1;transform:translate(-50%,-52%) scale(1.12)}30%{transform:translate(-50%,-50%) scale(1)}
   85%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
+.promo-banner{position:fixed;z-index:90;left:50%;top:40%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;
+  font-family:"Bungee",var(--hfont);font-size:22px;color:#ffe9a8;
+  text-shadow:0 0 8px #f5c542,0 0 22px #d9a020,0 3px 6px rgba(0,0,0,.6);animation:goalban 2.4s ease-out forwards}
+.promo-banner span{display:block;font-family:var(--hfont);font-size:14px;letter-spacing:1px;color:#ffd76a;margin-top:5px;text-shadow:0 0 8px rgba(245,197,66,.7)}
 .combo-banner{position:fixed;z-index:90;left:50%;top:24%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;
   font-family:"Bungee",var(--hfont);font-size:26px;color:#ffdff0;
   text-shadow:0 0 8px #ff5d9e,0 0 20px #ff2f7e,0 2px 5px rgba(0,0,0,.6);animation:combopop 1.5s ease-out forwards}
@@ -838,7 +842,7 @@ let G=null, UID=1;
 /* ============ STATE ============ */
 function newGame(ch){
   const c=CHARS[ch];
-  MK=null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;
+  MK=null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;
   G={ch, week:1, year:1995, cash:c.cash, rep:c.rep, heat:c.heat,
      office:0, cars:[], custs:[], log:[], plates:[], plateOrder:null,
      rb:false, smokes:0, sold:0, spent:0, earned:0, trips:0,
@@ -2450,7 +2454,19 @@ function modal(html,btns){
 }
 function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(typeof TD!=="undefined"&&TD&&TD.on)tdCleanup();if(G)render()}
 function modalOpen(){return $("modal").style.display==="flex"}
-let HCASH=null,HTW=null,REP_SHOWN=null,HEAT_SHOWN=null;
+let HCASH=null,HTW=null,REP_SHOWN=null,HEAT_SHOWN=null,REP_TIER_SHOWN=null;
+/* reputatie-promotie: vier het als de zaak een hogere status-trap bereikt */
+function repPromoCheck(){try{
+  if(!G)return;
+  const t=repTier();
+  if(REP_TIER_SHOWN==null){REP_TIER_SHOWN=t;return;} // eerste paint: enkel synchroniseren
+  if(t>REP_TIER_SHOWN){const tier=REP_TIERS[t];
+    const b=document.createElement("div");b.className="promo-banner";
+    b.innerHTML='⭐ NIEUWE STATUS<span>'+esc(tier.emo+" "+tier.n)+'</span>';
+    document.body.appendChild(b);setTimeout(()=>b.remove(),2400);
+    confetti(50);sfx("level");}
+  REP_TIER_SHOWN=t;
+}catch(e){}}
 /* app-brede heat-vignet: rode randgloed vanaf heat>60, pulserend vanaf >85 */
 function applyHeatVignette(){try{
   if(!document.body||!G)return;
@@ -2471,6 +2487,7 @@ function hdr(){
    +(G.rb?'<span class="stat">🪽</span>':'')
    +'<span class="stat" style="cursor:pointer" onclick="toggleMute()">'+(MUTE?"🔇":"🔊")+'</span>';
   tweenCash();
+  repPromoCheck();
 }
 function tweenCash(){
   const el=$("hcash");const from=HCASH,to=G.cash;
@@ -2533,7 +2550,7 @@ function renderStart(){
   }
   $("view").innerHTML=h;
 }
-function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;migrate();syncUID();render()}
+function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;migrate();syncUID();render()}
 function pickChar(k){
   modal("<b>"+CHARS[k].face+" "+CHARS[k].n+"</b> neemt de sleutels van het koertje in Essene. De asbak staat klaar, de frigo is gevuld met Red Bull.<br><br>Startkapitaal: <b>"+fmt(CHARS[k].cash)+"</b>",
    [{t:"Aan de slag",fn:()=>{closeModal();newGame(k)}},{t:"Toch niet",cls:"ghost",fn:closeModal}]);
