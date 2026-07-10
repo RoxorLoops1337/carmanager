@@ -808,7 +808,7 @@ function newGame(ch){
      busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
-     comebacks:[], mile:{}, neonHue:0, radioStation:0, over:false};
+     comebacks:[], mile:{}, neonHue:0, radioStation:0, weekStreak:0, over:false};
   rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
@@ -855,7 +855,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;G.radioStation=G.radioStation||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;G.radioStation=G.radioStation||0;G.weekStreak=G.weekStreak||0;
   if(!G.carYear||G.carYear.year!==G.year)rotateCarYear();
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
@@ -986,6 +986,7 @@ const GOALS=[
  {id:"pigeon",t:"Jaag de duif eens op 't koertje op",r:"+30 XP · roekoe",c:()=>!!G.mile.pigeon,fn:()=>addXP(30)},
  {id:"odoroll",t:"Draai een teller terug (en voel de spanning)",r:"+50 XP · wij weten van niets",c:()=>!!G.mile.odoRoll,fn:()=>addXP(50)},
  {id:"combolegend",t:"Bouw een legendarische verkoopstreak (×10)",r:"+150 XP · tien op een rij, ongenaakbaar",c:()=>!!G.mile.comboLegend,fn:()=>addXP(150)},
+ {id:"weekstreak8",t:"Hou acht goede weken op een rij vol",r:"+120 XP · elke week een wagen weg",c:()=>!!G.mile.weekStreak8,fn:()=>addXP(120)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -1637,6 +1638,9 @@ function carMatches(c,w){
   return true;
 }
 
+/* wekelijkse-streakbonus: oplopend maar gecapt (één dial: WEEK_STREAK_BASE) */
+const WEEK_STREAK_BASE=6000, WEEK_STREAK_CAP=60000;
+function weekStreakBonus(n){return Math.min(WEEK_STREAK_CAP,WEEK_STREAK_BASE*Math.max(0,(n||0)-1));}
 /* ============ WEEK TICK ============ */
 function endWeek(silent){
   const wkLbl="Week "+G.week+" '"+String(G.year).slice(2);
@@ -1989,6 +1993,17 @@ function endWeek(silent){
   // marktstand geldt maar één weekend
   if(G.marketWeek){G.marketWeek=false;extra.push(["🏬 Marktweekend voorbij","de kraam wordt weer ingeklapt",""]);}
   if(G.cash<creditLimit()-100000&&G.cars.length===0){G.over=true;}
+  // wekelijkse hot streak: opeenvolgende weken met minstens één verkoop bouwen een oplopende bonus op (don't break the streak)
+  if((G.wkSold||0)>0){
+    G.weekStreak=(G.weekStreak||0)+1;
+    if(G.weekStreak>=2){const wb=weekStreakBonus(G.weekStreak);G.cash+=wb;repAdd(1);
+      if(G.weekStreak>=8)G.mile.weekStreak8=1;
+      const tag=G.weekStreak>=8?"🔥 in vuur en vlam!":G.weekStreak>=4?"lekkere reeks":"goed bezig";
+      extra.push(["🔥 "+G.weekStreak+" goede weken op rij",tag+" · +"+fmt(wb),"money"]);
+      if(!silent&&G.weekStreak>=4){stamp("🔥 STREAK "+G.weekStreak,"gold")}}
+  } else if((G.weekStreak||0)>0){
+    extra.push(["💤 Streak gebroken","geen verkoop deze week — reeks terug op 0","neg"]);G.weekStreak=0;
+  }
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
   if(!silent&&!G.over){
     if(newYear){if(modalOpen())G.pendingGala=1;else showAwards()}
@@ -4357,6 +4372,7 @@ function renderSell(){
    +(cheapFuelOn()?'<span class="pill good">⛽ Goedkope brandstof: slokops +15% (nog '+G.cheapFuel.weeks+' wk)</span>':'')
    +(G.carYear?'<span class="pill good">🏆 Auto v/h Jaar: '+esc(G.carYear.name)+' (+15%)</span>':'')
    +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
+   +((G.weekStreak||0)>=2?'<span class="pill good" title="Verkoop elke week minstens één wagen om de reeks vol te houden">🔥 '+G.weekStreak+' goede weken op rij</span>':'')
    +((G.combo||0)>=2?'<span class="pill good">🔥 Streak ×'+G.combo+(comboTier(G.combo)?' · '+comboTier(G.combo).name+' +'+Math.round((comboTier(G.combo).mult-1)*100)+'%':'')+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
