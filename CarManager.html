@@ -2813,7 +2813,9 @@ function renderOffice(){
      h+='<div class="logline" style="'+(got?"":"opacity:.5")+'"><b>'+t.emo+' '+t.n+'</b> <span class="small dim">(★'+t.min+')</span> '+(got?'<span class="pill good">✓</span>':'<span class="pill">🔒</span>')+'<div class="small dim">'+t.perk+'</div></div>';});
    h+='</div>';}
   const undone=GOALS.filter(g=>!G.goalsDone.includes(g.id));
-  h+='<div class="card"><div class="spread"><h3 style="margin:0">📋 Doelen</h3><span class="small dim">'+(GOALS.length-undone.length)+'/'+GOALS.length+' behaald</span></div>';
+  {const gf=goalsFrac();
+   h+='<div class="card"><div class="spread" style="align-items:center"><div><h3 style="margin:0">📋 Doelen</h3><div class="small dim">'+gf.done+' / '+gf.total+' behaald</div></div>'
+    +'<div class="mile-ring" style="--p:'+Math.round(gf.frac*100)+'"><span>'+Math.round(gf.frac*100)+'%</span></div></div>';}
   undone.slice(0,2).forEach(g=>{h+='<div class="logline">🎯 '+g.t+'<div class="small dim">Beloning: '+g.r+'</div></div>'});
   if(undone.length>2)h+='<div class="logline dim small">🔒 daarna: '+undone[2].t+'</div>';
   if(!undone.length)h+='<div class="dim small">Alles behaald. Gij zijt de handel. 🏡</div>';
@@ -4445,6 +4447,10 @@ function stockAgeTag(c){const w=(c&&c.stockWk)||0;
   if(w<4)return "";
   const cls=w>=8?"bad":"warn";
   return '<span class="pill '+cls+'" title="Staat al '+w+' weken te koop — huur en marktwaarde knagen. Tijd om te bewegen.">'+(w>=8?"🐌":"⌛")+' '+w+' wk op stock</span>';}
+/* doelenvoortgang: hoeveel van alle doelen behaald (voor de voltooiingsring) */
+function goalsFrac(){const total=GOALS.length;
+  const done=(G&&G.goalsDone)?G.goalsDone.filter(id=>GOALS.some(g=>g.id===id)).length:0;
+  return {done:done,total:total,frac:total?clamp(done/total,0,1):0};}
 /* records-kaart: verzamelt de persoonlijke toppers op één plek (iets om te breken) */
 function recordsCard(){
   const rows=[
