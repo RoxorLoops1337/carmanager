@@ -873,7 +873,7 @@ function newGame(ch){
      busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
-     comebacks:[], mile:{}, neonHue:0, radioStation:0, weekStreak:0, flashDeal:null, wkqDone:0, over:false};
+     comebacks:[], mile:{}, neonHue:0, radioStation:0, weekStreak:0, flashDeal:null, wkqDone:0, cashMile:0, over:false};
   rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
@@ -920,7 +920,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;G.radioStation=G.radioStation||0;G.weekStreak=G.weekStreak||0;G.flashDeal=G.flashDeal||null;G.wkqDone=G.wkqDone||0;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;G.radioStation=G.radioStation||0;G.weekStreak=G.weekStreak||0;G.flashDeal=G.flashDeal||null;G.wkqDone=G.wkqDone||0;G.cashMile=G.cashMile||0;
   if(!G.carYear||G.carYear.year!==G.year)rotateCarYear();
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
@@ -1054,6 +1054,7 @@ const GOALS=[
  {id:"weekstreak8",t:"Hou acht goede weken op een rij vol",r:"+120 XP · elke week een wagen weg",c:()=>!!G.mile.weekStreak8,fn:()=>addXP(120)},
  {id:"flashdeal",t:"Grijp een flitsdeal voor het te laat is",r:"+70 XP · wie 't eerst komt",c:()=>!!G.mile.flashDeal,fn:()=>addXP(70)},
  {id:"weekquest",t:"Haal een weekdoel binnen",r:"+60 XP · doel van de week gehaald",c:()=>!!G.mile.weekQuest,fn:()=>addXP(60)},
+ {id:"cashmile",t:"Breek de 2,5 miljoen op de rekening",r:"+150 XP · dik binnen",c:()=>!!G.mile.cashMile,fn:()=>addXP(150)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
@@ -2564,6 +2565,25 @@ function repPromoCheck(){try{
     confetti(50);sfx("level");}
   REP_TIER_SHOWN=t;
 }catch(e){}}
+/* ---- cash-mijlpalen: een groot feestmoment de eerste keer dat het saldo een dikke drempel breekt (bovenop de bestaande 1-miljoen-stempel) ---- */
+const CASH_MILES=[
+ {v:2500000,l:"2,5 miljoen"},{v:5000000,l:"5 miljoen"},{v:10000000,l:"10 miljoen"},
+ {v:25000000,l:"25 miljoen"},{v:50000000,l:"50 miljoen"},{v:100000000,l:"100 miljoen"},
+];
+function cashMileCount(cash){let n=0;for(let i=0;i<CASH_MILES.length;i++)if((cash||0)>=CASH_MILES[i].v)n=i+1;return n;}
+function cashMileCheck(){try{
+  if(!G)return false;
+  const n=cashMileCount(G.cash);
+  if(n<=(G.cashMile||0))return false;            // niets nieuws (of saldo gezakt: nooit opnieuw)
+  const m=CASH_MILES[n-1];
+  G.cashMile=n;
+  const b=document.createElement("div");b.className="promo-banner";
+  b.innerHTML='💰 MIJLPAAL<span>'+esc(m.l+" BEF op de rekening!")+'</span>';
+  document.body.appendChild(b);setTimeout(()=>b.remove(),2400);
+  if(typeof confetti==="function")confetti(60);if(typeof sfx==="function")sfx("win");
+  if(G.mile)G.mile.cashMile=1;
+  return true;
+}catch(e){return false}}
 /* app-brede heat-vignet: rode randgloed vanaf heat>60, pulserend vanaf >85 */
 function applyHeatVignette(){try{
   if(!document.body||!G)return;
@@ -2587,6 +2607,7 @@ function hdr(){
    +'<span class="stat" style="cursor:pointer" onclick="toggleMute()">'+(MUTE?"🔇":"🔊")+'</span>';
   tweenCash();
   repPromoCheck();
+  cashMileCheck();
 }
 function tweenCash(){
   const el=$("hcash");const from=HCASH,to=G.cash;
