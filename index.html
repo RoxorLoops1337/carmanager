@@ -261,6 +261,10 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
 .mile-ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#161822}
 .mile-ring span{position:relative;font-size:11px;font-weight:700;color:#ffd76a}
 .stocksum .spread{flex-wrap:wrap;gap:8px 14px;align-items:center}
+.overstats{max-width:280px;margin:14px auto;text-align:left}
+.overstats .spread{padding:5px 2px;border-bottom:1px dashed var(--edge)}
+.overstats .spread:last-child{border-bottom:0}
+.overstats b{font-variant-numeric:tabular-nums}
 .coffee-cup{position:relative;display:inline-block;font-size:20px;line-height:1;flex:0 0 auto}
 .coffee-cup i{position:absolute;top:-5px;width:3px;height:8px;border-radius:3px;background:rgba(255,255,255,.4);filter:blur(1px);opacity:0;animation:steam 2.6s ease-in-out infinite}
 .coffee-cup i:nth-child(1){left:5px;animation-delay:0s}
@@ -2722,7 +2726,18 @@ function render(){
   save();
 }
 function renderOver(){
-  $("view").innerHTML='<div class="card center"><h2>💸 Failliet</h2><p>De bank belt niet meer terug. Zelfs de Red Bull-frigo is leeg. '+chr().n+' rookt een laatste sigaret aan bushalte Koudenberg en neemt lijn 129 naar huis.</p><p class="dim">'+G.sold+' wagens verkocht · '+G.trips+' inkooptrips</p><button class="btn primary" onclick="restart()">Opnieuw beginnen</button></div>';
+  // eindbalans: de levenslange cijfers tellen op als een laatste kassabon
+  const stats=[
+   ["🚗 Wagens verkocht",(G.sold||0),String,"ov_sold"],
+   ["🧳 Inkooptrips",(G.trips||0),String,"ov_trips"],
+  ];
+  if((G.recProfit||0)>0)stats.push(["💰 Grootste deal",G.recProfit,fmt,"ov_deal"]);
+  if((G.bestWeek||0)>0)stats.push(["🏆 Beste week ooit",G.bestWeek,fmt,"ov_week"]);
+  $("view").innerHTML='<div class="card center"><h2>💸 Failliet</h2>'
+   +'<p>De bank belt niet meer terug. Zelfs de Red Bull-frigo is leeg. '+chr().n+' rookt een laatste sigaret aan bushalte Koudenberg en neemt lijn 129 naar huis.</p>'
+   +'<div class="overstats">'+stats.map(s=>'<div class="spread"><span class="dim">'+s[0]+'</span><b id="'+s[3]+'">'+s[2](0)+'</b></div>').join("")+'</div>'
+   +'<button class="btn primary" onclick="restart()">Opnieuw beginnen</button></div>';
+  try{for(const s of stats){const el=$(s[3]);if(el)rollNum(el,0,s[1],s[2],{});}}catch(e){}
 }
 function restart(){localStorage.removeItem("cm_save");G=null;renderStart()}
 /* ============ START SCREEN ============ */
