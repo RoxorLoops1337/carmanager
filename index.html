@@ -40,6 +40,12 @@ body{background:
 #hdr #hcash.cash-up{animation:cashup .55s ease-out}
 @keyframes cashup{0%{transform:scale(1);text-shadow:none}30%{transform:scale(1.22);text-shadow:0 0 10px rgba(114,224,142,.9)}100%{transform:scale(1);text-shadow:none}}
 #hdr #hrep,#hdr #hheat{display:inline-block}
+.replad-stat .replad{display:inline-block;width:34px;height:5px;margin-left:5px;vertical-align:middle;
+  background:rgba(255,255,255,.14);border-radius:3px;overflow:hidden;box-shadow:inset 0 0 2px rgba(0,0,0,.5)}
+.replad-stat .replad i{display:block;height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#f5c542,#ffe9a8);box-shadow:0 0 5px rgba(245,197,66,.8);transition:width .6s ease-out}
+.replad-stat.replad-max .replad i{background:linear-gradient(90deg,#ffd76a,#fff3c8);animation:repladglow 1.8s ease-in-out infinite}
+@keyframes repladglow{0%,100%{box-shadow:0 0 4px rgba(245,197,66,.6)}50%{box-shadow:0 0 10px rgba(255,231,168,1)}}
 #hdr #hrep.stat-up{animation:statup .55s ease-out}
 @keyframes statup{0%{transform:scale(1)}30%{transform:scale(1.25);text-shadow:0 0 9px rgba(255,179,71,.9)}100%{transform:scale(1)}}
 #hdr #hheat.stat-hot{animation:stathot .55s ease-out}
@@ -215,6 +221,10 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
   60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}
 .shake-lite{animation:shakelite .4s}
 @keyframes shakelite{0%,100%{transform:none}25%{transform:translate(-3px,1px)}50%{transform:translate(3px,-1px)}75%{transform:translate(-2px,1px)}}
+.margin-flash{position:fixed;inset:0;z-index:86;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 55%,rgba(255,214,106,.9),rgba(245,197,66,.35) 45%,transparent 72%);
+  mix-blend-mode:screen;animation:marginflash .52s ease-out forwards}
+@keyframes marginflash{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
 .polaroid{position:fixed;z-index:88;left:50%;top:38%;transform:translate(-50%,-50%);pointer-events:none;
   background:#f5f2ea;padding:8px 8px 4px;border-radius:3px;box-shadow:0 10px 30px rgba(0,0,0,.55);
   animation:develop 2.1s ease-out forwards}
@@ -1184,6 +1194,12 @@ const REP_TIERS=[
  {min:85,n:"Legende van Essene",emo:"👑",perk:"Betere verkoopkansen (+3%)."},
 ];
 function repTier(){let t=0;for(let i=0;i<REP_TIERS.length;i++)if((G.rep||0)>=REP_TIERS[i].min)t=i;return t}
+/* voortgang binnen de huidige status-trap richting de volgende (voor de kop-ladder) */
+function repLadder(){const rep=G.rep||0,t=repTier();
+  if(t>=REP_TIERS.length-1)return{frac:1,next:null,toNext:0,tier:REP_TIERS[t]};
+  const lo=REP_TIERS[t].min,hi=REP_TIERS[t+1].min;
+  const frac=clamp((rep-lo)/(hi-lo||1),0,1);
+  return{frac:frac,next:REP_TIERS[t+1],toNext:Math.max(0,Math.ceil(hi-rep)),tier:REP_TIERS[t]};}
 function platePerkMul(){return repTier()>=2?0.9:1}
 /* ---- bank: een lening nu, elke week rente + afbetaling ---- */
 const LOAN_RATE=0.04, LOAN_MIN=5000;
@@ -2326,6 +2342,16 @@ function sfx(n){if(MUTE)return;
     honk:()=>{beep(660,0,.11,"square",.12);beep(660,.16,.2,"square",.12)},
     modem:()=>{beep(350,0,.35,"sine",.06);beep(440,.1,.35,"sine",.06);beep(1300,.5,.3,"sine",.07);
       beep(2100,.82,.28,"sine",.06);beep(980,1.12,.25,"sawtooth",.05,2400);beep(1700,1.4,.6,"square",.03,3200)}})[n]()}catch(e){}}
+/* streak-jingle: een klein majeur-akkoord dat een halve toon per streak-trap hoger klinkt — hoe langer de reeks, hoe triomfantelijker (audio-escalatie die 'nog eentje' beloont). Geeft de basisfrequentie terug (0 = niet gespeeld). */
+function comboChime(n){
+  if(MUTE||!n||n<2)return 0;
+  const step=Math.min(n-2,14);
+  const base=Math.round(523*Math.pow(2,step/12));
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+    [0,4,7,12].forEach((semi,i)=>beep(base*Math.pow(2,semi/12),i*.045,.13,"square",.07));
+  }catch(e){}
+  return base;
+}
 function toggleMute(){MUTE=!MUTE;try{localStorage.setItem("cm_mute",MUTE?"1":"0")}catch(e){}if(G)hdr();toast(MUTE?"🔇 Geluid uit":"🔊 Geluid aan")}
 /* de bureau-radio: zap door een paar cheesy 90s-zenders, elk met een eigen tune */
 const RADIO_STATIONS=[
@@ -2388,6 +2414,19 @@ function coinBurst(profit){try{
 }catch(e){}}
 /* zachte schok bij een uitzonderlijke marge */
 function shakeLite(){try{document.body.classList.remove("shake-lite");void document.body.offsetWidth;document.body.classList.add("shake-lite");}catch(e){}}
+/* marge-feedback: gouden scherm-flits + geschaalde schok naar winst-percentage (fractie van inkoop) */
+function marginTier(profit,paid){const p=profit||0;const ratio=(paid&&paid>0)?p/paid:(p>=100000?2:0);
+  if(ratio>=1.4||p>=130000)return 3; if(ratio>=0.7||p>=65000)return 2; if(ratio>=0.35||p>=32000)return 1; return 0;}
+function marginFx(profit,paid){try{
+  const tier=marginTier(profit,paid);
+  if(tier<=0)return 0;
+  const f=document.createElement("div");f.className="margin-flash";
+  f.style.opacity=(0.30+tier*0.22).toFixed(2);
+  document.body.appendChild(f);setTimeout(()=>{try{f.remove()}catch(e){}},560);
+  if(tier>=3){document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake");}
+  else if(tier===2)shakeLite();
+  return tier;
+}catch(e){return 0}}
 /* niveau-omhoog: stamp + confetti + vuurwerk + een gouden banner */
 function levelUpFx(lvl){
   stamp("NIVEAU "+lvl+"!","gold");sfx("level");confetti(40);
@@ -2480,7 +2519,9 @@ function hdr(){
   if(HCASH==null)HCASH=G.cash;
   h.innerHTML='<span class="stat">📅 W'+G.week+" '"+String(G.year).slice(2)+'</span>'
    +'<span class="stat cash"'+(G.cash<0?' style="color:var(--red)"':'')+' title="'+titleFor(G.lvl||1)+'">💰 <span id="hcash">'+fmt(HCASH)+'</span></span>'
-   +'<span class="stat"><span class="repv">★</span> <span id="hrep">'+Math.round(REP_SHOWN==null?G.rep:REP_SHOWN)+'</span></span>'
+   +(function(){const L=repLadder();
+      const tt=L.next?esc(L.toNext+' reputatie tot '+L.next.emo+' '+L.next.n):'Hoogste status bereikt — Legende van Essene';
+      return '<span class="stat replad-stat'+(L.next?'':' replad-max')+'" title="'+tt+'"><span class="repv">★</span> <span id="hrep">'+Math.round(REP_SHOWN==null?G.rep:REP_SHOWN)+'</span><span class="replad"><i style="width:'+Math.round(L.frac*100)+'%"></i></span></span>';})()
    +'<span class="stat"><span class="heatv">🔥</span> <span id="hheat">'+Math.round(HEAT_SHOWN==null?G.heat:HEAT_SHOWN)+'</span></span>'
    +'<span class="stat">🎖️ '+(G.lvl||1)+'</span>'
    +(validPlate()?'<span class="stat"><span class="plate">'+bestPlate().code+'</span>&nbsp;'+bestPlate().weeks+'w</span>':'')
@@ -3598,6 +3639,13 @@ function isNearMiss(landed,jackpot,n){if(n<3||landed===jackpot)return false;
 function nearMissBanner(){try{
   const b=document.createElement("div");b.className="nearmiss-banner";
   b.innerHTML='😬 ZO DICHTBIJ!<span>de jackpot op een haar na — nog een keer?</span>';
+  document.body.appendChild(b);setTimeout(()=>b.remove(),1600);sfx("thud");
+}catch(e){}}
+/* verkoop-bijnamis: de deal viel op een haar na af (de dobbel lag nét boven een reële kans) — een 'zo dichtbij' die tot een nieuwe poging aanzet */
+function isSaleNearMiss(p,roll){return p>=0.30&&roll>=p&&(roll-p)<0.07;}
+function saleNearMiss(){try{
+  const b=document.createElement("div");b.className="nearmiss-banner";
+  b.innerHTML='😬 NÉT NIET!<span>hij hapte bijna toe — nog een keer?</span>';
   document.body.appendChild(b);setTimeout(()=>b.remove(),1600);sfx("thud");
 }catch(e){}}
 /* verrassingszakje: gratis wekelijkse grabbag met een gewogen willekeurige beloning (variable-ratio) */
@@ -5800,7 +5848,8 @@ function trySell(){
   const bust=price*(useEnvelope?(1-ENV_DISCOUNT):1)>(cu.budget*(useFinance?2:1)+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0)+(useMoto?cu.moto.value:0))*1.12;
   const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(useMoto?.06:0)+(useFinance?.05:0)+(useEnvelope?ENV_ODDS:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
   G.rb=false;
-  const win=!bust&&Math.random()<p;
+  const roll=Math.random();
+  const win=!bust&&roll<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
     if(bust){
       G.combo=0;
@@ -5815,6 +5864,7 @@ function trySell(){
       }
       doSale(cu,c,final,disclosed,iss);
     }else{
+      if(isSaleNearMiss(p,roll))saleNearMiss();
       const counter=Math.round(Math.min(perc*rnd(.85,.96),cu.budget)/1000)*1000;
       modal(cu.name+" wrijft over de kin. \"Hmm. <b>"+fmt(counter)+"</b>. Meer heb ik er niet voor over.\"",
       [{t:"Deal ("+fmt(counter)+")",fn:()=>doSale(cu,c,counter,disclosed,iss)},
@@ -5886,11 +5936,12 @@ function doSale(cu,c,price,disclosed,iss){
   const saleProfit=price-(c.paid||0);
   const jackpot=saleProfit>=150000||(c.paid>0&&saleProfit>=2*c.paid);
   const saleCols=(COLORS[c.col]?[COLORS[c.col].h,COLORS[c.col].h,"#ffd76a","#ffffff"]:null);
-  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26,saleCols);coinBurst(saleProfit);driveOff(c);
-  if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");shakeLite();confetti(30);}
+  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26,saleCols);coinBurst(saleProfit);marginFx(saleProfit,c.paid);driveOff(c);
+  if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");confetti(30);}
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak — escalerende verkoopstreak met oplopende cashbonus (variable-ratio-achtige beloning die tot 'nog eentje' aanzet)
   G.combo=(G.combo||0)+1;
+  comboChime(G.combo);
   const ct=comboTier(G.combo);
   if(ct){
     const cbonus=Math.round(price*(ct.mult-1)/1000)*1000;
