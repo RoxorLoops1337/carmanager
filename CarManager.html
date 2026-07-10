@@ -261,6 +261,7 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
 .mile-ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#161822}
 .mile-ring span{position:relative;font-size:11px;font-weight:700;color:#ffd76a}
 .stocksum .spread{flex-wrap:wrap;gap:8px 14px;align-items:center}
+.card.hotlead{border-color:rgba(114,224,141,.5);box-shadow:0 0 0 1px rgba(114,224,141,.25),0 4px 14px rgba(0,0,0,.3)}
 .weektip{margin-top:6px;font-size:12px;color:#cdbb92;font-style:italic;line-height:1.35;animation:tipfade .6s ease-out}
 .weektip b{font-style:normal;color:#ffd76a;display:inline-block;margin-right:5px}
 .weektip span{display:block;margin-top:2px;color:#b7c2a8}
@@ -4750,6 +4751,11 @@ function fixPapers(id){const c=getCar(id);const shM=shadyMult();const cost=Math.
    {t:"Te riskant",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
 }
 /* ============ SELL ============ */
+/* hete lead: we hebben een wagen in stock die bij de vraag van deze klant past (leidt de speler naar de beste kans) */
+function hotLead(cu){try{
+  if(!cu||!cu.want||!G||!G.cars||!G.cars.length)return false;
+  return G.cars.some(c=>!c.lesauto&&carMatches(c,cu.want));
+}catch(e){return false}}
 function renderSell(){
   const se=season();
   let h='<h2>🤝 Verkoop</h2>'
@@ -4779,8 +4785,10 @@ function renderSell(){
      +'<div class="small dim">Tipprijs <b class="money">'+fmt(fd.price)+'</b> · marktwaarde ± <b class="money">'+fmt(val)+'</b> — een koopje, maar niet lang.</div></div></div>'
      +'<button class="btn '+(afford?"primary":"")+'" onclick="takeFlashDeal()" '+(afford?"":"disabled")+'>⏳ Grijp de flitsdeal ('+fmt(fd.price)+')</button></div>';}
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
-  for(const cu of G.custs){
-    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.wantMk?' <span class="pill warn">🏷️ wil een '+esc(cu.wantMk)+'</span>':'')+(cu.wantModel?' <span class="pill warn">🎯 zoekt een '+esc(cu.wantModel.name)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+(cu.moto?' <span class="pill">🏍️ moto-inruil</span>':'')+'</h3>'
+  const custs=G.custs.slice().sort((a,b)=>(hotLead(b)?1:0)-(hotLead(a)?1:0)); // hete leads bovenaan
+  for(const cu of custs){
+    const hot=hotLead(cu);
+    h+='<div class="card'+(hot?" hotlead":"")+'"><div class="spread"><h3 style="margin:0">'+(cu.face||"🙋")+' '+cu.name+(hot?' <span class="pill good" title="Ge hebt een wagen in stock die precies bij zijn vraag past">🔥 hete lead</span>':'')+(cu.vip?' <span class="pill warn">⭐ VIP</span>':'')+(cu.net?' <span class="pill info">🌐 via internet</span>':'')+(cu.returning?' <span class="pill good">🔁 vaste klant</span>':'')+(cu.referred?' <span class="pill good">🗣️ doorverwezen'+((cu.chain||1)>=2?' ×'+cu.chain:'')+'</span>':'')+(cu.wantColor!=null?' <span class="pill warn">🎨 wil <span class="swatch" style="background:'+COLORS[cu.wantColor].h+'"></span>'+esc(COLORS[cu.wantColor].n)+'</span>':'')+(cu.wantMk?' <span class="pill warn">🏷️ wil een '+esc(cu.wantMk)+'</span>':'')+(cu.wantModel?' <span class="pill warn">🎯 zoekt een '+esc(cu.wantModel.name)+'</span>':'')+(cu.inspector?' <span class="pill warn">🔍 komt met een kenner</span>':'')+(cu.flush?' <span class="pill good">🍀 lottowinnaar</span>':'')+(cu.testFirst?' <span class="pill warn">🛞 wil eerst rijden</span>':'')+(cu.envelope?' <span class="pill bad">🧧 cash onder tafel</span>':'')+(cu.moto?' <span class="pill">🏍️ moto-inruil</span>':'')+'</h3>'
      +(isCh("thomas")?'<span class="pill info">budget ± '+fmt(cu.budget)+'</span>':'<span class="pill dim">budget: geheim</span>')+'</div>'
      +'<div class="small dim">'+cu.t+'</div>'
      +'<button class="btn primary" onclick="openCust('+cu.id+')" '+(G.cars.length?"":"disabled")+'>Toon wagens</button></div>';
