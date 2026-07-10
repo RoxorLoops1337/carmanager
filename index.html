@@ -186,6 +186,16 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}
 .shake-lite{animation:shakelite .4s}
 @keyframes shakelite{0%,100%{transform:none}25%{transform:translate(-3px,1px)}50%{transform:translate(3px,-1px)}75%{transform:translate(-2px,1px)}}
+.polaroid{position:fixed;z-index:88;left:50%;top:38%;transform:translate(-50%,-50%);pointer-events:none;
+  background:#f5f2ea;padding:8px 8px 4px;border-radius:3px;box-shadow:0 10px 30px rgba(0,0,0,.55);
+  animation:develop 2.1s ease-out forwards}
+.polaroid-pic{width:120px;height:80px;overflow:hidden;border-radius:2px;background:#20202a;display:flex;align-items:center;justify-content:center}
+.polaroid-cap{font-family:var(--hfont);font-size:11px;color:#2a2620;text-align:center;padding:5px 2px 2px;line-height:1.15}
+.polaroid-cap span{display:block;font-size:8px;color:#8a8478;letter-spacing:.5px}
+@keyframes develop{0%{opacity:0;transform:translate(-50%,-30%) rotate(-8deg) scale(.7);filter:sepia(1) contrast(.6) brightness(1.5)}
+  18%{opacity:1;transform:translate(-50%,-52%) rotate(3deg) scale(1.06);filter:sepia(.7) contrast(.8) brightness(1.2)}
+  45%{transform:translate(-50%,-50%) rotate(-1deg) scale(1);filter:sepia(0) contrast(1) brightness(1)}
+  82%{opacity:1;filter:none}100%{opacity:0;transform:translate(-50%,-64%) rotate(2deg) scale(.98);filter:none}}
 .mood{font-size:24px;vertical-align:-3px}
 .scr{display:inline-block;width:64px;height:64px;line-height:62px;font-size:34px;text-align:center;
   background:linear-gradient(180deg,#9da1ab,#6a6d75);border-radius:10px;margin:4px;cursor:pointer;
@@ -894,6 +904,7 @@ const GOALS=[
  {id:"newyearshow",t:"Vier Nieuwjaar op het koertje met vuurwerk",r:"+80 XP · een jaar overleefd, proost",c:()=>!!G.mile.newYearShow,fn:()=>addXP(80)},
  {id:"neontoggle",t:"Speel met het neonbord op de container",r:"+40 XP · sfeer is ook verkoop",c:()=>!!G.mile.neonToggle,fn:()=>addXP(40)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
+ {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
 ];
 function checkGoals(){
@@ -2156,6 +2167,16 @@ function coinBurst(profit){try{
 }catch(e){}}
 /* zachte schok bij een uitzonderlijke marge */
 function shakeLite(){try{document.body.classList.remove("shake-lite");void document.body.offsetWidth;document.body.classList.add("shake-lite");}catch(e){}}
+/* polaroid: een nieuwe aanwinst ontwikkelt zich op een kiekje */
+function polaroidPop(c){try{
+  if(!c)return;
+  const d=document.createElement("div");d.className="polaroid";
+  d.innerHTML='<div class="polaroid-pic">'+carArt(c,120)+'</div>'
+    +'<div class="polaroid-cap">'+esc(carName(c))+'<span>nieuw op \'t koertje</span></div>';
+  document.body.appendChild(d);setTimeout(()=>d.remove(),2100);
+  if(G&&G.mile)G.mile.polaroid=1;
+  sfx("tick");
+}catch(e){}}
 function ouch(){sfx("bad");if(typeof TD!=="undefined"&&TD&&TD.on){TD.shake=Math.min(.6,(TD.shake||0)+.42);return}document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
 let REEL_MS=950,WIV=null,SWEEP=null;
 function suspense(faces,txt,cb,sceneHtml){
@@ -3555,6 +3576,7 @@ function buyCar(c,price){
   MK.bought.push(c);MK.cars=MK.cars.filter(x=>x.id!==c.id);
   popNum("-"+fmt(price),"pred");addXP(8);
   log(carName(c)+" gekocht in "+MARKETS[MK.k].n+" voor "+fmt(price)+".");
+  polaroidPop(c);
   closeModal();render();toast("🔑 "+carName(c)+" is van jou!");
 }
 function mkCarSheet(c,mine){
