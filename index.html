@@ -232,6 +232,13 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
 @keyframes levelup{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}
   16%{opacity:1;transform:translate(-50%,-52%) scale(1.15)}40%{transform:translate(-50%,-50%) scale(1)}
   80%{opacity:1}100%{opacity:0;transform:translate(-50%,-66%) scale(1)}}
+.goal-banner{position:fixed;z-index:90;left:50%;top:46%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;
+  font-family:"Bungee",var(--hfont);font-size:24px;color:#c8ffd6;
+  text-shadow:0 0 8px #38d66b,0 0 20px #1fae52,0 3px 6px rgba(0,0,0,.6);animation:goalban 2.3s ease-out forwards}
+.goal-banner span{display:block;font-family:var(--hfont);font-size:12px;letter-spacing:1px;color:#9fe8b4;margin-top:4px;text-shadow:0 0 8px rgba(56,214,107,.7)}
+@keyframes goalban{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}
+  12%{opacity:1;transform:translate(-50%,-52%) scale(1.12)}30%{transform:translate(-50%,-50%) scale(1)}
+  85%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
 .combo-banner{position:fixed;z-index:90;left:50%;top:24%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;
   font-family:"Bungee",var(--hfont);font-size:26px;color:#ffdff0;
   text-shadow:0 0 8px #ff5d9e,0 0 20px #ff2f7e,0 2px 5px rgba(0,0,0,.6);animation:combopop 1.5s ease-out forwards}
@@ -1037,7 +1044,7 @@ function checkGoals(){
     const active=GOALS.filter(g=>!G.goalsDone.includes(g.id)).slice(0,2);
     for(const g of active){
       if(g.c()){G.goalsDone.push(g.id);changed=true;
-        stamp("DOEL BEHAALD!","gold");confetti(40);sfx("win");
+        stamp("DOEL BEHAALD!","gold");confetti(40);sfx("win");goalBanner(g);
         toast("📋 "+g.t+" ✓ — "+g.r);
         log("📋 Doel behaald: "+g.t+" → "+g.r);
         if(g.fn)g.fn();}}}
@@ -2387,6 +2394,13 @@ function levelUpFx(lvl){
   }catch(e){}
   if(G&&G.mile)G.mile.leveledUp=1;
 }
+/* doel-behaald: een gouden banner die van boven binnenschuift */
+function goalBanner(goal){try{
+  if(!goal)return;
+  const b=document.createElement("div");b.className="goal-banner";
+  b.innerHTML='📋 DOEL BEHAALD!<span>'+esc((goal.t||"")+(goal.r?" · "+goal.r:""))+'</span>';
+  document.body.appendChild(b);setTimeout(()=>b.remove(),2300);
+}catch(e){}}
 /* polaroid: een nieuwe aanwinst ontwikkelt zich op een kiekje */
 function polaroidPop(c){try{
   if(!c)return;
