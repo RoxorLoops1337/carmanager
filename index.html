@@ -221,6 +221,10 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
   60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}
 .shake-lite{animation:shakelite .4s}
 @keyframes shakelite{0%,100%{transform:none}25%{transform:translate(-3px,1px)}50%{transform:translate(3px,-1px)}75%{transform:translate(-2px,1px)}}
+.margin-flash{position:fixed;inset:0;z-index:86;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 55%,rgba(255,214,106,.9),rgba(245,197,66,.35) 45%,transparent 72%);
+  mix-blend-mode:screen;animation:marginflash .52s ease-out forwards}
+@keyframes marginflash{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
 .polaroid{position:fixed;z-index:88;left:50%;top:38%;transform:translate(-50%,-50%);pointer-events:none;
   background:#f5f2ea;padding:8px 8px 4px;border-radius:3px;box-shadow:0 10px 30px rgba(0,0,0,.55);
   animation:develop 2.1s ease-out forwards}
@@ -2400,6 +2404,19 @@ function coinBurst(profit){try{
 }catch(e){}}
 /* zachte schok bij een uitzonderlijke marge */
 function shakeLite(){try{document.body.classList.remove("shake-lite");void document.body.offsetWidth;document.body.classList.add("shake-lite");}catch(e){}}
+/* marge-feedback: gouden scherm-flits + geschaalde schok naar winst-percentage (fractie van inkoop) */
+function marginTier(profit,paid){const p=profit||0;const ratio=(paid&&paid>0)?p/paid:(p>=100000?2:0);
+  if(ratio>=1.4||p>=130000)return 3; if(ratio>=0.7||p>=65000)return 2; if(ratio>=0.35||p>=32000)return 1; return 0;}
+function marginFx(profit,paid){try{
+  const tier=marginTier(profit,paid);
+  if(tier<=0)return 0;
+  const f=document.createElement("div");f.className="margin-flash";
+  f.style.opacity=(0.30+tier*0.22).toFixed(2);
+  document.body.appendChild(f);setTimeout(()=>{try{f.remove()}catch(e){}},560);
+  if(tier>=3){document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake");}
+  else if(tier===2)shakeLite();
+  return tier;
+}catch(e){return 0}}
 /* niveau-omhoog: stamp + confetti + vuurwerk + een gouden banner */
 function levelUpFx(lvl){
   stamp("NIVEAU "+lvl+"!","gold");sfx("level");confetti(40);
@@ -5900,8 +5917,8 @@ function doSale(cu,c,price,disclosed,iss){
   const saleProfit=price-(c.paid||0);
   const jackpot=saleProfit>=150000||(c.paid>0&&saleProfit>=2*c.paid);
   const saleCols=(COLORS[c.col]?[COLORS[c.col].h,COLORS[c.col].h,"#ffd76a","#ffffff"]:null);
-  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26,saleCols);coinBurst(saleProfit);driveOff(c);
-  if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");shakeLite();confetti(30);}
+  stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26,saleCols);coinBurst(saleProfit);marginFx(saleProfit,c.paid);driveOff(c);
+  if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");confetti(30);}
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
   // combo streak — escalerende verkoopstreak met oplopende cashbonus (variable-ratio-achtige beloning die tot 'nog eentje' aanzet)
   G.combo=(G.combo||0)+1;
