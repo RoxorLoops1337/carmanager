@@ -2155,7 +2155,7 @@ function weekReport(wkLbl,delta,rent,skimmed,extra){
   const OMINOUS=["Gerucht: onderzoek naar autohandel in de regio","'Waar komen al die wagens toch vandaan?' vraagt lezer uit Ternat","Opvallend veel Oostblok-nummerplaten gespot langs de N8"];
   const headline=(G.heat>60&&Math.random()<.4)?pick(OMINOUS):pick(HEADLINES[gr[0]]);
   const lines=[
-   ["Weekresultaat",(delta>=0?"+":"")+fmt(delta),delta>=0?"money":"neg"],
+   ["Weekresultaat",(delta>=0?"+":"")+fmt(delta),delta>=0?"money":"neg","wkresult"],
    ["Verkocht",(G.wkSold||0)+" wagen(s)",""],
    ["Huur","-"+fmt(rent),"neg"],
   ];
@@ -2163,10 +2163,12 @@ function weekReport(wkLbl,delta,rent,skimmed,extra){
   lines.push(["Stock",G.cars.length+" wagens",""],["Kandidaat-kopers",G.custs.length+"",""]);
   if(extra)for(const e of extra)lines.push(e);
   modal('<div class="center"><b>📋 Weekrapport · '+wkLbl+'</b></div><hr>'
-   +lines.map((l,i)=>'<div class="spread repline" style="animation-delay:'+(i*.16)+'s"><span class="dim">'+l[0]+'</span><b class="'+l[2]+'">'+l[1]+'</b></div>').join("")
+   +lines.map((l,i)=>'<div class="spread repline" style="animation-delay:'+(i*.16)+'s"><span class="dim">'+l[0]+'</span><b class="'+l[2]+'"'+(l[3]?' id="'+l[3]+'"':'')+'>'+l[1]+'</b></div>').join("")
    +'<div class="center repline" style="animation-delay:'+(lines.length*.16+.25)+'s"><span class="grade" style="color:'+gr[1]+';border-color:'+gr[1]+'">'+gr[0]+'</span>'
    +'<div class="small dim">De Streekkrant: "'+headline+'"</div></div>',
   [{t:"Aan de slag",fn:closeModal}]);
+  // laat het weekresultaat oplopen als een kassabon die wordt uitgeteld
+  try{const wr=$("wkresult");if(wr)rollNum(wr,0,delta,v=>(v>=0?"+":"")+fmt(v),{});}catch(e){}
 }
 function randomOffice(){
   if(Math.random()>.35)return;
