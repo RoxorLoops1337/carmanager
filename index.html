@@ -968,6 +968,9 @@ function migrate(){if(!G)return;
   if(!G.radioCar)rotateRadioCar(true);
   if(!G.trendBody)G.trendBody=pick(Object.keys(BODN))}
 function titleFor(l){return l>=16?"Legende van Essene":l>=12?"Autobaron":l>=8?"Gevestigde Handelaar":l>=5?"Occasieboer":l>=3?"Sjacheraar":"Beginneling"}
+/* eerstvolgende titel-promotie (voor de niveau-hint in het kantoor) */
+const TITLE_TIERS=[{lvl:3,n:"Sjacheraar"},{lvl:5,n:"Occasieboer"},{lvl:8,n:"Gevestigde Handelaar"},{lvl:12,n:"Autobaron"},{lvl:16,n:"Legende van Essene"}];
+function nextTitle(){const l=(G&&G.lvl)||1;for(const t of TITLE_TIERS)if(t.lvl>l)return {n:t.n,lvl:t.lvl,toGo:t.lvl-l};return null;}
 /* ---- goal chain: always something to look forward to ---- */
 const GOALS=[
  {id:"s1",t:"Verkoop je eerste wagen",r:"+15.000 BEF startpremie",c:()=>G.sold>=1,fn:()=>{G.cash+=15000}},
@@ -2829,7 +2832,8 @@ function renderOffice(){
   const xpNeed=G.lvl*120;
   h+='<div class="card"><div class="spread"><h3 style="margin:0">🎖️ '+titleFor(G.lvl)+' · niveau '+G.lvl+'</h3><span class="small dim">'+G.xp+' / '+xpNeed+' XP</span></div>'
    +'<div class="bar" style="margin-top:6px"><i style="width:'+Math.min(100,Math.round(G.xp/xpNeed*100))+'%;background:linear-gradient(90deg,var(--amber),#ffd76a)"></i></div>'
-   +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div>';
+   +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div>'
+   +(function(){const nt=nextTitle();return nt?'<div class="small" style="margin-top:4px">🏅 Volgende titel: <b>'+esc(nt.n)+'</b> op niveau '+nt.lvl+' <span class="dim">(nog '+nt.toGo+' niveau'+(nt.toGo===1?'':'s')+')</span></div>':'<div class="small dim" style="margin-top:4px">🏅 Hoogste titel bereikt — Legende van Essene. 👑</div>';})();
   {const tz=nextGoalTeaser();
    if(tz){const big=tz.target>=1000000,cs=big?fmt(tz.cur):tz.cur,ts=big?fmt(tz.target):tz.target;
      h+='<hr><div class="spread small"><span>🎯 <b>'+esc(tz.title)+'</b></span><span class="dim">'+cs+' / '+ts+'</span></div>'
