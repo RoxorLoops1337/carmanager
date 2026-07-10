@@ -1109,6 +1109,7 @@ const GOALS=[
  {id:"bestweek",t:"Breek uw eigen weekrecord",r:"+90 XP · nog nooit zo'n week gedraaid",c:()=>!!G.mile.bestWeek,fn:()=>addXP(90)},
  {id:"bliksemflip",t:"Flip een wagen dezelfde week dat ge hem kocht",r:"+70 XP · gekocht en weg voor de koffie koud was",c:()=>G.fastFlip===0,fn:()=>addXP(70)},
  {id:"vermogen5m",t:"Bouw een vermogen van 5 miljoen (cash + stock + schuur)",r:"+200 XP · een klein imperium in Essene",c:()=>netWorth()>=5000000,fn:()=>addXP(200)},
+ {id:"wallet",t:"Geef een gevonden portefeuille netjes terug",r:"+60 XP · een eerlijke ziel (voor deze ene keer)",c:()=>!!G.mile.wallet,fn:()=>addXP(60)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
@@ -4245,7 +4246,7 @@ function driveHome(){
   if(MK.bought.length>0)evs.push(evCustoms);
   const w=tripWeather();MK.weather=w.id;
   log(w.emo+" Onderweg: "+w.line);
-  const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip,evMcDo,evSpeedCamera,evFlatTire,evPigeonRace,evFuelSmuggler,evNostalgia,evBridalParty];
+  const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip,evMcDo,evSpeedCamera,evFlatTire,evPigeonRace,evFuelSmuggler,evNostalgia,evBridalParty,evLostWallet];
   const n=Math.max(0,m.risk+(Math.random()<.5?1:0)-(hasStaff("jempi")?1:0))+(w.extra||0);
   for(let i=0;i<n;i++)evs.push(pick(pool));
   // weersgebonden events: sneeuw → motelovernachting/panne, regen → klapband, hitte → oververhitting
@@ -4472,6 +4473,18 @@ function evFlatTire(next){
 function evPigeonRace(next){
   modal("<b>🕊️ Duivenlossing.</b> Honderd manden gaan tegelijk open op de parking. De lucht wordt even grijs van de duiven, en van iets anders. Mannen met petjes kijken plechtig omhoog.",
   [{t:"Mee omhoog kijken",fn:()=>{closeModal();addXP(2);next()}}]);
+}
+/* moreel dilemma onderweg: gevonden portefeuille — netjes afgeven (reputatie) of in eigen zak (cash + heat) */
+function evLostWallet(next){
+  const found=ri(3,9)*1000;
+  modal("<b>👛 Een verloren portefeuille</b> ligt tussen de frietzakjes op de parking, goed gevuld — zo'n <b class=\"money\">"+fmt(found)+"</b> cash, met een identiteitskaart erin.",
+  [{t:"Netjes afgeven (+2 rep, −heat)",fn:()=>{repAdd(2);G.heat=clamp(G.heat-2,0,100);addXP(6);G.mile.wallet=1;
+      log("👛 Portefeuille afgegeven bij de flikken. De eigenaar is dankbaar en 't nieuws doet de ronde in Essene. (+2 rep, −2 heat)");
+      closeModal();modal("Een week later hangt er een bedankkaartje aan 't koertje. Zoiets is goud waard voor de goede naam.",[{t:"Graag gedaan",fn:()=>{closeModal();next()}}]);}},
+   {t:"In eigen zak (+"+fmt(found)+", +heat)",cls:"shady",fn:()=>{G.cash+=found;G.earned+=found;G.heat=clamp(G.heat+3,0,100);G.mile.walletKeep=1;
+      popNum("+"+fmt(found),"pgreen");
+      log("👛 Portefeuille... 'nooit gezien'. "+fmt(found)+" cash erbij, maar zoiets blijft aan uw handen plakken. (+3 heat)");
+      closeModal();next();}}]);
 }
 function evFuelSmuggler(next){
   modal("<b>⛽ Een trucker met een jerrycan-imperium</b> wenkt aan de rand van de parking. \"Volle tank, halve prijs. Rode diesel, maar wie kijkt er nu naar de kleur.\"",
