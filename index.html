@@ -39,6 +39,11 @@ body{background:
 #hdr #hcash{display:inline-block}
 #hdr #hcash.cash-up{animation:cashup .55s ease-out}
 @keyframes cashup{0%{transform:scale(1);text-shadow:none}30%{transform:scale(1.22);text-shadow:0 0 10px rgba(114,224,142,.9)}100%{transform:scale(1);text-shadow:none}}
+#hdr #hrep,#hdr #hheat{display:inline-block}
+#hdr #hrep.stat-up{animation:statup .55s ease-out}
+@keyframes statup{0%{transform:scale(1)}30%{transform:scale(1.25);text-shadow:0 0 9px rgba(255,179,71,.9)}100%{transform:scale(1)}}
+#hdr #hheat.stat-hot{animation:stathot .55s ease-out}
+@keyframes stathot{0%{transform:scale(1)}30%{transform:scale(1.25);text-shadow:0 0 9px rgba(235,60,50,.95)}100%{transform:scale(1)}}
 #hdr .heatv{color:var(--red)} #hdr .repv{color:var(--amber)}
 #view{max-width:760px;margin:0 auto;padding:14px 12px 88px}
 #nav{position:fixed;bottom:0;left:0;right:0;z-index:30;display:none;
@@ -826,7 +831,7 @@ let G=null, UID=1;
 /* ============ STATE ============ */
 function newGame(ch){
   const c=CHARS[ch];
-  MK=null;HCASH=null;
+  MK=null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;
   G={ch, week:1, year:1995, cash:c.cash, rep:c.rep, heat:c.heat,
      office:0, cars:[], custs:[], log:[], plates:[], plateOrder:null,
      rb:false, smokes:0, sold:0, spent:0, earned:0, trips:0,
@@ -2431,7 +2436,7 @@ function modal(html,btns){
 }
 function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(typeof TD!=="undefined"&&TD&&TD.on)tdCleanup();if(G)render()}
 function modalOpen(){return $("modal").style.display==="flex"}
-let HCASH=null,HTW=null;
+let HCASH=null,HTW=null,REP_SHOWN=null,HEAT_SHOWN=null;
 /* app-brede heat-vignet: rode randgloed vanaf heat>60, pulserend vanaf >85 */
 function applyHeatVignette(){try{
   if(!document.body||!G)return;
@@ -2445,8 +2450,8 @@ function hdr(){
   if(HCASH==null)HCASH=G.cash;
   h.innerHTML='<span class="stat">📅 W'+G.week+" '"+String(G.year).slice(2)+'</span>'
    +'<span class="stat cash"'+(G.cash<0?' style="color:var(--red)"':'')+' title="'+titleFor(G.lvl||1)+'">💰 <span id="hcash">'+fmt(HCASH)+'</span></span>'
-   +'<span class="stat"><span class="repv">★</span> '+Math.round(G.rep)+'</span>'
-   +'<span class="stat"><span class="heatv">🔥</span> '+Math.round(G.heat)+'</span>'
+   +'<span class="stat"><span class="repv">★</span> <span id="hrep">'+Math.round(REP_SHOWN==null?G.rep:REP_SHOWN)+'</span></span>'
+   +'<span class="stat"><span class="heatv">🔥</span> <span id="hheat">'+Math.round(HEAT_SHOWN==null?G.heat:HEAT_SHOWN)+'</span></span>'
    +'<span class="stat">🎖️ '+(G.lvl||1)+'</span>'
    +(validPlate()?'<span class="stat"><span class="plate">'+bestPlate().code+'</span>&nbsp;'+bestPlate().weeks+'w</span>':'')
    +(G.rb?'<span class="stat">🪽</span>':'')
@@ -2456,20 +2461,29 @@ function hdr(){
 function tweenCash(){
   const el=$("hcash");const from=HCASH,to=G.cash;
   if(to>from&&el){el.classList.remove("cash-up");void el.offsetWidth;el.classList.add("cash-up")}
-  rollCash(el,from,to);
+  HCASH=to;rollNum(el,from,to,fmt,{upOnly:true});
+  // rep & heat: dezelfde soepele tik
+  const rEl=$("hrep"),rFrom=Math.round(REP_SHOWN==null?G.rep:REP_SHOWN),rTo=Math.round(G.rep);
+  if(rTo>rFrom&&rEl){rEl.classList.remove("stat-up");void rEl.offsetWidth;rEl.classList.add("stat-up")}
+  REP_SHOWN=rTo;rollNum(rEl,rFrom,rTo,String,{upOnly:true});
+  const hEl=$("hheat"),hFrom=Math.round(HEAT_SHOWN==null?G.heat:HEAT_SHOWN),hTo=Math.round(G.heat);
+  if(hTo>hFrom&&hEl){hEl.classList.remove("stat-hot");void hEl.offsetWidth;hEl.classList.add("stat-hot")}
+  HEAT_SHOWN=hTo;rollNum(hEl,hFrom,hTo,String,{});
 }
-/* rolt het cashgetal omhoog naar de nieuwe waarde; altijd gegarandeerd eindwaarde, ook zonder animatie */
-function rollCash(el,from,to){
-  if(HTW){cancelAnimationFrame(HTW);HTW=null}
-  HCASH=to;                                   // bron van waarheid = eindwaarde
-  if(el)el.textContent=fmt(to);               // gegarandeerd correcte weergave
+/* generieke getaltik: rolt naar de nieuwe waarde; laat ALTIJD fmtFn(to) staan, ook zonder animatie (per-element handle) */
+function rollNum(el,from,to,fmtFn,opts){
+  opts=opts||{};const fF=fmtFn||String;
+  if(el&&el._tw){cancelAnimationFrame(el._tw);el._tw=null}
+  if(el)el.textContent=fF(to);                // gegarandeerd correcte eindwaarde
   const canAnim=typeof requestAnimationFrame==="function"&&typeof performance!=="undefined"&&performance&&typeof performance.now==="function";
-  if(!el||to<=from||!canAnim)return;          // uitgaven of geen-animatie: direct de eindwaarde
+  if(!el||from===to||(opts.upOnly&&to<from)||!canAnim)return;
   const t0=performance.now(),dur=450;
   const step=t=>{const k=Math.min(1,(t-t0)/dur);const v=Math.round(from+(to-from)*k);
-    el.textContent=fmt(v);HTW=k<1?requestAnimationFrame(step):(el.textContent=fmt(to),null)};
-  HTW=requestAnimationFrame(step);
+    el.textContent=fF(v);el._tw=k<1?requestAnimationFrame(step):(el.textContent=fF(to),null)};
+  el._tw=requestAnimationFrame(step);
 }
+/* behouden voor bestaande aanroepen/tests: dunne wrapper (cash rolt enkel omhoog) */
+function rollCash(el,from,to){HCASH=to;rollNum(el,from,to,fmt,{upOnly:true});}
 const TABS=[["office","🏢","Bureau"],["travel","🗺️","Inkoop"],["garage","🔧","Garage"],["sell","🤝","Verkoop"],["plates","🔴","ZZ-platen"]];
 let CUR="office";
 function nav(t){CUR=t;render()}
@@ -2505,7 +2519,7 @@ function renderStart(){
   }
   $("view").innerHTML=h;
 }
-function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;migrate();syncUID();render()}
+function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;migrate();syncUID();render()}
 function pickChar(k){
   modal("<b>"+CHARS[k].face+" "+CHARS[k].n+"</b> neemt de sleutels van het koertje in Essene. De asbak staat klaar, de frigo is gevuld met Red Bull.<br><br>Startkapitaal: <b>"+fmt(CHARS[k].cash)+"</b>",
    [{t:"Aan de slag",fn:()=>{closeModal();newGame(k)}},{t:"Toch niet",cls:"ghost",fn:closeModal}]);
