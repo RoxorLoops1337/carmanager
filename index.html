@@ -249,6 +249,11 @@ body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animat
 @keyframes goalban{0%{opacity:0;transform:translate(-50%,-20%) scale(.6)}
   12%{opacity:1;transform:translate(-50%,-52%) scale(1.12)}30%{transform:translate(-50%,-50%) scale(1)}
   85%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
+.mile-ring{--p:0;width:56px;height:56px;flex:0 0 56px;border-radius:50%;position:relative;
+  background:conic-gradient(#ffd76a calc(var(--p)*1%),rgba(255,255,255,.10) 0);
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(245,197,66,.35);transition:background .6s ease-out}
+.mile-ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#161822}
+.mile-ring span{position:relative;font-size:11px;font-weight:700;color:#ffd76a}
 .weektip{margin-top:6px;font-size:12px;color:#cdbb92;font-style:italic;line-height:1.35;animation:tipfade .6s ease-out}
 .weektip b{font-style:normal;color:#ffd76a;display:inline-block;margin-right:5px}
 .weektip span{display:block;margin-top:2px;color:#b7c2a8}
@@ -2584,6 +2589,12 @@ function cashMileCheck(){try{
   if(G.mile)G.mile.cashMile=1;
   return true;
 }catch(e){return false}}
+/* voortgang naar de volgende cash-mijlpaal (voor de progressiering in het kantoor) */
+function cashRing(){const cash=(G&&G.cash)||0;const n=cashMileCount(cash);
+  const lo=n===0?0:CASH_MILES[n-1].v;const nx=CASH_MILES[n];
+  if(!nx)return {frac:1,next:null,label:"Alles binnen 👑",toGo:0};
+  const frac=clamp((cash-lo)/(nx.v-lo||1),0,1);
+  return {frac:frac,next:nx,label:nx.l,toGo:Math.max(0,Math.ceil(nx.v-cash))};}
 /* app-brede heat-vignet: rode randgloed vanaf heat>60, pulserend vanaf >85 */
 function applyHeatVignette(){try{
   if(!document.body||!G)return;
@@ -2709,6 +2720,10 @@ function renderOffice(){
    h+='<hr><div class="spread small"><span>🎯 <b>Weekdoel</b> — '+esc(wq.quest.t)+'</span><span class="'+(wq.claimed?"money":"dim")+'">'+(wq.claimed?"✓ +"+fmt(wq.quest.rc):wq.prog+" / "+wq.tgt)+'</span></div>'
     +'<div class="bar" style="margin-top:4px"><i style="width:'+Math.round((wq.claimed?1:wq.frac)*100)+'%;background:linear-gradient(90deg,#ffd76a,#72e08e)"></i></div>'
     +'<div class="small dim" style="margin-top:3px">'+(wq.claimed?"Weekdoel binnen — de bonus is bijgeschreven. Volgende week een nieuw doel.":"Haal het deze week en er valt <b>"+fmt(wq.quest.rc)+"</b> + "+wq.quest.rx+" XP in de kassa.")+'</div>';}
+  {const cr=cashRing();
+   h+='<hr><div class="spread" style="align-items:center"><div class="mile-ring" style="--p:'+Math.round(cr.frac*100)+'"><span>'+Math.round(cr.frac*100)+'%</span></div>'
+    +'<div style="flex:1;margin-left:12px"><div class="small"><b>💰 Volgende mijlpaal</b>'+(cr.next?' — '+esc(cr.label)+' BEF':'')+'</div>'
+    +'<div class="small dim" style="margin-top:2px">'+(cr.next?"Nog <b>"+fmt(cr.toGo)+"</b> tot de volgende feestknal.":"Élke cash-mijlpaal gebroken — de kroon is binnen. 👑")+'</div></div></div>';}
   h+='<hr><div class="weektip">💡 <b>Tip van de week</b><span>'+esc(weekTip())+'</span></div>';
   h+='</div>';
   {const tier=repTier();
