@@ -212,6 +212,18 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 @keyframes levelup{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}
   16%{opacity:1;transform:translate(-50%,-52%) scale(1.15)}40%{transform:translate(-50%,-50%) scale(1)}
   80%{opacity:1}100%{opacity:0;transform:translate(-50%,-66%) scale(1)}}
+.odo-fx{position:fixed;z-index:89;left:50%;top:40%;transform:translate(-50%,-50%);pointer-events:none;
+  display:flex;align-items:center;gap:6px;background:#14100f;border:2px solid #3a2f24;border-radius:6px;
+  padding:8px 12px;box-shadow:0 10px 28px rgba(0,0,0,.6);animation:odopanel 1.5s ease-out forwards}
+.odo-fx .odo-lbl,.odo-fx .odo-km{font-family:var(--hfont);font-size:9px;letter-spacing:1px;color:#c9a35a}
+.odo-drums{display:flex;gap:2px}
+.odo-digit{display:inline-block;width:15px;height:20px;overflow:hidden;background:#efe9dc;border-radius:2px;
+  box-shadow:inset 0 0 4px rgba(0,0,0,.4);text-align:center}
+.odo-digit b{display:block;animation:odospin 1.15s cubic-bezier(.25,.6,.2,1) both;animation-delay:inherit}
+.odo-digit u{display:block;height:20px;line-height:20px;font:700 14px/20px monospace;color:#211c16;text-decoration:none}
+@keyframes odospin{0%{transform:translateY(calc(-9em - 200px))}100%{transform:translateY(calc(var(--n) * -20px))}}
+@keyframes odopanel{0%{opacity:0;transform:translate(-50%,-40%) scale(.85)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.03)}
+  30%{transform:translate(-50%,-50%) scale(1)}82%{opacity:1}100%{opacity:0;transform:translate(-50%,-58%) scale(1)}}
 .mood{font-size:24px;vertical-align:-3px}
 .scr{display:inline-block;width:64px;height:64px;line-height:62px;font-size:34px;text-align:center;
   background:linear-gradient(180deg,#9da1ab,#6a6d75);border-radius:10px;margin:4px;cursor:pointer;
@@ -950,6 +962,7 @@ const GOALS=[
  {id:"radiozap",t:"Zap eens door de radiozenders op 't koertje",r:"+40 XP · een deuntje bij de koffie",c:()=>!!G.mile.radioZap,fn:()=>addXP(40)},
  {id:"leveledup",t:"Klim een niveau hoger",r:"+30 XP · de eerste sport op de ladder",c:()=>!!G.mile.leveledUp,fn:()=>addXP(30)},
  {id:"pigeon",t:"Jaag de duif eens op 't koertje op",r:"+30 XP · roekoe",c:()=>!!G.mile.pigeon,fn:()=>addXP(30)},
+ {id:"odoroll",t:"Draai een teller terug (en voel de spanning)",r:"+50 XP · wij weten van niets",c:()=>!!G.mile.odoRoll,fn:()=>addXP(50)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -2253,6 +2266,21 @@ function polaroidPop(c){try{
     +'<div class="polaroid-cap">'+esc(carName(c))+'<span>nieuw op \'t koertje</span></div>';
   document.body.appendChild(d);setTimeout(()=>d.remove(),2100);
   if(G&&G.mile)G.mile.polaroid=1;
+  sfx("tick");
+}catch(e){}}
+/* rollende teller-trommeltjes wanneer ge de kilometerstand 'corrigeert' */
+function odometerFx(fromKm,toKm){try{
+  const to=Math.max(0,Math.round(toKm||0));
+  const digits=String(to).padStart(6,"0").slice(-6).split("");
+  const wrap=document.createElement("div");wrap.className="odo-fx";
+  let inner='<div class="odo-lbl">TELLER</div><div class="odo-drums">';
+  digits.forEach((dg,i)=>{
+    inner+='<span class="odo-digit" style="--n:'+dg+';animation-delay:'+(i*.12).toFixed(2)+'s"><b>'
+      +'0123456789'.split("").map(x=>'<u>'+x+'</u>').join("")+'</b></span>';
+  });
+  inner+='</div><div class="odo-km">km</div>';
+  wrap.innerHTML=inner;
+  document.body.appendChild(wrap);setTimeout(()=>wrap.remove(),1500);
   sfx("tick");
 }catch(e){}}
 function ouch(){sfx("bad");if(typeof TD!=="undefined"&&TD&&TD.on){TD.shake=Math.min(.6,(TD.shake||0)+.42);return}document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake")}
@@ -4277,8 +4305,9 @@ function rollKm(id){const c=getCar(id);const shM=shadyMult();const cost=Math.rou
    +'<div class="small dim">Kost '+fmt(cost)+". De marktwaarde stijgt, je karma daalt, en de heat ook een beetje omhoog natuurlijk.</div>",
   [{t:"Draai maar terug",cls:"shady",fn:()=>{
      if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
-     G.cash-=cost;c.km=+$("kmsl").value;c.rolled=true;
+     const oldKm=c.km;G.cash-=cost;c.km=+$("kmsl").value;c.rolled=true;G.mile.odoRoll=1;
      if(!c.known.includes("__rolled"))c.known.push("__rolled");
+     odometerFx(oldKm,c.km);
      heatAdd(5);popNum("+5 🔥","pred");log(carName(c)+": teller 'gecorrigeerd'. Wij weten van niets.");closeModal();openCar(id);hdr()}},
    {t:"Toch maar niet",cls:"ghost",fn:()=>{closeModal();openCar(id)}}]);
 }
