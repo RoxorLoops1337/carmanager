@@ -2777,7 +2777,20 @@ function renderStart(){
   }
   $("view").innerHTML=h;
 }
-function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;migrate();syncUID();render()}
+function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;migrate();syncUID();render();welcomeBack()}
+/* welkom-terug: korte samenvatting van wat er wacht bij het hervatten van een opgeslagen spel (heropstart-prikkel) */
+function welcomeBack(){try{
+  if(!G||G.over)return "";
+  const parts=["👋 Welkom terug — week "+(G.week||1)];
+  const cust=(G.custs||[]).length;
+  if(cust)parts.push(cust+" kandidaat"+(cust>1?"-kopers":"")+" op 't koertje");
+  if(G.flashDeal)parts.push("⏳ flitsdeal loopt af");
+  const wq=(typeof weekQuestProg==="function")?weekQuestProg():null;
+  if(wq&&!wq.claimed)parts.push("🎯 weekdoel: "+wq.prog+"/"+wq.tgt);
+  const msg=parts.join(" · ")+".";
+  if(typeof toast==="function")toast(msg);
+  return msg;
+}catch(e){return ""}}
 function pickChar(k){
   modal("<b>"+CHARS[k].face+" "+CHARS[k].n+"</b> neemt de sleutels van het koertje in Essene. De asbak staat klaar, de frigo is gevuld met Red Bull.<br><br>Startkapitaal: <b>"+fmt(CHARS[k].cash)+"</b>",
    [{t:"Aan de slag",fn:()=>{closeModal();newGame(k)}},{t:"Toch niet",cls:"ghost",fn:closeModal}]);
