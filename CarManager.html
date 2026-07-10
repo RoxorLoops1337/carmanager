@@ -44,6 +44,9 @@ body{background:
 #hdr .cash.cash-recover{animation:cashrecover .8s ease-out}
 @keyframes cashrecover{0%{transform:scale(1)}35%{transform:scale(1.16);text-shadow:0 0 11px rgba(114,224,142,1)}100%{transform:scale(1);text-shadow:none}}
 @media (prefers-reduced-motion:reduce){#hdr .cash.cash-danger,#hdr .cash.cash-recover{animation:none}}
+#hdr .stat.heat-spike{animation:heatspike .85s ease-out}
+@keyframes heatspike{0%,100%{transform:scale(1)}18%{transform:scale(1.2);text-shadow:0 0 12px rgba(255,60,40,1)}42%{transform:scale(1)}64%{transform:scale(1.1);text-shadow:0 0 9px rgba(255,60,40,.85)}}
+@media (prefers-reduced-motion:reduce){#hdr .stat.heat-spike{animation:none}}
 #hdr #hrep,#hdr #hheat{display:inline-block}
 .replad-stat .replad{display:inline-block;width:34px;height:5px;margin-left:5px;vertical-align:middle;
   background:rgba(255,255,255,.14);border-radius:3px;overflow:hidden;box-shadow:inset 0 0 2px rgba(0,0,0,.5)}
@@ -898,7 +901,7 @@ let G=null, UID=1;
 /* ============ STATE ============ */
 function newGame(ch){
   const c=CHARS[ch];
-  MK=null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;
+  MK=null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;HEAT_BAND_SHOWN=null;
   G={ch, week:1, year:1995, cash:c.cash, rep:c.rep, heat:c.heat,
      office:0, cars:[], custs:[], log:[], plates:[], plateOrder:null,
      rb:false, smokes:0, sold:0, spent:0, earned:0, trips:0,
@@ -2637,7 +2640,9 @@ function modal(html,btns){
 }
 function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(typeof TD!=="undefined"&&TD&&TD.on)tdCleanup();if(G)render()}
 function modalOpen(){return $("modal").style.display==="flex"}
-let HCASH=null,HTW=null,REP_SHOWN=null,HEAT_SHOWN=null,REP_TIER_SHOWN=null,CASH_NEG_SHOWN=null;
+let HCASH=null,HTW=null,REP_SHOWN=null,HEAT_SHOWN=null,REP_TIER_SHOWN=null,CASH_NEG_SHOWN=null,HEAT_BAND_SHOWN=null;
+/* heat-band: kalm(0) / onrustig(1,>30) / heet(2,>60) / paniek(3,>85) — voor de escalatie-waarschuwing */
+function heatBand(h){h=h||0;return h>85?3:h>60?2:h>30?1:0;}
 /* reputatie-promotie: vier het als de zaak een hogere status-trap bereikt */
 function repPromoCheck(){try{
   if(!G)return;
@@ -2690,12 +2695,19 @@ function hdr(){
   let cashPulse="";
   if(CASH_NEG_SHOWN!=null&&cashNeg!==CASH_NEG_SHOWN)cashPulse=cashNeg?" cash-danger":" cash-recover";
   CASH_NEG_SHOWN=cashNeg;
+  const hband=heatBand(G.heat);
+  let heatPulse="";
+  if(HEAT_BAND_SHOWN!=null&&hband>HEAT_BAND_SHOWN){
+    heatPulse=" heat-spike";
+    if(hband>=2&&typeof toast==="function")toast(hband>=3?"🚨 De heat is torenhoog — de flikken ruiken u. Hou u gedeisd!":"🔥 De heat loopt op. Iets te veel opgevallen — even rustiger aan.");
+  }
+  HEAT_BAND_SHOWN=hband;
   h.innerHTML='<span class="stat">📅 W'+G.week+" '"+String(G.year).slice(2)+'</span>'
    +'<span class="stat cash'+cashPulse+'"'+(cashNeg?' style="color:var(--red)"':'')+' title="'+titleFor(G.lvl||1)+'">💰 <span id="hcash">'+fmt(HCASH)+'</span></span>'
    +(function(){const L=repLadder();
       const tt=L.next?esc(L.toNext+' reputatie tot '+L.next.emo+' '+L.next.n):'Hoogste status bereikt — Legende van Essene';
       return '<span class="stat replad-stat'+(L.next?'':' replad-max')+'" title="'+tt+'"><span class="repv">★</span> <span id="hrep">'+Math.round(REP_SHOWN==null?G.rep:REP_SHOWN)+'</span><span class="replad"><i style="width:'+Math.round(L.frac*100)+'%"></i></span></span>';})()
-   +'<span class="stat"><span class="heatv">🔥</span> <span id="hheat">'+Math.round(HEAT_SHOWN==null?G.heat:HEAT_SHOWN)+'</span></span>'
+   +'<span class="stat'+heatPulse+'"><span class="heatv">🔥</span> <span id="hheat">'+Math.round(HEAT_SHOWN==null?G.heat:HEAT_SHOWN)+'</span></span>'
    +'<span class="stat">🎖️ '+(G.lvl||1)+'</span>'
    +(validPlate()?'<span class="stat"><span class="plate">'+bestPlate().code+'</span>&nbsp;'+bestPlate().weeks+'w</span>':'')
    +(G.rb?'<span class="stat">🪽</span>':'')
@@ -2777,7 +2789,7 @@ function renderStart(){
   }
   $("view").innerHTML=h;
 }
-function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;migrate();syncUID();render();welcomeBack()}
+function contGame(){G=loadSave();MK=G.mk||null;HCASH=null;REP_SHOWN=null;HEAT_SHOWN=null;REP_TIER_SHOWN=null;CASH_NEG_SHOWN=null;HEAT_BAND_SHOWN=null;migrate();syncUID();render();welcomeBack()}
 /* welkom-terug: korte samenvatting van wat er wacht bij het hervatten van een opgeslagen spel (heropstart-prikkel) */
 function welcomeBack(){try{
   if(!G||G.over)return "";
