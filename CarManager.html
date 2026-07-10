@@ -917,7 +917,7 @@ function newGame(ch){
      gastonHere:false, bet:null, tip:false, recProfit:0, modelsSold:{},
      sloffen:0, alinHere:false, martineCalls:0, collection:[], collSlots:2, mail:[],
      busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
-     goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
+     goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, filmDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
      comebacks:[], mile:{}, neonHue:0, radioStation:0, weekStreak:0, flashDeal:null, wkqDone:0, cashMile:0, bestWeek:0, fastFlip:-1, over:false};
   rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
@@ -955,7 +955,7 @@ function migrate(){if(!G)return;
   G.kras=G.kras||0;G.gastonHere=!!G.gastonHere;G.bet=G.bet||null;G.tip=!!G.tip;
   G.recProfit=G.recProfit||0;G.modelsSold=G.modelsSold||{};
   G.goalsDone=G.goalsDone||[];G.unlocks=G.unlocks||{};G.vlan=!!G.vlan;
-  G.phoneDeal=G.phoneDeal||null;G.auction=G.auction||null;G.web=G.web||null;
+  G.phoneDeal=G.phoneDeal||null;G.auction=G.auction||null;G.web=G.web||null;G.filmDeal=G.filmDeal||null;
   G.orders=G.orders||[];G.ordersDone=G.ordersDone||0;G.gastonWins=G.gastonWins||0;
   G.exported=G.exported||0;G.staff=G.staff||{};G.salonYear=G.salonYear||0;
   G.staffWeeks=G.staffWeeks||{};G.staffMorale=G.staffMorale||{};
@@ -1114,6 +1114,7 @@ const GOALS=[
  {id:"nostalgic",t:"Verkoop een oldtimer aan een nostalgische liefhebber",r:"+80 XP · jeugdsentiment verkoopt",c:()=>!!G.mile.nostalgic,fn:()=>addXP(80)},
  {id:"barnfind",t:"Koop een schuurvondst onderweg",r:"+70 XP · stof eraf, goud eronder (soms)",c:()=>!!G.mile.barnfind,fn:()=>addXP(70)},
  {id:"impulse",t:"Verkoop aan een impulskoper",r:"+50 XP · toegehapt voor de koffie koud was",c:()=>!!G.mile.impulse,fn:()=>addXP(50)},
+ {id:"film",t:"Verhuur een wagen aan een filmploeg",r:"+70 XP · uw bak op 't scherm",c:()=>!!G.mile.film,fn:()=>addXP(70)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
@@ -2038,6 +2039,10 @@ function endWeek(silent){
   if(!G.phoneDeal&&G.unlocks.gsm&&!isCh("thomas")&&Math.random()<.15){
     G.phoneDeal=genPhoneDeal();G.phoneDeal.viaThomas=1;
     extra.push(["😁 Thomas","'iets gezien op het prikbord van de computerclub' — kijk op het bureau",""]);}
+  // een filmploeg wil af en toe een wagen huren voor een opname (huur, geen verkoop)
+  G.filmDeal=(!G.filmDeal&&G.cars.length&&Math.random()<.13)?genFilmDeal():G.filmDeal;
+  if(G.filmDeal&&!getCar(G.filmDeal.carId))G.filmDeal=null; // wagen intussen weg? vergeten
+  if(G.filmDeal)extra.push(["🎬 Filmploeg","een opnameploeg wil een wagen huren — kijk op het bureau",""]);
   // huurkoop-afbetalingen innen (+ zeldzame wanbetaling)
   G.rentDeals=G.rentDeals||[];
   for(const rd of G.rentDeals){
@@ -2898,6 +2903,15 @@ function renderOffice(){
      +'<button class="btn primary" onclick="phoneBuy()">Kopen ('+fmt(pd.price)+')</button>'
      +'<button class="btn ghost" onclick="G.phoneDeal=null;save();render()">Afwimpelen</button></div>';
   }
+  if(G.filmDeal){const fd=G.filmDeal,fc=getCar(fd.carId);
+    if(fc){h+='<div class="card"><h3>🎬 Een filmploeg klopt aan</h3>'
+     +'<div class="carline" style="cursor:default"><div class="carpic" style="width:86px">'+carArt(fc,88)+'</div>'
+     +'<div style="flex:1"><b>'+esc(carName(fc))+'</b> <span class="small dim">('+fc.year+')</span>'
+     +'<div class="small dim">Een opnameploeg wil uw '+esc(carName(fc))+' een week huren voor '+esc(fd.prod)+'. Ge houdt de wagen — enkel wat gereden op de set.</div></div>'
+     +'<div class="money small">+'+fmt(fd.fee)+'</div></div>'
+     +'<button class="btn primary" onclick="acceptFilmDeal()">🎬 Verhuren (+'+fmt(fd.fee)+')</button>'
+     +'<button class="btn ghost" onclick="declineFilmDeal()">Bedanken</button></div>';}
+  }
   if(G.unlocks.gsm&&!G.gsmUp){
     h+='<div class="card"><h3>📱 Nieuwe GSM met meer bereik</h3>'
      +'<div class="small dim">De GSM-winkel in Zellik heeft een nieuw toestel: dubbel zoveel bereik, een dikker telefoonboek, en een piepertje erbij. Voor <b>'+fmt(45000)+'</b> belt er vaker iemand met een deal — en scherper geprijsd ook.</div>'
@@ -3321,6 +3335,23 @@ function genPhoneDeal(){const c=genCar(pick(["nl","de","pl"]));c.transit=false;
   // met de opgewaardeerde GSM krijg je scherpere prijzen (meer bereik, meer contacten)
   const band=G.gsmUp?[.55,.72]:[.62,.8];
   return {c,price:Math.round(trueValue(c)*rnd(band[0],band[1])/1000)*1000}}
+/* ---- filmploeg-huur: een opnameploeg huurt één wagen voor een week tegen een vergoeding (wagen blijft van u) ---- */
+const FILM_PRODS=["een politieserie voor de VRT","een reclamespot voor een bank","een kortfilm van een filmstudent","een muziekvideo van een schlagerzanger","een aflevering van een misdaadreeks","een nostalgische jaren-'80 film","een kerstspot voor een meubelzaak"];
+function genFilmDeal(){const c=pick(G.cars);
+  const fee=Math.round(clamp(askValue(c)*rnd(.06,.11),8000,120000)/1000)*1000;
+  return {carId:c.id,fee:fee,prod:pick(FILM_PRODS)};}
+function acceptFilmDeal(){
+  if(!G.filmDeal)return;const fd=G.filmDeal,c=getCar(fd.carId);
+  if(!c){G.filmDeal=null;render();return;}
+  G.cash+=fd.fee;G.earned+=fd.fee;G.mile.film=1;
+  // klein risico op wat sporen na de opname
+  if(Math.random()<.25){c.body=clamp(c.body-ri(1,3),8,100);log("🎬 De "+carName(c)+" kwam met wat extra krasjes terug van de set.");}
+  popNum("+"+fmt(fd.fee)+" 🎬","pgreen");if(typeof sfx==="function")sfx("kaching");addXP(8);
+  log("🎬 De "+carName(c)+" speelde mee in "+fd.prod+" — "+fmt(fd.fee)+" huur in de kassa, wagen blijft te koop.");
+  if(typeof toast==="function")toast("🎬 Filmhuur binnen: +"+fmt(fd.fee)+"!");
+  G.filmDeal=null;save();render();
+}
+function declineFilmDeal(){G.filmDeal=null;save();render();}
 /* ---- endgame: overname van de concurrentie ---- */
 const RIVALS={
   dany:{n:"Dany uit Ninove",emo:"🥸",price:2500000,rep:40,lvl:8,
