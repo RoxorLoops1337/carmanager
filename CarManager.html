@@ -1060,6 +1060,7 @@ const GOALS=[
  {id:"flashdeal",t:"Grijp een flitsdeal voor het te laat is",r:"+70 XP · wie 't eerst komt",c:()=>!!G.mile.flashDeal,fn:()=>addXP(70)},
  {id:"weekquest",t:"Haal een weekdoel binnen",r:"+60 XP · doel van de week gehaald",c:()=>!!G.mile.weekQuest,fn:()=>addXP(60)},
  {id:"cashmile",t:"Breek de 2,5 miljoen op de rekening",r:"+150 XP · dik binnen",c:()=>!!G.mile.cashMile,fn:()=>addXP(150)},
+ {id:"comeback",t:"Kom terug na een gebroken verkoopreeks",r:"+50 XP · niet bij de pakken blijven zitten",c:()=>!!G.mile.comeback,fn:()=>addXP(50)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
@@ -2136,7 +2137,9 @@ function endWeek(silent){
       extra.push(["🔥 "+G.weekStreak+" goede weken op rij",tag+" · +"+fmt(wb),"money"]);
       if(!silent&&G.weekStreak>=4){stamp("🔥 STREAK "+G.weekStreak,"gold")}}
   } else if((G.weekStreak||0)>0){
+    const prevStreak=G.weekStreak;
     extra.push(["💤 Streak gebroken","geen verkoop deze week — reeks terug op 0","neg"]);G.weekStreak=0;
+    comebackFx(prevStreak,silent);
   }
   const delta=G.cash-(G.wkStart!=null?G.wkStart:G.cash);
   if(!silent&&!G.over){
@@ -2478,6 +2481,19 @@ function weekQuestBanner(q){try{
   b.innerHTML='🎯 WEEKDOEL GEHAALD!<span>'+esc(q.t+" · +"+fmt(q.rc))+'</span>';
   document.body.appendChild(b);setTimeout(()=>b.remove(),2300);
 }catch(e){}}
+/* comeback-duwtje: als een betekenisvolle reeks breekt, een bemoedigende flits + kleine troost-XP (retentie: een slechte week minder hard laten aankomen) */
+const COMEBACK_MSGS=["Kop op — volgende week pakt ge er twee.","Iedereen heeft een magere week. Morgen weer volk op 't koertje.","'t Is maar een dip. De trailer staat klaar.","Even tegenslag; de beste deals komen na een droogte."];
+function comebackFx(prev,silent){try{
+  if(!G||(prev||0)<3)return false;          // enkel na een reeks die er toe deed
+  if(G.mile)G.mile.comeback=1;
+  if(typeof addXP==="function")addXP(10);     // kleine troost, geen balans-impact
+  if(silent)return true;
+  const b=document.createElement("div");b.className="goal-banner";
+  b.innerHTML='💪 KOP OP!<span>'+esc(pick(COMEBACK_MSGS))+'</span>';
+  document.body.appendChild(b);setTimeout(()=>b.remove(),2300);
+  if(typeof sfx==="function")sfx("tick");
+  return true;
+}catch(e){return false}}
 /* tip van de week: een rondje cynische handelaarswijsheid, wisselt per week (deterministisch) */
 const WEEK_TIPS=[
  "Een propere asbak verkoopt de halve wagen. De andere helft doet de babbel.",
