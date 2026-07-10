@@ -3641,6 +3641,13 @@ function nearMissBanner(){try{
   b.innerHTML='😬 ZO DICHTBIJ!<span>de jackpot op een haar na — nog een keer?</span>';
   document.body.appendChild(b);setTimeout(()=>b.remove(),1600);sfx("thud");
 }catch(e){}}
+/* verkoop-bijnamis: de deal viel op een haar na af (de dobbel lag nét boven een reële kans) — een 'zo dichtbij' die tot een nieuwe poging aanzet */
+function isSaleNearMiss(p,roll){return p>=0.30&&roll>=p&&(roll-p)<0.07;}
+function saleNearMiss(){try{
+  const b=document.createElement("div");b.className="nearmiss-banner";
+  b.innerHTML='😬 NÉT NIET!<span>hij hapte bijna toe — nog een keer?</span>';
+  document.body.appendChild(b);setTimeout(()=>b.remove(),1600);sfx("thud");
+}catch(e){}}
 /* verrassingszakje: gratis wekelijkse grabbag met een gewogen willekeurige beloning (variable-ratio) */
 const GRABBAG=[
  {e:"💶",t:"+8.000 BEF, gewoon gevonden.",w:24,fn:()=>{G.cash+=8000;popNum("+8.000 BEF","pgreen")}},
@@ -5841,7 +5848,8 @@ function trySell(){
   const bust=price*(useEnvelope?(1-ENV_DISCOUNT):1)>(cu.budget*(useFinance?2:1)+(useTrade?cu.tradeClaim:0)+(useBarter?cu.barter.value:0)+(useMoto?cu.moto.value:0))*1.12;
   const p=clamp(sellOdds(cu,price,perc)+negBonus()+(useTrade?.08:0)+(useBarter?.06:0)+(useMoto?.06:0)+(useFinance?.05:0)+(useEnvelope?ENV_ODDS:0)+(warranted?WARRANTY_ODDS:0),.03,.97);
   G.rb=false;
-  const win=!bust&&Math.random()<p;
+  const roll=Math.random();
+  const win=!bust&&roll<p;
   suspense(["🤔","💭","🚬","🧮","👀"],cu.name+" denkt na, krabt eens in het haar...",()=>{
     if(bust){
       G.combo=0;
@@ -5856,6 +5864,7 @@ function trySell(){
       }
       doSale(cu,c,final,disclosed,iss);
     }else{
+      if(isSaleNearMiss(p,roll))saleNearMiss();
       const counter=Math.round(Math.min(perc*rnd(.85,.96),cu.budget)/1000)*1000;
       modal(cu.name+" wrijft over de kin. \"Hmm. <b>"+fmt(counter)+"</b>. Meer heb ik er niet voor over.\"",
       [{t:"Deal ("+fmt(counter)+")",fn:()=>doSale(cu,c,counter,disclosed,iss)},
