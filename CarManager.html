@@ -4321,7 +4321,7 @@ function repairRoll(){const m=G.mech||0,r=Math.random(); // mechanic skill: more
   if(G.appr)G.appr.jobs=(G.appr.jobs||0)+1;
   return r<crit?2:r<crit+botch?0:1} // 2=crit 0=botch 1=normal
 const RUSH_MUL=1.7; // spoedklus-toeslag: dubbel zoveel, maar gegarandeerd topwerk
-function fixEng(id,rush){const c=getCar(id);let cost=Math.round((100-c.eng)/100*CARS[c.ci].base*.22*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
+function fixEng(id,rush){const c=getCar(id);const eng0=c.eng;let cost=Math.round((100-c.eng)/100*CARS[c.ci].base*.22*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
   if(rush)cost=Math.round(cost*RUSH_MUL/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
   G.cash-=cost;
@@ -4334,7 +4334,7 @@ function fixEng(id,rush){const c=getCar(id);let cost=Math.round((100-c.eng)/100*
     if(rush){stamp("★ SPOEDKLUS ★","gold");toast("🌙 Overnacht klaar: motor 100%, showroomklaar tegen de ochtend.")}
     else if(roll===2){stamp("★ TOPKLUS ★","gold");toast("De monteur overtreft zichzelf: motor 100%, loopt als een naaimachine.")}
     else if(roll===0)toast("Mindere dag in de garage. Het loopt, maar nét ("+c.eng+"%).");
-    openCar(id);hdr()},fixScene(c,"eng"));}
+    openCar(id);hdr()},fixScene(c,"eng",null,3+Math.round((100-eng0)/14)));}
 function fixBody(id,rush){const c=getCar(id);let cost=Math.round((100-c.body)/100*CARS[c.ci].base*.13*(hasStaff("roger")?.85:1)*apprMul()/1000)*1000;
   if(rush)cost=Math.round(cost*RUSH_MUL/1000)*1000;
   if(G.cash-cost<creditLimit()){toast("Te weinig geld.");return}
@@ -5550,9 +5550,13 @@ function driveOff(c){
   document.body.appendChild(d);setTimeout(()=>d.remove(),1800);
 }
 /* workshop overlays for the suspense reel */
-function fixScene(c,mode,hex){
+/* vonkenregen bij een motorklus — meer werk = meer vonken (3..10) */
+function sparksHtml(n){const cnt=clamp(Math.round(n||3),3,10);let h='<div class="sparks">';
+  for(let i=0;i<cnt;i++)h+='<i style="--r:'+(Math.random().toFixed(2))+';animation-delay:'+((i%6)*.12).toFixed(2)+'s"></i>';
+  return h+'</div>';}
+function fixScene(c,mode,hex,spark){
   return '<div class="fixwrap">'+carArt(c,190)
-   +(mode==="eng"?'<div class="fixtool">🔧</div><div class="sparks"><i style="--r:.1"></i><i style="--r:.6"></i><i style="--r:.9"></i></div>'
+   +(mode==="eng"?'<div class="fixtool">🔧</div>'+sparksHtml(spark==null?3:spark)
     :mode==="spray"?'<div class="fixtool spray">🖌️</div><div class="mist" style="--mc:'+hex+'"><i></i><i></i><i></i></div>'
     :'<div class="fixtool spray">🎨</div><div class="mist"><i></i><i></i><i></i></div>')
    +'</div>';
