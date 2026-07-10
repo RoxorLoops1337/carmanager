@@ -187,6 +187,11 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   transition:transform .08s}
 .colpick:hover{transform:scale(1.12);border-color:#fff}
 .colpick.cur{border:2px solid var(--amber);box-shadow:0 0 10px rgba(255,179,71,.5)}
+/* heat-waarschuwing: rode randgloed over 't hele scherm als de heat kritiek wordt */
+body.heat-hot::after,body.heat-panic::after{content:"";position:fixed;inset:0;z-index:40;pointer-events:none;
+  box-shadow:inset 0 0 90px 10px rgba(220,40,30,.28);transition:box-shadow .5s}
+body.heat-panic::after{box-shadow:inset 0 0 120px 22px rgba(235,30,25,.5);animation:heatvig 1.3s ease-in-out infinite}
+@keyframes heatvig{0%,100%{box-shadow:inset 0 0 100px 14px rgba(235,30,25,.35)}50%{box-shadow:inset 0 0 150px 30px rgba(255,40,30,.62)}}
 .conf{position:fixed;z-index:75;width:8px;height:12px;border-radius:2px;pointer-events:none;opacity:0;
   animation:conffall 1.5s ease-in forwards}
 @keyframes conffall{0%{opacity:1;transform:translate(0,0) rotate(0)}
@@ -2418,8 +2423,16 @@ function modal(html,btns){
 function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(typeof TD!=="undefined"&&TD&&TD.on)tdCleanup();if(G)render()}
 function modalOpen(){return $("modal").style.display==="flex"}
 let HCASH=null,HTW=null;
+/* app-brede heat-vignet: rode randgloed vanaf heat>60, pulserend vanaf >85 */
+function applyHeatVignette(){try{
+  if(!document.body||!G)return;
+  const heat=G.heat||0;
+  document.body.classList.toggle("heat-hot",heat>60&&heat<=85);
+  document.body.classList.toggle("heat-panic",heat>85);
+}catch(e){}}
 function hdr(){
   const h=$("hdr");h.style.display="flex";
+  applyHeatVignette();
   if(HCASH==null)HCASH=G.cash;
   h.innerHTML='<span class="stat">📅 W'+G.week+" '"+String(G.year).slice(2)+'</span>'
    +'<span class="stat cash"'+(G.cash<0?' style="color:var(--red)"':'')+' title="'+titleFor(G.lvl||1)+'">💰 <span id="hcash">'+fmt(HCASH)+'</span></span>'
