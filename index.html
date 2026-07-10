@@ -212,6 +212,19 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 @keyframes levelup{0%{opacity:0;transform:translate(-50%,-30%) scale(.5)}
   16%{opacity:1;transform:translate(-50%,-52%) scale(1.15)}40%{transform:translate(-50%,-50%) scale(1)}
   80%{opacity:1}100%{opacity:0;transform:translate(-50%,-66%) scale(1)}}
+.combo-banner{position:fixed;z-index:90;left:50%;top:24%;transform:translate(-50%,-50%);pointer-events:none;text-align:center;
+  font-family:"Bungee",var(--hfont);font-size:26px;color:#ffdff0;
+  text-shadow:0 0 8px #ff5d9e,0 0 20px #ff2f7e,0 2px 5px rgba(0,0,0,.6);animation:combopop 1.5s ease-out forwards}
+.combo-banner span{display:block;font-family:var(--hfont);font-size:12px;letter-spacing:2px;color:#ffb3d6;margin-top:3px;text-shadow:0 0 8px rgba(255,93,158,.7)}
+.combo-banner.mid{color:#ffe9a8;text-shadow:0 0 8px #ffb347,0 0 20px #ff9a3c,0 2px 5px rgba(0,0,0,.6)}
+.combo-banner.mid span{color:#ffd9a0}
+.combo-banner.hot{color:#ffd0b0;text-shadow:0 0 8px #ff7a3c,0 0 22px #ff5020,0 2px 5px rgba(0,0,0,.6)}
+.combo-banner.hot span{color:#ffb090}
+.combo-banner.legend{color:#fff6c0;font-size:30px;text-shadow:0 0 10px #ffd76a,0 0 26px #ffb347,0 0 44px #ff9a3c,0 2px 6px rgba(0,0,0,.7)}
+.combo-banner.legend span{color:#ffe9a8}
+@keyframes combopop{0%{opacity:0;transform:translate(-50%,-30%) scale(.5) rotate(-4deg)}
+  16%{opacity:1;transform:translate(-50%,-52%) scale(1.18) rotate(2deg)}40%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+  80%{opacity:1}100%{opacity:0;transform:translate(-50%,-64%) scale(1)}}
 .odo-fx{position:fixed;z-index:89;left:50%;top:40%;transform:translate(-50%,-50%);pointer-events:none;
   display:flex;align-items:center;gap:6px;background:#14100f;border:2px solid #3a2f24;border-radius:6px;
   padding:8px 12px;box-shadow:0 10px 28px rgba(0,0,0,.6);animation:odopanel 1.5s ease-out forwards}
@@ -963,6 +976,7 @@ const GOALS=[
  {id:"leveledup",t:"Klim een niveau hoger",r:"+30 XP · de eerste sport op de ladder",c:()=>!!G.mile.leveledUp,fn:()=>addXP(30)},
  {id:"pigeon",t:"Jaag de duif eens op 't koertje op",r:"+30 XP · roekoe",c:()=>!!G.mile.pigeon,fn:()=>addXP(30)},
  {id:"odoroll",t:"Draai een teller terug (en voel de spanning)",r:"+50 XP · wij weten van niets",c:()=>!!G.mile.odoRoll,fn:()=>addXP(50)},
+ {id:"combolegend",t:"Bouw een legendarische verkoopstreak (×10)",r:"+150 XP · tien op een rij, ongenaakbaar",c:()=>!!G.mile.comboLegend,fn:()=>addXP(150)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -4334,7 +4348,7 @@ function renderSell(){
    +(cheapFuelOn()?'<span class="pill good">⛽ Goedkope brandstof: slokops +15% (nog '+G.cheapFuel.weeks+' wk)</span>':'')
    +(G.carYear?'<span class="pill good">🏆 Auto v/h Jaar: '+esc(G.carYear.name)+' (+15%)</span>':'')
    +(clearanceOn()?'<span class="pill good">🏷️ Solden: kopers happen sneller (nog '+G.clearance+' wk)</span>':'')
-   +((G.combo||0)>=2?'<span class="pill good">🔥 Verkoopstreak ×'+G.combo+'</span>':'')
+   +((G.combo||0)>=2?'<span class="pill good">🔥 Streak ×'+G.combo+(comboTier(G.combo)?' · '+comboTier(G.combo).name+' +'+Math.round((comboTier(G.combo).mult-1)*100)+'%':'')+'</span>':'')
    +(fuelCrisisOn()?'<span class="pill bad">⛽ Brandstofcrisis: zuinig +14% / slokops −20% (nog '+G.fuelCrisis.weeks+' wk)</span>':'')
    +(G.bet?'<span class="pill info">🤠 Weddenschap: verkoop '+(2-(G.wkSold||0)>0?("nog "+(2-(G.wkSold||0))):"✓ binnen")+'</span>':'')+'</div>';
   if(G.custs.length===0)h+='<div class="card center dim">Geen klanten deze week. Sluit de week af of werk aan je reputatie.</div>';
@@ -5557,6 +5571,15 @@ function trySell(){
     }
   });
 }
+/* escalerende verkoopstreak: elke opeenvolgende verkoop klimt een trap hoger en levert een oplopende bonus */
+const COMBO_TIERS=[{min:10,name:"Legendarisch",mult:1.30,cls:"legend"},{min:7,name:"Vurig",mult:1.20,cls:"hot"},
+  {min:4,name:"Straf",mult:1.12,cls:"mid"},{min:2,name:"Vlot",mult:1.06,cls:"low"}];
+function comboTier(n){for(const t of COMBO_TIERS)if((n||0)>=t.min)return t;return null;}
+function comboBanner(n,t){try{
+  const b=document.createElement("div");b.className="combo-banner "+(t.cls||"");
+  b.innerHTML='🔥 STREAK ×'+n+'<span>'+esc(t.name)+' · +'+Math.round((t.mult-1)*100)+'%</span>';
+  document.body.appendChild(b);setTimeout(()=>b.remove(),1500);
+}catch(e){}}
 function doSale(cu,c,price,disclosed,iss){
   const useTrade=!!(cu._useTrade&&cu.tradeIn);
   const warranted=!!cu._warranty;
@@ -5599,9 +5622,15 @@ function doSale(cu,c,price,disclosed,iss){
   stamp("DEAL!","gold");popNum("+"+fmt(net),"pgreen");sfx("kaching");confetti(26);coinBurst(saleProfit);driveOff(c);
   if(jackpot){G.mile.jackpotSale=1;stamp("💰 MONSTERDEAL","gold");shakeLite();confetti(30);}
   addXP(25+clamp(Math.round((price-(c.paid||0))/25000),0,15));
-  // combo streak
+  // combo streak — escalerende verkoopstreak met oplopende cashbonus (variable-ratio-achtige beloning die tot 'nog eentje' aanzet)
   G.combo=(G.combo||0)+1;
-  if(G.combo>=2){stamp("COMBO ×"+G.combo,"pink");addXP(Math.min(G.combo-1,5)*8)}
+  const ct=comboTier(G.combo);
+  if(ct){
+    const cbonus=Math.round(price*(ct.mult-1)/1000)*1000;
+    if(cbonus>0){G.cash+=cbonus;G.earned+=cbonus;popNum("+"+fmt(cbonus)+" 🔥","pgreen")}
+    comboBanner(G.combo,ct);addXP(Math.min(G.combo-1,5)*8);
+    if(G.combo>=10)G.mile.comboLegend=1;
+  }
   // klantenkaart: elke verkoop een stempel
   addStamp();
   // pearl: flawless car sold
