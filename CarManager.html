@@ -101,7 +101,16 @@ h3{font-family:var(--hfont);font-weight:600;font-size:18px;letter-spacing:.8px}
 .carline .em{font-size:26px}
 .carpic{flex:0 0 auto;width:106px;display:flex;justify-content:center;align-items:flex-end}
 .carpic svg{display:block;max-width:100%;filter:drop-shadow(0 3px 3px rgba(0,0,0,.45))}
-.carpic.big{width:100%;margin:2px 0 4px}
+.carpic.big{width:100%;margin:2px 0 4px;position:relative;overflow:hidden}
+.carpic.big:after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.35),transparent);transform:skewX(-18deg);
+  animation:shinesweep 5.5s ease-in-out infinite}
+/* glans-sweep die over premium knoppen glijdt (licht op gepolijst blik) */
+.shine-host{position:relative;overflow:hidden}
+.shine{position:absolute;top:0;left:-70%;width:45%;height:100%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-18deg);
+  animation:shinesweep 4.5s ease-in-out infinite}
+@keyframes shinesweep{0%{left:-70%}55%{left:130%}100%{left:130%}}
 .logline{padding:6px 2px;border-bottom:1px dashed #3a2f52;font-size:13px}
 .logline:last-child{border-bottom:none}
 #modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
@@ -4018,7 +4027,7 @@ function openCollCar(id){
    +'<div class="small dim" style="margin-top:4px">'+(c.collWeeks||0)+' weken in de schuur · waarde <b class="money">'+fmt(askValue(c))+'</b> (+'+up+'%)</div>'
    +'<div class="small dim">Elke week een beetje meer waard. Elke week een beetje meer vocht.</div><hr><div class="tablebtns">'
    +'<button class="btn primary" onclick="collPull('+c.id+')">⬅️ Terug naar de stock</button>'
-   +'<button class="btn" onclick="show3D((G.collection||[]).find(x=>x.id==='+c.id+'),false)">🌀 Showroom 3D</button>'
+   +'<button class="btn shine-host" onclick="show3D((G.collection||[]).find(x=>x.id==='+c.id+'),false)">🌀 Showroom 3D<span class="shine"></span></button>'
    +'</div>',
   [{t:"Zeil er terug over",cls:"ghost",fn:closeModal}]);
 }
@@ -4065,7 +4074,7 @@ function openCar(id){
    +'<button class="btn" onclick="keuringCar('+c.id+')" '+(c.keured?"disabled":"")+'>🔧 Naar de keuring<br><span class="small">'+(c.keured?"✅ groene kaart":fmt(KEURING_FEE)+" · +vertrouwen")+'</span></button>'
    +'<button class="btn" onclick="fitPlate('+c.id+')" '+(c.vipPlate?"disabled":"")+'>🔖 Eigen nummerplaat<br><span class="small">'+(c.vipPlate?"✅ gepersonaliseerd (+"+Math.round(PLATE_BONUS*100)+"%)":fmt(plateFee(c))+" · +"+Math.round(PLATE_BONUS*100)+"% appeal")+'</span></button>'
    +'<button class="btn" onclick="fitTyres('+c.id+')">'+(tyreSeasonType()==="winter"?"❄️ Winterbanden":"☀️ Zomerbanden")+'<br><span class="small">'+fmt(TYRE_COST)+' · '+(tyresInSeason(c)?"✓ in seizoen (+"+Math.round(TYRE_BONUS*100)+"%)":c.tyres?tyreLabel(c.tyres)+" (uit seizoen)":"+"+Math.round(TYRE_BONUS*100)+"% in seizoen")+'</span></button>'
-   +'<button class="btn" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D</button>'
+   +'<button class="btn shine-host" onclick="show3D(getCar('+c.id+'),true)">🌀 Showroom 3D<span class="shine"></span></button>'
    +'<button class="btn" onclick="testDriveOwn('+c.id+')">🛞 Proefrit<br><span class="small">brokken = koetswerk</span></button>'
    +'<button class="btn" onclick="moveToColl('+c.id+')" '+((G.collection||[]).length>=G.collSlots?"disabled":"")+'>🏛️ In de schuur leggen<br><span class="small">wordt meer waard · kan roesten</span></button>'
    +'<button class="btn'+(c.lesauto?" primary":"")+'" onclick="toggleLesauto('+c.id+')">🚗 '+(c.lesauto?"Uit de rijschool halen":"Als lesauto verhuren")+'<br><span class="small">'+(c.lesauto?"nu in dienst · niet te koop":"~"+fmt(Math.max(1500,Math.round(askValue(c)*.02/1000)*1000))+"/wk · slijtage")+'</span></button>'
