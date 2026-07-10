@@ -36,6 +36,9 @@ body{background:
   border:1px solid var(--edge);border-radius:20px;padding:4px 11px;white-space:nowrap;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
 #hdr .cash{color:var(--green);font-weight:bold}
+#hdr #hcash{display:inline-block}
+#hdr #hcash.cash-up{animation:cashup .55s ease-out}
+@keyframes cashup{0%{transform:scale(1);text-shadow:none}30%{transform:scale(1.22);text-shadow:0 0 10px rgba(114,224,142,.9)}100%{transform:scale(1);text-shadow:none}}
 #hdr .heatv{color:var(--red)} #hdr .repv{color:var(--amber)}
 #view{max-width:760px;margin:0 auto;padding:14px 12px 88px}
 #nav{position:fixed;bottom:0;left:0;right:0;z-index:30;display:none;
@@ -2429,14 +2432,20 @@ function hdr(){
   tweenCash();
 }
 function tweenCash(){
+  const el=$("hcash");const from=HCASH,to=G.cash;
+  if(to>from&&el){el.classList.remove("cash-up");void el.offsetWidth;el.classList.add("cash-up")}
+  rollCash(el,from,to);
+}
+/* rolt het cashgetal omhoog naar de nieuwe waarde; altijd gegarandeerd eindwaarde, ook zonder animatie */
+function rollCash(el,from,to){
   if(HTW){cancelAnimationFrame(HTW);HTW=null}
-  const from=HCASH,to=G.cash;
-  if(from===to)return;
+  HCASH=to;                                   // bron van waarheid = eindwaarde
+  if(el)el.textContent=fmt(to);               // gegarandeerd correcte weergave
+  const canAnim=typeof requestAnimationFrame==="function"&&typeof performance!=="undefined"&&performance&&typeof performance.now==="function";
+  if(!el||to<=from||!canAnim)return;          // uitgaven of geen-animatie: direct de eindwaarde
   const t0=performance.now(),dur=450;
-  const step=t=>{const k=Math.min(1,(t-t0)/dur);
-    HCASH=Math.round(from+(to-from)*k);
-    const el=$("hcash");if(el)el.textContent=fmt(HCASH);
-    HTW=k<1?requestAnimationFrame(step):null};
+  const step=t=>{const k=Math.min(1,(t-t0)/dur);const v=Math.round(from+(to-from)*k);
+    el.textContent=fmt(v);HTW=k<1?requestAnimationFrame(step):(el.textContent=fmt(to),null)};
   HTW=requestAnimationFrame(step);
 }
 const TABS=[["office","🏢","Bureau"],["travel","🗺️","Inkoop"],["garage","🔧","Garage"],["sell","🤝","Verkoop"],["plates","🔴","ZZ-platen"]];
