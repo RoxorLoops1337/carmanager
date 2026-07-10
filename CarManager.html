@@ -1112,6 +1112,7 @@ const GOALS=[
  {id:"wallet",t:"Geef een gevonden portefeuille netjes terug",r:"+60 XP · een eerlijke ziel (voor deze ene keer)",c:()=>!!G.mile.wallet,fn:()=>addXP(60)},
  {id:"collector",t:"Verkoop een zeldzame wagen aan een verzamelaar",r:"+90 XP · de juiste bak bij de juiste liefhebber",c:()=>!!G.mile.collector,fn:()=>addXP(90)},
  {id:"nostalgic",t:"Verkoop een oldtimer aan een nostalgische liefhebber",r:"+80 XP · jeugdsentiment verkoopt",c:()=>!!G.mile.nostalgic,fn:()=>addXP(80)},
+ {id:"barnfind",t:"Koop een schuurvondst onderweg",r:"+70 XP · stof eraf, goud eronder (soms)",c:()=>!!G.mile.barnfind,fn:()=>addXP(70)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
  {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
@@ -4254,7 +4255,7 @@ function driveHome(){
   if(MK.bought.length>0)evs.push(evCustoms);
   const w=tripWeather();MK.weather=w.id;
   log(w.emo+" Onderweg: "+w.line);
-  const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip,evMcDo,evSpeedCamera,evFlatTire,evPigeonRace,evFuelSmuggler,evNostalgia,evBridalParty,evLostWallet];
+  const pool=[evPolice,evBreakdown,evSnow,evThief,evRival,evMechanic,evRedbull,evFlavor,evTraffic,evTollbooth,evAnimal,evGossip,evMcDo,evSpeedCamera,evFlatTire,evPigeonRace,evFuelSmuggler,evNostalgia,evBridalParty,evLostWallet,evBarnFind];
   const n=Math.max(0,m.risk+(Math.random()<.5?1:0)-(hasStaff("jempi")?1:0))+(w.extra||0);
   for(let i=0;i<n;i++)evs.push(pick(pool));
   // weersgebonden events: sneeuw → motelovernachting/panne, regen → klapband, hitte → oververhitting
@@ -4493,6 +4494,22 @@ function evLostWallet(next){
       popNum("+"+fmt(found),"pgreen");
       log("👛 Portefeuille... 'nooit gezien'. "+fmt(found)+" cash erbij, maar zoiets blijft aan uw handen plakken. (+3 heat)");
       closeModal();next();}}]);
+}
+/* schuurvondst onderweg: een vervallen schuur met een oude wagen onder het stof — een koopje, mits opknappen */
+function evBarnFind(next){
+  let c;for(let i=0;i<14;i++){c=genCar(MK.k);if((c.year||9999)<1988)break;}
+  c.transit=false;c.papers=Math.random()<.35?1:0;c.known=c.known||[];
+  c.eng=clamp(c.eng-ri(6,16),8,100);c.body=clamp(c.body-ri(6,16),8,100); // jaren stilstand
+  const price=Math.round(trueValue(c)*rnd(.5,.68)/1000)*1000;
+  modal("<b>🚜 Een vervallen schuur</b> langs een landweg, een verweerd 'TE KOOP'-bordje aan het hek. De boer trekt een dekzeil weg: <hr>"+mkCarSheet(c,false)
+   +'<hr>"Staat hier al jaren. \'t Mag weg. <b class="money">'+fmt(price)+'</b>, cash, en ge ruimt zelf op."',
+  [{t:"Kopen ("+fmt(price)+")",fn:()=>{
+      if(G.cash-price<creditLimit()){toast("Te weinig cash op zak voor de schuurvondst.");return;}
+      G.cash-=price;G.spent+=price;c.paid=price;c.barnfind=1;MK.bought.push(c);G.mile.barnfind=1;
+      popNum("-"+fmt(price),"pred");sfx("kaching");addXP(10);
+      log("🚜 Schuurvondst gekocht: "+carName(c)+" ("+fmt(price)+"). Onder het stof zit misschien goud.");
+      closeModal();next();}},
+   {t:"Laten staan",cls:"ghost",fn:()=>{closeModal();next();}}]);
 }
 function evFuelSmuggler(next){
   modal("<b>⛽ Een trucker met een jerrycan-imperium</b> wenkt aan de rand van de parking. \"Volle tank, halve prijs. Rode diesel, maar wie kijkt er nu naar de kleur.\"",
