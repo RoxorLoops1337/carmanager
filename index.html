@@ -240,6 +240,11 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 .lot-office:before{content:"";position:absolute;left:8px;top:6px;width:22px;height:12px;background:#ffe9a8;border-radius:2px;
   box-shadow:34px 0 0 #ffd76a;animation:offlight 7s steps(1) infinite}
 @keyframes offlight{0%,88%{opacity:1}89%,93%{opacity:.35}94%,100%{opacity:1}}
+.lot-neon{position:absolute;left:6%;top:20%;font-family:"Bungee",var(--hfont);font-size:9px;letter-spacing:1px;
+  cursor:pointer;z-index:4;color:#fff;--nh:#ff2f7e;text-shadow:0 0 4px var(--nh),0 0 9px var(--nh),0 0 15px var(--nh);
+  animation:neonflik 3s ease-in-out infinite}
+.lot-neon.dicht{--nh:#5aa0ff;font-size:7px;opacity:.75;animation:neonflik 1.6s steps(1) infinite}
+@keyframes neonflik{0%,100%{opacity:1}47%{opacity:.9}50%{opacity:.5}53%{opacity:.95}}
 .lot-office:after{content:"CARMANAGER";position:absolute;left:0;right:0;top:-13px;text-align:center;
   font-family:var(--hfont);font-size:9px;letter-spacing:1.5px;color:var(--amber);text-shadow:0 0 6px rgba(255,179,71,.6)}
 .lot-halte{position:absolute;right:7%;top:24%;font-size:22px}
@@ -706,7 +711,7 @@ function newGame(ch){
      busdrv:0, radioIx:0, danyBeat:0, danyHere:false, danyDeal:null,
      goalsDone:[], unlocks:{}, vlan:false, phoneDeal:null, auction:null, web:null,
      orders:[], ordersDone:0, gastonWins:0, exported:0, staff:{}, salonYear:0,
-     comebacks:[], mile:{}, over:false};
+     comebacks:[], mile:{}, neonHue:0, over:false};
   rotateTrend(true);rotateCotm(true);rotateRadioCar(true);rotateCarYear();
   log("Nieuwe zaak gestart in Essene, vlak aan bushalte Koudenberg. "+c.n+" steekt de eerste sigaret op. Aan het werk.");
   genCustomers();
@@ -753,7 +758,7 @@ function migrate(){if(!G)return;
   G.busdrv=G.busdrv||0;G.radioIx=G.radioIx||0;if(G.radioShowWk==null)G.radioShowWk=0;
   G.loan=G.loan||0;G.sabineSteals=G.sabineSteals||0;G.loyalCusts=G.loyalCusts||[];G.scrapped=G.scrapped||0;
   if(G.eotm===undefined)G.eotm=null;if(G.eotm&&!(G.staff&&G.staff[G.eotm]))G.eotm=null;
-  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;
+  G.gsmUp=G.gsmUp||0;G.jdm=G.jdm||null;G.fuelCrisis=G.fuelCrisis||null;G.appr=G.appr||null;G.boughtOut=G.boughtOut||[];G.adWeeks=G.adWeeks||0;G.clearance=G.clearance||0;G.carMeet=!!G.carMeet;G.stamps=G.stamps||0;G.cardsFull=G.cardsFull||0;G.bargain=G.bargain||null;G.referrals=G.referrals||[];G.frost=!!G.frost;G.radioContest=G.radioContest||null;G.tvFeature=G.tvFeature||null;G.customsRapport=G.customsRapport||0;G.fuelPoints=G.fuelPoints||0;G.fuelPerk=G.fuelPerk||null;G.rentDeals=G.rentDeals||[];G.flipChallenge=G.flipChallenge||null;G.scrapBoom=G.scrapBoom||null;G.jobLot=G.jobLot||null;G.magOffer=G.magOffer||null;G.marketWeek=!!G.marketWeek;G.poach=G.poach||null;G.charity=G.charity||null;G.plateDeal=G.plateDeal||null;G.cabrioSpike=G.cabrioSpike||null;G.classicFair=G.classicFair||null;G.cheapFuel=G.cheapFuel||null;G.neonHue=G.neonHue||0;
   if(!G.carYear||G.carYear.year!==G.year)rotateCarYear();
   if(G.poach&&!(G.staff&&G.staff[G.poach.key]))G.poach=null;
   G.danyBeat=G.danyBeat||0;G.danyHere=!!G.danyHere;G.danyDeal=G.danyDeal||null;
@@ -878,6 +883,7 @@ const GOALS=[
  {id:"cheapfuel",t:"Verkoop een slokop tijdens de goedkope-brandstofweek",r:"+90 XP · lage pompprijs, dikke marge",c:()=>!!G.mile.cheapFuel,fn:()=>addXP(90)},
  {id:"caryear",t:"Verkoop de Auto van het Jaar",r:"+130 XP · verkozen én verkocht",c:()=>!!G.mile.carYear,fn:()=>addXP(130)},
  {id:"newyearshow",t:"Vier Nieuwjaar op het koertje met vuurwerk",r:"+80 XP · een jaar overleefd, proost",c:()=>!!G.mile.newYearShow,fn:()=>addXP(80)},
+ {id:"neontoggle",t:"Speel met het neonbord op de container",r:"+40 XP · sfeer is ook verkoop",c:()=>!!G.mile.neonToggle,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
 ];
 function checkGoals(){
@@ -4513,16 +4519,22 @@ function lotWeatherHtml(wx){
   }
   return h+'</div>';
 }
+/* neonbord op de container: OPEN als er koopwaar staat, anders GESLOTEN */
+const NEON_HUES=["#ff2f7e","#ffb347","#38d66b","#35d6d6"];
+const NEON_NAMES=["roze","amber","groen","cyaan"];
+function lotSign(){return (G&&G.cars&&G.cars.length>0)?{txt:"OPEN",cls:""}:{txt:"GESLOTEN",cls:"dicht"};}
 /* the koertje, alive */
 function lotScene(){
   const cars=G.cars.slice(0,5);
   const wx=lotWeather();
+  const sign=lotSign(),hue=NEON_HUES[(G.neonHue||0)%NEON_HUES.length];
   let carsH="";
   cars.forEach((c,i)=>{carsH+='<div class="lot-car" onclick="lotCarPoke(this,'+i+')" style="left:'+(25+i*13.5)+'%;animation-delay:'+(i*.7)+'s">'+carArt(c,74)+'</div>'});
   return '<div class="lot '+wx.cls+'">'
    +'<div class="lot-tint"></div>'
    +'<div class="lot-sun"></div><div class="lot-clouds">☁️ ☁️ ☁️ ☁️</div>'
    +'<div class="lot-fence"></div><div class="lot-office"></div>'
+   +'<div class="lot-neon '+sign.cls+'" onclick="lotSignClick()" style="--nh:'+hue+'">'+sign.txt+'</div>'
    +'<div class="lot-halte">🚏</div><div class="lot-bus">🚌</div>'
    +'<div class="lot-ground"></div>'
    +lotWeatherHtml(wx)
@@ -4530,6 +4542,15 @@ function lotScene(){
    +(cars.length===0?'<div class="lot-duif">🐦</div>':'')
    +'<div class="lot-char" onclick="lotPoke(this)">'+chr().face+'<div class="lot-smoke"><i></i><i></i><i></i></div></div>'
    +'</div>';
+}
+/* klik op het neonbord: cycle de neonkleur (easter-egg, blijft bewaard) */
+function lotSignClick(){
+  if(!G)return;
+  G.neonHue=((G.neonHue||0)+1)%NEON_HUES.length;
+  G.mile.neonToggle=1;
+  sfx("tick");if(typeof save==="function")save();
+  toast("💡 Neon: "+NEON_NAMES[G.neonHue]);
+  if(typeof render==="function")render();
 }
 /* klik op de zaakvoerder: klein interactief momentje op 't koertje */
 const LOT_QUIPS=[["🚬","Ah, ge zijt er nog. Koffie?"],["☕","Rustig aan, de klanten komen wel."],
