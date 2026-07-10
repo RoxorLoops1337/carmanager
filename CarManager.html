@@ -815,7 +815,7 @@ function newGame(ch){
   G={ch, week:1, year:1995, cash:c.cash, rep:c.rep, heat:c.heat,
      office:0, cars:[], custs:[], log:[], plates:[], plateOrder:null,
      rb:false, smokes:0, sold:0, spent:0, earned:0, trips:0,
-     xp:0, lvl:1, spun:false, wkStart:c.cash, wkSold:0,
+     xp:0, lvl:1, spun:false, grabbed:false, wkStart:c.cash, wkSold:0,
      mech:0, combo:0, postcards:[], lotto:false, kras:0,
      gastonHere:false, bet:null, tip:false, recProfit:0, modelsSold:{},
      sloffen:0, alinHere:false, martineCalls:0, collection:[], collSlots:2, mail:[],
@@ -853,7 +853,7 @@ function migrate(){if(!G)return;
   if(G.cash==null)G.cash=0;if(G.rep==null)G.rep=30;if(G.heat==null)G.heat=0;
   G.sold=G.sold||0;G.spent=G.spent||0;G.earned=G.earned||0;G.trips=G.trips||0;G.smokes=G.smokes||0;
   G.xp=G.xp||0;G.lvl=G.lvl||1;G.wkSold=G.wkSold||0;
-  G.spun=!!G.spun;if(G.wkStart==null)G.wkStart=G.cash;
+  G.spun=!!G.spun;G.grabbed=!!G.grabbed;if(G.wkStart==null)G.wkStart=G.cash;
   G.mech=G.mech||0;G.combo=G.combo||0;G.postcards=G.postcards||[];G.lotto=!!G.lotto;
   G.kras=G.kras||0;G.gastonHere=!!G.gastonHere;G.bet=G.bet||null;G.tip=!!G.tip;
   G.recProfit=G.recProfit||0;G.modelsSold=G.modelsSold||{};
@@ -1004,6 +1004,7 @@ const GOALS=[
  {id:"flashdeal",t:"Grijp een flitsdeal voor het te laat is",r:"+70 XP · wie 't eerst komt",c:()=>!!G.mile.flashDeal,fn:()=>addXP(70)},
  {id:"collectall",t:"Verkoop élk model minstens één keer (volledige collectie)",r:"👑 +600 XP · de complete catalogus",c:()=>!!G.mile.collectAll,fn:()=>addXP(600)},
  {id:"firstsale",t:"Open de week met een verkoop",r:"+40 XP · vroeg uit de veren",c:()=>!!G.mile.firstSale,fn:()=>addXP(40)},
+ {id:"grabbag",t:"Open je eerste verrassingszakje",r:"+30 XP · nooit weten wat erin zit",c:()=>!!G.mile.grabBag,fn:()=>addXP(30)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -2076,7 +2077,7 @@ function endWeek(silent){
   if(!silent&&!G.over){
     if(newYear){if(modalOpen())G.pendingGala=1;else showAwards()}
     else weekReport(wkLbl,delta,of.rent,skimmed,extra);}
-  G.wkStart=G.cash;G.wkSold=0;G.spun=false;
+  G.wkStart=G.cash;G.wkSold=0;G.spun=false;G.grabbed=false;
   save();
 }
 function showAwards(){
@@ -2773,6 +2774,7 @@ function renderOffice(){
    +(G.sloffen>0?'<button class="btn shady" onclick="useSloffe()">🚬 Sloffe opentrekken (nog '+G.sloffen+')<br><span class="small">-4 🔥 · van Alin</span></button>':'')
    +'<button class="btn" onclick="redbull()" '+(G.rb?"disabled":"")+'>🪽 Red Bull (60 BEF)</button>'
    +'<button class="btn shady" onclick="spinWheel()" '+(G.spun?"disabled":"")+'>🎡 Rad van Koudenberg'+(G.spun?"<br><span class=\'small\'>volgende week weer</span>":"<br><span class=\'small\'>1× gratis per week</span>")+'</button>'
+   +'<button class="btn" onclick="openGrabBag()" '+(G.grabbed?"disabled":"")+'>🎁 Verrassingszakje'+(G.grabbed?"<br><span class=\'small\'>volgende week weer</span>":"<br><span class=\'small\'>gratis · 1× per week</span>")+'</button>'
    +'<button class="btn" onclick="buyLotto()" '+(G.lotto?"disabled":"")+'>🎟️ Lotto-briefje'+(G.lotto?"<br><span class=\'small\'>trekking bij weekafsluiting</span>":"<br><span class=\'small\'>100 BEF</span>")+'</button>'
    +(G.kras>0?'<button class="btn" onclick="scratchLot()">🎫 Kraslot krassen ('+G.kras+')</button>':'')
    +(G.unlocks.vlan?'<button class="btn'+(G.vlan?' primary':'')+'" onclick="toggleVlan()">📰 Vlan-zoekertje: '+(G.vlan?"AAN":"UIT")+'<br><span class="small">1.500/week · +1 klant</span></button>':'')
@@ -3522,6 +3524,26 @@ function nearMissBanner(){try{
   b.innerHTML='😬 ZO DICHTBIJ!<span>de jackpot op een haar na — nog een keer?</span>';
   document.body.appendChild(b);setTimeout(()=>b.remove(),1600);sfx("thud");
 }catch(e){}}
+/* verrassingszakje: gratis wekelijkse grabbag met een gewogen willekeurige beloning (variable-ratio) */
+const GRABBAG=[
+ {e:"💶",t:"+8.000 BEF, gewoon gevonden.",w:24,fn:()=>{G.cash+=8000;popNum("+8.000 BEF","pgreen")}},
+ {e:"⭐",t:"+2 reputatie. Mond-tot-mond.",w:18,fn:()=>{repAdd(2);popNum("+2 ★","pamber")}},
+ {e:"✨",t:"+8 XP. Ge leert bij.",w:18,fn:()=>{addXP(8);popNum("+8 XP","pblue")}},
+ {e:"🧯",t:"-4 heat. Een dossier verdwijnt.",w:15,fn:()=>{G.heat=clamp(G.heat-4,0,100);popNum("-4 🔥","pblue")}},
+ {e:"🪽",t:"Gratis Red Bull!",w:12,fn:()=>{G.rb=true;popNum("🪽","pblue")}},
+ {e:"🚬",t:"Een sloffe van Alin.",w:8,fn:()=>{G.sloffen=(G.sloffen||0)+1;popNum("+1 sloffe","pamber")}},
+ {e:"💎",t:"KASSA! +30.000 BEF uit het zakje!",w:4,fn:()=>{G.cash+=30000;popNum("+30.000 BEF","pgreen");stamp("ZAKJE-JACKPOT!","gold")}},
+];
+function openGrabBag(){
+  if(G.grabbed){toast("Zakje is al open deze week.");return}
+  let tot=GRABBAG.reduce((s,g)=>s+g.w,0),r=Math.random()*tot,gi=0;
+  for(let i=0;i<GRABBAG.length;i++){r-=GRABBAG[i].w;if(r<=0){gi=i;break}}
+  const rw=GRABBAG[gi];
+  G.grabbed=true;G.mile.grabBag=1;rw.fn();addXP(2);sfx("kaching");if((rw.w||0)<=4)confetti(50);
+  save();hdr();
+  modal('<div class="center" style="padding:10px 0"><div class="reel">🎁</div><div class="reel">'+rw.e+'</div><b>'+rw.t+'</b></div>',
+   [{t:"Mooi!",fn:closeModal}]);
+}
 function spinWheel(){
   if(G.spun){toast("Al gedraaid deze week.");return}
   let tot=WHEEL.reduce((s,w)=>s+w.w,0),r=Math.random()*tot,si=0;
