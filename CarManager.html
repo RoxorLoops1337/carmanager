@@ -322,6 +322,12 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
 .lot-duif{position:absolute;bottom:9%;left:42%;font-size:15px;animation:duifhop 5s ease-in-out infinite}
 @keyframes duifhop{0%,20%,100%{transform:translate(0,0)}25%{transform:translate(9px,-7px)}30%,60%{transform:translate(16px,0)}
   65%{transform:translate(26px,-6px)}70%,95%{transform:translate(34px,0)}}
+.lot-pigeon{position:absolute;top:32%;right:26%;font-size:13px;z-index:4;cursor:pointer;transform-origin:bottom center;
+  animation:pigeonbob 3.6s ease-in-out infinite}
+@keyframes pigeonbob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-3deg)}}
+.lot-pigeon.flap{animation:pigeonflap .55s ease}
+@keyframes pigeonflap{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(6px,-16px) rotate(-14deg)}
+  55%{transform:translate(12px,-9px) rotate(10deg)}100%{transform:translate(0,0) rotate(0)}}
 /* seizoenssfeer op 't koertje: sneeuw, bloesem, zonnevonken, vallende blaadjes */
 .lot-wx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
 .lot-wx i{position:absolute;top:-14px;display:inline-block;opacity:0;will-change:transform;animation:wxfall linear infinite}
@@ -934,6 +940,7 @@ const GOALS=[
  {id:"neontoggle",t:"Speel met het neonbord op de container",r:"+40 XP · sfeer is ook verkoop",c:()=>!!G.mile.neonToggle,fn:()=>addXP(40)},
  {id:"radiozap",t:"Zap eens door de radiozenders op 't koertje",r:"+40 XP · een deuntje bij de koffie",c:()=>!!G.mile.radioZap,fn:()=>addXP(40)},
  {id:"leveledup",t:"Klim een niveau hoger",r:"+30 XP · de eerste sport op de ladder",c:()=>!!G.mile.leveledUp,fn:()=>addXP(30)},
+ {id:"pigeon",t:"Jaag de duif eens op 't koertje op",r:"+30 XP · roekoe",c:()=>!!G.mile.pigeon,fn:()=>addXP(30)},
  {id:"heatsweat",t:"Laat de heat oplopen tot het zweet (paniek op 't koertje)",r:"+60 XP · leven op het randje",c:()=>!!G.mile.heatSweat,fn:()=>addXP(60)},
  {id:"polaroid",t:"Vereeuwig een nieuwe aanwinst op de polaroid",r:"+40 XP · een kiekje voor 't album",c:()=>!!G.mile.polaroid,fn:()=>addXP(40)},
  {id:"moto",t:"Neem een moto in ruil en flip ze door",r:"+90 XP · twee wielen, snel cash",c:()=>!!G.mile.moto,fn:()=>addXP(90)},
@@ -4652,8 +4659,20 @@ function lotScene(){
    +lotWeatherHtml(wx)
    +carsH
    +(cars.length===0?'<div class="lot-duif">🐦</div>':'')
+   +'<div class="lot-pigeon" onclick="pigeonPoke(this)">🐦</div>'
    +'<div class="lot-char" onclick="lotPoke(this)">'+chr().face+'<div class="lot-smoke"><i></i><i></i><i></i></div></div>'
    +'</div>';
+}
+/* klik op de duif op de omheining: ze fladdert op met een koer */
+const PIGEON_COOS=["Roekoe!","*fladder fladder*","De duif is niet onder de indruk.","Ze pikt nog eens naar een frietje.","Terug op de omheining, alsof er niks gebeurd is."];
+function pigeonPoke(el){
+  if(!el)return;
+  el.classList.remove("flap");void el.offsetWidth;el.classList.add("flap");
+  const r=document.createElement("div");r.className="lot-react";r.textContent=pick(["🕊️","💨","🎵"]);
+  if(el.parentNode)el.parentNode.appendChild(r);
+  setTimeout(()=>r.remove(),1100);
+  if(G&&G.mile)G.mile.pigeon=1;
+  sfx("tick");toast("🐦 "+pick(PIGEON_COOS));
 }
 /* klik op het neonbord: cycle de neonkleur (easter-egg, blijft bewaard) */
 function lotSignClick(){
