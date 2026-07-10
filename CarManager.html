@@ -266,6 +266,14 @@ select,input[type=text]{background:var(--card2);color:var(--txt);border:1px soli
   background:radial-gradient(1.6px 1.6px at 12% 30%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 34% 62%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 58% 38%,#57506a 50%,transparent 51%),radial-gradient(1.6px 1.6px at 79% 70%,#57506a 50%,transparent 51%),
   radial-gradient(1.6px 1.6px at 91% 34%,#57506a 50%,transparent 51%)}
+/* dag/nacht-lucht: traag verschuivende tint over de basis-achtergrond */
+.lot-sky{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:0;transition:opacity .8s}
+.lot.dawn .lot-sky{opacity:1;background:linear-gradient(180deg,rgba(255,150,120,.28),rgba(255,200,120,.10) 45%,transparent 60%)}
+.lot.dusk .lot-sky{opacity:1;background:linear-gradient(180deg,rgba(120,60,140,.30),rgba(255,120,80,.14) 48%,transparent 62%)}
+.lot.night .lot-sky{opacity:1;background:linear-gradient(180deg,rgba(6,8,30,.62),rgba(20,20,55,.34) 50%,rgba(10,10,25,.15) 60%)}
+.lot.night .lot-office:before{box-shadow:34px 0 0 #ffd76a,0 0 10px 3px rgba(255,224,120,.7)}
+.lot.night .lot-neon{text-shadow:0 0 6px var(--nh),0 0 14px var(--nh),0 0 26px var(--nh)}
+.lot.night .lot-sun{opacity:.35;filter:brightness(.7)}
 /* heat-reactieve sfeer: hoe heter, hoe zenuwachtiger de container */
 .lot-heatglow{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .6s}
 .lot.lot-warm .lot-heatglow{opacity:1;background:radial-gradient(90px 60px at 12% 34%,rgba(255,150,60,.16),transparent 70%)}
@@ -4590,17 +4598,21 @@ function heatMood(heat){const h=heat||0;
   if(h>60)return {cls:"lot-hot",label:"heet"};
   if(h>30)return {cls:"lot-warm",label:"onrustig"};
   return {cls:"",label:"kalm"};}
+/* dag/nacht-sfeer: de lucht kleurt traag mee met de weken (dageraad->dag->schemer->nacht) */
+const DAY_PHASES=[{cls:"dawn",label:"dageraad"},{cls:"",label:"dag"},{cls:"dusk",label:"schemer"},{cls:"night",label:"nacht"}];
+function dayPhase(week){const w=((week||1)-1);return DAY_PHASES[Math.floor(w/2)%DAY_PHASES.length];}
 /* the koertje, alive */
 function lotScene(){
   const cars=G.cars.slice(0,5);
   const wx=lotWeather();
   const sign=lotSign(),hue=NEON_HUES[(G.neonHue||0)%NEON_HUES.length];
   const hm=heatMood(G.heat);
+  const dp=dayPhase(G.week);
   if(hm.cls==="lot-panic")G.mile.heatSweat=1;
   let carsH="";
   cars.forEach((c,i)=>{carsH+='<div class="lot-car" onclick="lotCarPoke(this,'+i+')" style="left:'+(25+i*13.5)+'%;animation-delay:'+(i*.7)+'s">'+carArt(c,74)+'<div class="lot-tag" style="animation-delay:'+(i*.35).toFixed(2)+'s">'+fmt(askValue(c))+'</div></div>'});
-  return '<div class="lot '+wx.cls+(hm.cls?" "+hm.cls:"")+'">'
-   +'<div class="lot-tint"></div><div class="lot-heatglow"></div>'
+  return '<div class="lot '+wx.cls+(hm.cls?" "+hm.cls:"")+(dp.cls?" "+dp.cls:"")+'">'
+   +'<div class="lot-sky"></div><div class="lot-tint"></div><div class="lot-heatglow"></div>'
    +'<div class="lot-sun"></div><div class="lot-clouds">☁️ ☁️ ☁️ ☁️</div>'
    +'<div class="lot-fence"></div><div class="lot-office"></div>'
    +'<div class="lot-neon '+sign.cls+'" onclick="lotSignClick()" style="--nh:'+hue+'">'+sign.txt+'</div>'
