@@ -1010,6 +1010,26 @@ function checkGoals(){
         log("📋 Doel behaald: "+g.t+" → "+g.r);
         if(g.fn)g.fn();}}}
 }
+/* meetbare doelen -> voortgangsteaser ("nog X te gaan", always-there nudge) */
+const GOAL_METRICS={
+  s1:{cur:()=>G.sold,target:1},s5:{cur:()=>G.sold,target:5},s15:{cur:()=>G.sold,target:15},
+  s25:{cur:()=>G.sold,target:25},staff:{cur:()=>G.sold,target:40},s100:{cur:()=>G.sold,target:100},
+  s200:{cur:()=>G.sold,target:200},lvl5:{cur:()=>G.lvl,target:5},lvl12:{cur:()=>G.lvl,target:12},
+  c2m:{cur:()=>G.cash,target:2000000},villa:{cur:()=>G.cash,target:5000000},
+  imperium:{cur:()=>G.cash,target:10000000},c20m:{cur:()=>G.cash,target:20000000},
+  trips50:{cur:()=>G.trips,target:50}};
+function nextGoalTeaser(){
+  if(!G||!G.goalsDone)return null;
+  let best=null;
+  for(const g of GOALS){
+    if(G.goalsDone.includes(g.id))continue;
+    const mm=GOAL_METRICS[g.id];if(!mm)continue;
+    const cur=Math.max(0,mm.cur()||0),frac=clamp(cur/mm.target,0,1);
+    if(frac>=1)continue;
+    if(!best||frac>best.frac)best={title:g.t,cur:cur,target:mm.target,frac:frac};
+  }
+  return best;
+}
 /* ---- prijzenkast: badges afgeleid van G.mile-vlaggen ---- */
 const TROPHIES=[
  {key:"eastTrip",emo:"🗺️",name:"Oostblok-pionier",hint:"Koop een keer in Polen of Oekraïne."},
@@ -2436,7 +2456,13 @@ function renderOffice(){
   const xpNeed=G.lvl*120;
   h+='<div class="card"><div class="spread"><h3 style="margin:0">🎖️ '+titleFor(G.lvl)+' · niveau '+G.lvl+'</h3><span class="small dim">'+G.xp+' / '+xpNeed+' XP</span></div>'
    +'<div class="bar" style="margin-top:6px"><i style="width:'+Math.min(100,Math.round(G.xp/xpNeed*100))+'%;background:linear-gradient(90deg,var(--amber),#ffd76a)"></i></div>'
-   +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div></div>';
+   +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div>';
+  {const tz=nextGoalTeaser();
+   if(tz){const big=tz.target>=1000000,cs=big?fmt(tz.cur):tz.cur,ts=big?fmt(tz.target):tz.target;
+     h+='<hr><div class="spread small"><span>🎯 <b>'+esc(tz.title)+'</b></span><span class="dim">'+cs+' / '+ts+'</span></div>'
+      +'<div class="bar goalbar" style="margin-top:4px"><i style="width:'+Math.round(tz.frac*100)+'%;background:linear-gradient(90deg,#72e08e,#6cc4ff)"></i></div>'
+      +'<div class="small dim" style="margin-top:3px">Bijna daar — nog '+(big?fmt(tz.target-tz.cur):(tz.target-tz.cur))+' te gaan.</div>';}}
+  h+='</div>';
   {const tier=repTier();
    h+='<div class="card"><div class="spread"><h3 style="margin:0">'+REP_TIERS[tier].emo+' '+REP_TIERS[tier].n+'</h3><span class="pill good">★ '+Math.round(G.rep)+' reputatie</span></div>';
    REP_TIERS.forEach((t,i)=>{if(i===0)return;
