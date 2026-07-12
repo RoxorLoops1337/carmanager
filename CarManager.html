@@ -953,7 +953,30 @@ function addXP(n){G.xp+=n;
   while(G.xp>=G.lvl*120){G.xp-=G.lvl*120;G.lvl++;repAdd(2);
     levelUpFx(G.lvl);
     toast("🎖️ "+titleFor(G.lvl)+" — niveau "+G.lvl+"! Onderhandelen gaat nét iets vlotter.")}}
+/* ---- progressie-ontgrendelingen: geavanceerde systemen komen pas na een paar verkopen vrij, zodat het begin overzichtelijk blijft ---- */
+const UNLOCKS_AT=[
+ {key:"appr",   sold:2, emo:"🧑‍🔧", n:"Leerjongen",      hint:"neem een hulpje aan in de garage"},
+ {key:"market", sold:3, emo:"🏬",   n:"Weekendmarkt",    hint:"huur een marktkraam voor extra volk"},
+ {key:"bank",   sold:4, emo:"🏦",   n:"Bank van Essene", hint:"leen kapitaal bij de bank"},
+ {key:"reclame",sold:5, emo:"📣",   n:"Reclame maken",   hint:"boek advertenties voor rijkere klanten"},
+ {key:"barn",   sold:8, emo:"🏛️",  n:"De Schuur",       hint:"laat mooie wagens rijpen als belegging"},
+];
+function unlocked(key){if(!G)return false;const u=UNLOCKS_AT.find(x=>x.key===key);return u?((G.sold||0)>=u.sold):true;}
+/* eenmalige melding wanneer een systeem net vrijkomt (vlag in G.unlocks hergebruikt) */
+function checkUnlocks(){try{
+  if(!G||G.over)return;G.unlocks=G.unlocks||{};
+  for(const u of UNLOCKS_AT){
+    if((G.sold||0)>=u.sold&&!G.unlocks[u.key]){
+      G.unlocks[u.key]=1;
+      if(typeof toast==="function")toast("🔓 Ontgrendeld: "+u.emo+" "+u.n+" — "+u.hint);
+      if(typeof stamp==="function")stamp("🔓 "+u.n,"gold");
+      if(typeof sfx==="function")sfx("level");
+    }
+  }
+}catch(e){}}
 function migrate(){if(!G)return;
+  // stille inhaalslag voor bestaande saves: reeds bereikte ontgrendelingen niet opnieuw aankondigen
+  G.unlocks=G.unlocks||{};UNLOCKS_AT.forEach(u=>{if((G.sold||0)>=u.sold&&G.unlocks[u.key]==null)G.unlocks[u.key]=1;});
   G.cars=G.cars||[];G.custs=G.custs||[];G.log=G.log||[];G.plates=G.plates||[];
   G.office=G.office||0;G.week=G.week||1;G.year=G.year||1995;
   if(G.cash==null)G.cash=0;if(G.rep==null)G.rep=30;if(G.heat==null)G.heat=0;
@@ -2787,6 +2810,7 @@ function nav(t){CUR=t;render()}
 function render(){
   if(!G)return;
   checkWeekQuest();
+  checkUnlocks();
   hdr();
   const nb=$("nav");nb.style.display="flex";
   $("tabsbar").innerHTML=TABS.map(t=>'<button class="'+(CUR===t[0]?"on":"")+'" onclick="nav(\''+t[0]+'\')"><span class="ic">'+t[1]+'</span>'+t[2]+(t[0]==="sell"&&G.custs.length?" ("+G.custs.length+")":"")+'</button>').join("");
@@ -3113,14 +3137,14 @@ function renderOffice(){
      h+='</div>';
    }}
   // reclamecampagne
-  {h+='<div class="card"><div class="spread"><h3 style="margin:0">📣 Reclame maken</h3>'
+  if(unlocked("reclame")){h+='<div class="card"><div class="spread"><h3 style="margin:0">📣 Reclame maken</h3>'
     +((G.adWeeks||0)>0?'<span class="pill good">loopt nog '+G.adWeeks+' wk</span>':'<span class="pill dim">geen campagne</span>')+'</div>'
     +'<div class="small dim">Een betaalde advertentie trekt tijdelijk meer (en rijkere) klanten naar \'t koertje. Los van de vaste Vlan-zoekertjes.</div>'
     +'<div class="tablebtns" style="margin-top:6px">';
    for(const a of AD_OPTIONS)h+='<button class="btn" onclick="buyAd(\''+a.id+'\')">'+a.emo+' '+a.n+'<br><span class="small">'+fmt(a.cost)+' · '+a.weeks+' weken</span></button>';
    h+='</div>'+((G.adWeeks||0)>0?'<div class="small dim" style="margin-top:4px">Nog een campagne boeken stapelt de weken op elkaar.</div>':'')+'</div>';}
   // weekend-marktstand
-  {h+='<div class="card"><div class="spread"><h3 style="margin:0">🏬 Weekendmarkt</h3>'
+  if(unlocked("market")){h+='<div class="card"><div class="spread"><h3 style="margin:0">🏬 Weekendmarkt</h3>'
     +(G.marketWeek?'<span class="pill good">kraam staat er</span>':'<span class="pill dim">geen kraam</span>')+'</div>'
     +'<div class="small dim">Huur een standplaats op een weekendautomarkt ('+fmt(MARKET_FEE)+'): een paar wagens mee, '+MARKET_CUSTS+' extra kijklustigen deze week en vlottere verkoop (+'+Math.round(MARKET_ODDS*100)+'%). Eenmalig, geldt één weekend.</div>'
     +(G.marketWeek?'<div class="small dim" style="margin-top:4px">De kraam staat al opgesteld dit weekend.</div>':'<button class="btn primary" onclick="rentStand()" '+(G.cars.length?"":"disabled")+'>🏬 Standplaats huren ('+fmt(MARKET_FEE)+')</button>')+'</div>';}
@@ -3146,7 +3170,7 @@ function renderOffice(){
   h+='<div class="card flat" style="cursor:pointer" onclick="zapRadio()" title="Tik om te zappen">'
    +'<div class="small"><b>📻 Radio Essene</b> <span class="dim">· tik om te zappen</span></div>'
    +'<div class="small dim" style="margin-top:3px">'+esc(RADIO[(G.week*7+(G.radioIx||0))%RADIO.length])+'</div></div>';
-  {const debt=G.loan||0,room=bankMax()-debt;
+  if(unlocked("bank")||(G.loan||0)>0){const debt=G.loan||0,room=bankMax()-debt;
    h+='<div class="card"><div class="spread"><h3 style="margin:0">🏦 Bank van Essene</h3>'
     +(debt>0?'<span class="pill '+(debt>bankMax()*.7?"bad":"warn")+'">schuld '+fmt(debt)+'</span>':'<span class="pill good">schuldenvrij</span>')+'</div>'
     +'<div class="small dim">Leen nu, betaal wekelijks terug met '+Math.round(LOAN_RATE*100)+'% rente. Kredietwaardig tot <b>'+fmt(bankMax())+'</b>.'
@@ -4625,7 +4649,7 @@ function renderGarage(){
     h+='<div class="card"><div class="spread"><h3 style="margin:0">🧑‍🔧 Leerjongen</h3><span class="pill '+(l>=3?"good":"warn")+'">'+(l>=3?"uitgeleerd 🎓":"niveau "+l+" "+"⭐".repeat(Math.max(0,l-1)))+'</span></div>'
      +'<div class="small dim">Klussen '+Math.round((1-apprMul())*100)+'% goedkoper'+(apprBotch()>0?", maar knoeit soms nog ("+Math.round(apprBotch()*100)+"% kans op mislukte klus)":"")+'. Loon '+fmt(APPR_WAGE)+'/week. Al '+(G.appr.weeks||0)+' weken in dienst.</div>'
      +'<button class="btn ghost" onclick="fireAppr()">Bedanken en laten gaan</button></div>';
-  } else {
+  } else if(unlocked("appr")){
     h+='<div class="card"><div class="spread"><h3 style="margin:0">🧑‍🔧 Leerjongen aannemen?</h3><span class="pill">'+fmt(APPR_WAGE)+'/week</span></div>'
      +'<div class="small dim">Een groentje uit de vakschool. Maakt reparaties goedkoper (tot −15% als hij uitgeleerd is), maar de eerste weken knoeit hij nog wel eens. Leert bij met elke klus.</div>'
      +'<button class="btn primary" onclick="hireAppr()">🧑‍🔧 Leerjongen aannemen</button></div>';
@@ -4641,6 +4665,7 @@ function renderGarage(){
      +'<div class="carline-right"><button class="pinbtn'+(c.fav?" on":"")+'" onclick="event.stopPropagation();toggleFav('+c.id+')" title="'+(c.fav?"Losmaken — terug gewoon te koop":"Vastzetten — markeer als houder")+'">📌</button><div class="money small">'+fmt(askValue(c))+'</div></div></div>';
   }
   h+='<p class="small dim">Tik op een wagen voor reparaties, tuning en... andere diensten. De getoonde prijs is wat de markt erin ziet.</p>';
+  if(unlocked("barn")||(G.collection&&G.collection.length)){
   const coll=G.collection||[];
   h+='<div class="card"><div class="spread"><h3 style="margin:0">🏛️ De Schuur (collectie)</h3><span class="pill">'+coll.length+'/'+G.collSlots+' plaatsen</span></div>'
    +'<div class="small dim">Wagens die hier liggen winnen elke week waarde (zeldzaam = sneller)... maar de schuur is vochtig. Af en toe eens komen kijken is geen luxe.</div>';
@@ -4656,6 +4681,7 @@ function renderGarage(){
   if(!coll.length)h+='<div class="small dim center" style="margin:8px 0">De schuur staat leeg. Een mooie wagen die ge niet kwijt wilt? Leg hem hier.</div>';
   if(G.collSlots<6)h+='<button class="btn" onclick="expandBarn()">🏗️ Schuur uitbreiden (+1 plaats, '+fmt(250000)+')</button>';
   h+='</div>';
+  }
   $("view").innerHTML=h;
 }
 /* pin/houder-toggle: markeer een wagen die ge (voorlopig) niet kwijt wilt — komt bovenaan in de stocklijst */
