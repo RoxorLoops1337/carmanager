@@ -86,6 +86,15 @@ h3{font-family:var(--hfont);font-weight:600;font-size:18px;letter-spacing:.8px}
   box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.05);
   animation:cardin .26s ease-out both}
 @keyframes cardin{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:none}}
+.statbox{background:linear-gradient(165deg,#2e2344 0%,#271d3b 55%,#241a37 100%);border:1px solid var(--edge);border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.05)}
+.statbox>summary{list-style:none;cursor:pointer;padding:13px 14px;font-weight:bold;font-size:14px;color:var(--txt);display:flex;justify-content:space-between;align-items:center;user-select:none}
+.statbox>summary::-webkit-details-marker{display:none}
+.statbox>summary::after{content:"▸";color:var(--dim);font-size:12px;transition:transform .15s}
+.statbox[open]>summary::after{transform:rotate(90deg)}
+.statbox>summary:hover{color:var(--amber)}
+.statbox .statbody{padding:0 14px 12px}
+.statbox .statbody .spread{padding:3px 0}
+.statbox .statbody hr{margin:8px 0}
 #view>.card:nth-child(2){animation-delay:.04s}
 #view>.card:nth-child(3){animation-delay:.08s}
 #view>.card:nth-child(4){animation-delay:.12s}
@@ -2670,6 +2679,7 @@ function modal(html,btns){
 function closeModal(){$("modal").style.display="none";stop3D();if(WIV){clearInterval(WIV);WIV=null}if(typeof TD!=="undefined"&&TD&&TD.on)tdCleanup();if(G)render()}
 function modalOpen(){return $("modal").style.display==="flex"}
 let HCASH=null,HTW=null,REP_SHOWN=null,HEAT_SHOWN=null,REP_TIER_SHOWN=null,CASH_NEG_SHOWN=null,HEAT_BAND_SHOWN=null;
+let STATS_OPEN=false; // onthoudt of het opvouwbare statistiekenpaneel open staat
 /* heat-band: kalm(0) / onrustig(1,>30) / heet(2,>60) / paniek(3,>85) — voor de escalatie-waarschuwing */
 function heatBand(h){h=h||0;return h>85?3:h>60?2:h>30?1:0;}
 /* reputatie-promotie: vier het als de zaak een hogere status-trap bereikt */
@@ -2843,57 +2853,55 @@ function renderOffice(){
   let h=lotScene()+'<div class="card"><div class="spread"><h2 style="margin:0">🏢 '+of.n+'</h2><span class="coffee-cup" title="Altijd verse koffie op kantoor">☕<i></i><i></i><i></i></span></div>'
    +'<p class="small dim">'+of.desc+'</p>'
    +'<div class="row small"><span class="pill">Huur '+fmt(of.rent)+'/week</span>'
-   +'<span class="pill">Reputatie ★ '+Math.round(G.rep)+'</span><span class="pill '+(G.heat>60?"bad":G.heat>30?"warn":"")+'">Heat 🔥 '+Math.round(G.heat)+'</span>'
-   +'<span class="pill">'+G.cars.length+' wagens in stock</span>'
-   +'<span class="pill" title="Cash + vraagwaarde van stock + schuur — uw totale vermogen">💎 Vermogen '+fmt(netWorth())+'</span>'
-   +((G.bestWeek||0)>0?'<span class="pill" title="Uw beste weekresultaat ooit — probeer het te breken">🏆 Recordweek '+fmt(G.bestWeek)+'</span>':'')
-   +((G.fastFlip!=null&&G.fastFlip>=0)?'<span class="pill" title="Uw snelste flip: minste weken tussen inkoop en verkoop">⚡ Snelste flip: '+(G.fastFlip===0?"zelfde week":G.fastFlip+" wk")+'</span>':'')
-   +'<span class="pill" title="Klantenkaart: elke verkoop een stempel, volle kaart = bonus">🎟️ '+"●".repeat(G.stamps||0)+"○".repeat(Math.max(0,CARD_SIZE-(G.stamps||0)))+((G.cardsFull||0)>0?' ·'+G.cardsFull+'× vol':'')+'</span>'
-   +'<span class="pill" style="cursor:pointer" title="Klik om te zappen" onclick="radioNext()">📻 '+esc(RADIO_STATIONS[(G.radioStation||0)%RADIO_STATIONS.length].name)+'</span></div>';
+   +'<span class="pill" title="Reputatie">★ '+Math.round(G.rep)+'</span><span class="pill '+(G.heat>60?"bad":G.heat>30?"warn":"")+'" title="Heat">🔥 '+Math.round(G.heat)+'</span>'
+   +'<span class="pill">'+G.cars.length+' in stock</span>'
+   +'<span class="pill" style="cursor:pointer" title="Klik om te zappen naar een andere zender" onclick="radioNext()">📻 '+esc(RADIO_STATIONS[(G.radioStation||0)%RADIO_STATIONS.length].name)+'</span></div>';
   if(G.office===0&&true){
     h+='<hr><div class="small">🏗️ <b>Upgrade:</b> showroom in <b>Zellik</b> · '+fmt(OFFICES[1].cost)+' · meer klanten, betere prijzen.</div>'
      +'<button class="btn '+(G.cash>=OFFICES[1].cost?"primary":"")+'" onclick="upgradeOffice()" '+(G.cash<OFFICES[1].cost?"disabled":"")+'>Verhuis naar Zellik</button>';
   }
   h+='</div>';
+  // KERN-KAART: niveau + het weekdoel (wat telt er deze week)
   const xpNeed=G.lvl*120;
   h+='<div class="card"><div class="spread"><h3 style="margin:0">🎖️ '+titleFor(G.lvl)+' · niveau '+G.lvl+'</h3><span class="small dim">'+G.xp+' / '+xpNeed+' XP</span></div>'
    +'<div class="bar" style="margin-top:6px"><i style="width:'+Math.min(100,Math.round(G.xp/xpNeed*100))+'%;background:linear-gradient(90deg,var(--amber),#ffd76a)"></i></div>'
-   +'<div class="small dim" style="margin-top:5px">Elke deal, trip en klus geeft XP. Elk niveau praat nét iets makkelijker een deal rond.</div>'
-   +(function(){const nt=nextTitle();return nt?'<div class="small" style="margin-top:4px">🏅 Volgende titel: <b>'+esc(nt.n)+'</b> op niveau '+nt.lvl+' <span class="dim">(nog '+nt.toGo+' niveau'+(nt.toGo===1?'':'s')+')</span></div>':'<div class="small dim" style="margin-top:4px">🏅 Hoogste titel bereikt — Legende van Essene. 👑</div>';})();
-  {const tz=nextGoalTeaser();
-   if(tz){const big=tz.target>=1000000,cs=big?fmt(tz.cur):tz.cur,ts=big?fmt(tz.target):tz.target;
-     h+='<hr><div class="spread small"><span>🎯 <b>'+esc(tz.title)+'</b></span><span class="dim">'+cs+' / '+ts+'</span></div>'
-      +'<div class="bar goalbar" style="margin-top:4px"><i style="width:'+Math.round(tz.frac*100)+'%;background:linear-gradient(90deg,#72e08e,#6cc4ff)"></i></div>'
-      +'<div class="small dim" style="margin-top:3px">Bijna daar — nog '+(big?fmt(tz.target-tz.cur):(tz.target-tz.cur))+' te gaan.</div>';}}
-  {const cs=collectionStats();
-   h+='<hr><div class="spread small"><span>🚗 <b>Modellenverzameling</b></span><span class="dim">'+cs.have+' / '+cs.total+' ('+Math.round(cs.frac*100)+'%)</span></div>'
-    +'<div class="bar" style="margin-top:4px"><i style="width:'+Math.round(cs.frac*100)+'%;background:linear-gradient(90deg,#ff5d9e,#ffb347)"></i></div>'
-    +'<div class="small dim" style="margin-top:3px">'+(cs.frac>=1?"Élk model minstens één keer verkocht — compleet! 👑":"Verkoop een model dat ge nog nooit verhandeld hebt om de collectie aan te vullen.")+'</div>';}
+   +(function(){const nt=nextTitle();return nt?'<div class="small dim" style="margin-top:4px">🏅 Volgende titel: <b>'+esc(nt.n)+'</b> op niveau '+nt.lvl+'</div>':'<div class="small dim" style="margin-top:4px">🏅 Hoogste titel bereikt. 👑</div>';})();
   {const wq=weekQuestProg();
    h+='<hr><div class="spread small"><span>🎯 <b>Weekdoel</b> — '+esc(wq.quest.t)+'</span><span class="'+(wq.claimed?"money":"dim")+'">'+(wq.claimed?"✓ +"+fmt(wq.quest.rc):wq.prog+" / "+wq.tgt)+'</span></div>'
     +'<div class="bar" style="margin-top:4px"><i style="width:'+Math.round((wq.claimed?1:wq.frac)*100)+'%;background:linear-gradient(90deg,#ffd76a,#72e08e)"></i></div>'
-    +'<div class="small dim" style="margin-top:3px">'+(wq.claimed?"Weekdoel binnen — de bonus is bijgeschreven. Volgende week een nieuw doel.":"Haal het deze week en er valt <b>"+fmt(wq.quest.rc)+"</b> + "+wq.quest.rx+" XP in de kassa.")+'</div>';}
-  {const cr=cashRing();
-   h+='<hr><div class="spread" style="align-items:center"><div class="mile-ring" style="--p:'+Math.round(cr.frac*100)+'"><span>'+Math.round(cr.frac*100)+'%</span></div>'
-    +'<div style="flex:1;margin-left:12px"><div class="small"><b>💰 Volgende mijlpaal</b>'+(cr.next?' — '+esc(cr.label)+' BEF':'')+'</div>'
-    +'<div class="small dim" style="margin-top:2px">'+(cr.next?"Nog <b>"+fmt(cr.toGo)+"</b> tot de volgende feestknal.":"Élke cash-mijlpaal gebroken — de kroon is binnen. 👑")+'</div></div></div>';}
-  h+='<hr><div class="weektip">💡 <b>Tip van de week</b><span>'+esc(weekTip())+'</span></div>';
+    +'<div class="small dim" style="margin-top:3px">'+(wq.claimed?"Weekdoel binnen — volgende week een nieuw doel.":"Haal het deze week: <b>"+fmt(wq.quest.rc)+"</b> + "+wq.quest.rx+" XP.")+'</div>';}
   h+='</div>';
-  h+=recordsCard();
-  {const tier=repTier();
-   h+='<div class="card"><div class="spread"><h3 style="margin:0">'+REP_TIERS[tier].emo+' '+REP_TIERS[tier].n+'</h3><span class="pill good">★ '+Math.round(G.rep)+' reputatie</span></div>';
-   REP_TIERS.forEach((t,i)=>{if(i===0)return;
-     const got=tier>=i;
-     h+='<div class="logline" style="'+(got?"":"opacity:.5")+'"><b>'+t.emo+' '+t.n+'</b> <span class="small dim">(★'+t.min+')</span> '+(got?'<span class="pill good">✓</span>':'<span class="pill">🔒</span>')+'<div class="small dim">'+t.perk+'</div></div>';});
-   h+='</div>';}
+  // DOELEN-KAART: de eerstvolgende dingen om naar te werken (compact)
   const undone=GOALS.filter(g=>!G.goalsDone.includes(g.id));
   {const gf=goalsFrac();
    h+='<div class="card"><div class="spread" style="align-items:center"><div><h3 style="margin:0">📋 Doelen</h3><div class="small dim">'+gf.done+' / '+gf.total+' behaald</div></div>'
     +'<div class="mile-ring" style="--p:'+Math.round(gf.frac*100)+'"><span>'+Math.round(gf.frac*100)+'%</span></div></div>';}
   undone.slice(0,2).forEach(g=>{h+='<div class="logline">🎯 '+g.t+'<div class="small dim">Beloning: '+g.r+'</div></div>'});
-  if(undone.length>2)h+='<div class="logline dim small">🔒 daarna: '+undone[2].t+'</div>';
   if(!undone.length)h+='<div class="dim small">Alles behaald. Gij zijt de handel. 🏡</div>';
   h+='</div>';
+  // STATISTIEKEN & RECORDS: opgevouwen achter een menu, en enkel zodra er iets te tonen valt
+  if((G.sold||0)>0||(G.week||1)>1){
+    h+='<details class="statbox"'+(STATS_OPEN?' open':'')+' ontoggle="STATS_OPEN=this.open"><summary>📊 Statistieken &amp; records</summary><div class="statbody">'
+     +'<div class="spread small"><span class="dim">💎 Vermogen</span><b>'+fmt(netWorth())+'</b></div>'
+     +'<div class="spread small"><span class="dim">🏆 Beste week ooit</span><b>'+((G.bestWeek||0)>0?"+"+fmt(G.bestWeek):"—")+'</b></div>'
+     +'<div class="spread small"><span class="dim">⚡ Snelste flip</span><b>'+((G.fastFlip!=null&&G.fastFlip>=0)?(G.fastFlip===0?"zelfde week":G.fastFlip+" wk"):"—")+'</b></div>'
+     +'<div class="spread small"><span class="dim">💰 Grootste deal</span><b>'+((G.recProfit||0)>0?"+"+fmt(G.recProfit):"—")+'</b></div>'
+     +'<div class="spread small"><span class="dim">🚗 Totaal verkocht</span><b>'+(G.sold||0)+'</b></div>'
+     +'<div class="spread small"><span class="dim">🎟️ Klantenkaart</span><b>'+"●".repeat(G.stamps||0)+"○".repeat(Math.max(0,CARD_SIZE-(G.stamps||0)))+((G.cardsFull||0)>0?' ·'+G.cardsFull+'×':'')+'</b></div>';
+    {const cs=collectionStats();
+     h+='<hr><div class="spread small"><span>🚗 <b>Modellenverzameling</b></span><span class="dim">'+cs.have+' / '+cs.total+' ('+Math.round(cs.frac*100)+'%)</span></div>'
+      +'<div class="bar" style="margin-top:4px"><i style="width:'+Math.round(cs.frac*100)+'%;background:linear-gradient(90deg,#ff5d9e,#ffb347)"></i></div>';}
+    {const cr=cashRing();
+     h+='<hr><div class="spread" style="align-items:center"><div class="mile-ring" style="--p:'+Math.round(cr.frac*100)+'"><span>'+Math.round(cr.frac*100)+'%</span></div>'
+      +'<div style="flex:1;margin-left:12px"><div class="small"><b>💰 Volgende cash-mijlpaal</b>'+(cr.next?' — '+esc(cr.label)+' BEF':'')+'</div>'
+      +'<div class="small dim" style="margin-top:2px">'+(cr.next?"Nog <b>"+fmt(cr.toGo)+"</b> te gaan.":"Alle mijlpalen gebroken. 👑")+'</div></div></div>';}
+    {const tier=repTier();
+     h+='<hr><div class="small" style="margin-bottom:2px"><b>'+REP_TIERS[tier].emo+' '+REP_TIERS[tier].n+'</b> — reputatie-perkladder</div>';
+     REP_TIERS.forEach((t,i)=>{if(i===0)return;const got=tier>=i;
+       h+='<div class="logline" style="'+(got?"":"opacity:.5")+'"><b>'+t.emo+' '+t.n+'</b> <span class="small dim">(★'+t.min+')</span> '+(got?'<span class="pill good">✓</span>':'<span class="pill">🔒</span>')+'<div class="small dim">'+t.perk+'</div></div>';});}
+    h+='<hr><div class="weektip">💡 <b>Tip van de week</b><span>'+esc(weekTip())+'</span></div>';
+    h+='</div></details>';
+  }
   if(G.phoneDeal){const pd=G.phoneDeal;
     h+='<div class="card"><h3>'+(pd.viaThomas?'📱 Thomas belde':'📱 De GSM rinkelde')+'</h3>'
      +'<div class="carline" style="cursor:default"><div class="carpic" style="width:86px">'+carArt(pd.c,88)+'</div>'
