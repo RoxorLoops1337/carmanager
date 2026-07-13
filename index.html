@@ -4132,9 +4132,6 @@ function renderTravel(){
     h+='<div class="card"><div class="spread"><h3 style="margin:0">🪖 Legerstock (dumpdepot)</h3><span class="pill">⚠⚠</span></div>'
      +'<div class="small dim">Ex-leger, olijfgroen, geen verwarming, geen radio, wél onverwoestbaar. Spotgoedkoop en geen vragen. Om de 3 weken open.</div>'
      +((G.week%3===0)?'<button class="btn primary" onclick="openLeger()">Naar het depot</button>':'<div class="small dim" style="margin-top:4px">Nu gesloten — kom terug over '+((3-(G.week%3))%3||3)+' we(e)k(en).</div>')+'</div>';
-  }else{
-    h+='<div class="card" style="opacity:.6"><div class="spread"><h3 style="margin:0">🪖 Legerstock 🔒</h3><span class="pill">⚠⚠</span></div>'
-     +'<div class="small dim">Een dumpdepot vol ex-legervoertuigen. 🔒 Ontgrendelt na <b>6 inkooptrips</b> (ge moet de weg kennen).</div></div>';
   }
   if(G.unlocks.port){
     h+='<div class="card"><div class="spread"><h3 style="margin:0">🚢 Japan-import (kaai 142)</h3><span class="pill info">🇯🇵 JDM</span></div>';
@@ -4144,12 +4141,7 @@ function renderTravel(){
     h+='</div>';
   }
   for(const k in MARKETS){const m=MARKETS[k];
-    if(m.req&&!m.req.c()){
-      h+='<div class="card" style="opacity:.6"><div class="spread"><h3 style="margin:0">'+m.fl+" "+m.n+' 🔒</h3><span class="pill">'+"⚠".repeat(m.risk)+'</span></div>'
-       +'<div class="small dim">'+m.desc+'</div>'
-       +'<div class="small" style="margin-top:6px">🔒 Nog niet beschikbaar: <b>'+m.req.t+'</b></div></div>';
-      continue;
-    }
+    if(m.req&&!m.req.c())continue; // nog niet ontgrendelde bestemmingen worden niet getoond tot ze beschikbaar zijn
     const tc=Math.round(m.travel*(hasStaff("jempi")?.65:1));
     h+='<div class="card"><div class="spread"><h3 style="margin:0">'+m.fl+" "+m.n+'</h3><span class="pill">'+"⚠".repeat(m.risk)+'</span></div>'
      +'<div class="small dim">'+m.city+' · '+m.desc+'</div>'
